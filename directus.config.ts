@@ -7,19 +7,8 @@ export default defineDirectusConfig({
     proxyToken: ENV.DIRECTUS_PROXY_TOKEN
   },
   client: {
-    commands: [
-      "readItem",
-      "readItems",
-      "aggregate",
-      "createItem",
-      "createItems",
-      "updateItem",
-      "updateItems",
-      "deleteItem",
-      "updateUser",
-      "readMe",
-      "readSingleton"
-    ],
+    commands: ["readItem", "readItems"],
+    preview: { enabled: false },
     typegen: {
       introspectionToken: ENV.DIRECTUS_INTROSPECTION_TOKEN
       // cache: { maxAge: 0 } // Uncomment for a fresh typegen introspection

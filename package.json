@@ -1,5 +1,6 @@
 {
   "name": "@onderwijsin/onderwijsloket-assistent",
+  "version": "0.0.1",
   "private": true,
   "description": "An experimental MCP server for Assistent UI for Onderwijsloket",
   "type": "module",
@@ -43,6 +44,9 @@
     "@onderwijsin/nuxt-newsletter-signup": "catalog:",
     "@pinia/nuxt": "catalog:",
     "@tailwindcss/typography": "catalog:",
+    "@tiptap/core": "catalog:",
+    "@tiptap/markdown": "catalog:",
+    "@tiptap/starter-kit": "catalog:",
     "@varlock/nuxt-integration": "catalog:",
     "@varlock/proton-pass-plugin": "catalog:",
     "@vueuse/core": "catalog:",

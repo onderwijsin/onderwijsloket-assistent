@@ -2,7 +2,7 @@
 
 Experimental, anonymous, read-only MCP access to Onderwijsloket data.
 
-The next milestone is an articles-only POC with seven tools. No MCP tools are implemented yet. UI, resources and prompts are outside the current milestone; the existing Nuxt starter UI is unchanged.
+The articles POC currently exposes five Directus-backed tools: `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`. Algolia search and facets are deferred. UI, resources and prompts are outside the current milestone; the existing Nuxt starter UI is unchanged.
 
 ## Start here
 
@@ -13,8 +13,8 @@ The next milestone is an articles-only POC with seven tools. No MCP tools are im
 ## Structure
 
 - `server/mcp/tools/`: MCP adapters.
-- `server/collections/`: approved collection definitions and public contracts.
-- `server/services/`: upstream access and record normalization.
-- `tests/`: future contract and integration checks.
+- `server/collections/`: collection schemas, Directus queries and normalization.
+- `server/utils/`: shared collection definition helper.
+- `tests/`: contract and integration checks.
 
-These directories contain documentation only. Scaffolding does not register tools or change runtime behavior.
+See the POC guide for supported inputs and current limitations, including explicit warnings for unavailable or unsupported content.

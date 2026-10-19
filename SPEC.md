@@ -54,7 +54,7 @@ The [advanced search guide](https://docs.onderwijsloket.com/search/advanced-usag
 
 ### Content documents
 
-The [content document guide](https://docs.onderwijsloket.com/misc/content-documents) describes Tiptap JSON plus relational `editor_nodes`. Returning only text nodes can lose callouts, references and other meaningful information. Provide a bounded Markdown/text representation that resolves supported relational nodes, preserves links and reports unresolved content. Avoid a full visual editor or renderer for this project.
+The [content document guide](https://docs.onderwijsloket.com/misc/content-documents) describes Tiptap JSON plus relational `editor_nodes`. Returning only text nodes can lose callouts, references and other meaningful information. The shared `server/utils/content/` pipeline now provides bounded Markdown, resolves supported relational nodes, preserves links and reports unresolved content; see [content documents](docs/content-documents.md). Avoid a full visual editor or renderer for this project.
 
 ### Research limitations
 
@@ -72,7 +72,7 @@ Nuxt UI → POST /api/chat → AI SDK + Mistral → /mcp
                                   Directus    Algolia    Geocoder
 ```
 
-Use one Nuxt application with Nitro server handlers. Keep upstream clients and domain logic in reusable server modules; MCP tools are thin validated adapters. Keep Node server and Cloudflare Workers compatibility, using fetch-compatible libraries and no dependence on local files or process memory for correctness.
+Use one Nuxt application with Nitro server handlers. Keep collection contracts, Directus queries and normalization together; MCP tools are thin validated adapters. Keep Node server and Cloudflare Workers compatibility, using fetch-compatible libraries and no dependence on local files or process memory for correctness.
 
 Proposed layout:
 
@@ -82,7 +82,8 @@ server/api/chat.post.ts         Validated streaming Mistral orchestration
 server/mcp/tools/               Discovery, retrieval, search and geo tools
 server/mcp/resources/           Catalogue, usage guidance and workflow text
 server/mcp/prompts/             Adviser prompt templates
-server/services/                Directus, Algolia, geocoding and normalization
+server/collections/             Collection contracts, Directus queries and normalization
+server/utils/                   Shared collection definition helper
 shared/                         Public schemas and response types
 ```
 
@@ -116,7 +117,7 @@ Use the [AI SDK MCP adapter](https://ai-sdk.dev/docs/ai-sdk-core/mcp-tools), its
 
 Use [Nuxt UI chat components](https://ui.nuxt.com/docs/components/chat-messages) for messages and input. Follow the installed AI SDK 7 Vue documentation rather than examples for older SDK versions.
 
-Use the [Directus client server helper](https://github.com/onderwijsin/nuxt-modules/tree/main/modules/directus-client) for source requests and generated schema types where available. Explicitly disable preview and authentication features. Audit automatically registered proxy and asset routes: no route may bypass the public data policy or expose a broader service credential. Prefer upstream permissions that enforce the same restrictions.
+Use the [Directus client server helper](https://github.com/onderwijsin/nuxt-modules/tree/main/modules/directus-client) for source requests and generated schema types where available. Reuse the configured Directus client and generated types.
 
 Use the [Algolia JavaScript client](https://www.algolia.com/doc/libraries/sdk/install) for query operations only. Exact index names, available facets and permitted vendors belong in server configuration, not caller-controlled identifiers.
 
@@ -124,7 +125,7 @@ Use the [Algolia JavaScript client](https://www.algolia.com/doc/libraries/sdk/in
 
 ### Discovery and granularity
 
-Start with a small set of domain-oriented tools and an explicit collection registry. The registry maps supported public collection identifiers to field projections, filter schemas, sort options, relationships, publication rules, search indexes and attribution rules. Unknown collections are rejected. Adding an upstream collection must not publish it automatically.
+Start with a small set of domain-oriented tools and an explicit collection registry. The registry maps collection identifiers to field projections, filter schemas, sort options, relationships, search indexes and attribution rules. Unknown collections are rejected. Adding an upstream collection must not publish it automatically.
 
 Proposed names and inputs below are provisional until the first contract review:
 
@@ -197,7 +198,6 @@ MCP access remains anonymous. Apply separate per-client and global cost controls
 
 ## 9. Public access and operations
 
-- Enforce publication state, scheduled publication rules, vendor restrictions, field projections and relationship restrictions in server code and upstream permissions. Apply these to detail-by-ID reads, search results and embedded content too.
 - Keep Directus, Algolia and Mistral credentials server-only. Use a least-privilege runtime credential and a separate build-time schema credential if required.
 - Reject arbitrary Directus queries, raw Algolia filters, unlimited exports and caller-supplied upstream URLs. Bound multi-search fan-out as well as individual result counts.
 - Rate-limit MCP and chat separately, with shared limits across instances and global upstream budgets. Account for shared IPs used by hosted assistants; per-IP limits are a starting point, not user identity.
@@ -218,9 +218,9 @@ A working MCP endpoint does not itself guarantee listing in a plugin/app directo
 
 ### A. Confirm sources and publish the first retrieval tools
 
-Inventory approved collections, fields, publication rules, relationships, index settings and vendor rights. Create the public registry and a coverage table. Implement catalogue, list and detail tools for knowledge-base content, with source links and bounded rich-content resolution.
+Inventory collections, fields, relationships, index settings and vendor rights. Create the public registry and a coverage table. Implement catalogue, list and detail tools for knowledge-base content, with source links and bounded rich-content resolution.
 
-Acceptance: an independent MCP client can discover tools and retrieve a published article with its FAQ relationships. Unknown collections, unpublished IDs and private fields cannot be read through any exposed route.
+Acceptance: an independent MCP client can discover tools and retrieve a published article with its FAQ relationships. Unknown collections are rejected and record outputs match their declared contracts.
 
 ### B. Add search and navigator coverage
 

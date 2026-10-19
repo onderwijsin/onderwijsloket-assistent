@@ -14,7 +14,7 @@ With dependencies and environment access available:
 corepack pnpm dev
 ```
 
-Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit warning about missing definitions is expected until tools are implemented. A running starter does not demonstrate a working MCP contract.
+Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
 
 ## Checks
 

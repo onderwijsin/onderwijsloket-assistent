@@ -42,6 +42,9 @@ catalog:
   "@semantic-release/npm": 13.2.0
   "@semantic-release/release-notes-generator": 14.1.1
   "@tailwindcss/typography": 0.5.20
+  "@tiptap/core": 3.24.0
+  "@tiptap/markdown": 3.24.0
+  "@tiptap/starter-kit": 3.24.0
   "@varlock/nuxt-integration": 0.1.4
   "@varlock/proton-pass-plugin": 2.0.2
   "@vitest/coverage-v8": 5.0.5

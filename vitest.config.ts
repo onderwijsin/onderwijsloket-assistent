@@ -10,6 +10,8 @@ export default defineConfig({
       {
         test: {
           name: "unit",
+          // Allow cache tests to replace Nitro virtual runtime dependencies.
+          server: { deps: { inline: ["nitropack"] } },
           environment: "node",
           include: ["tests/unit/**/*.test.ts"]
         }

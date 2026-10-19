@@ -1,7 +1,5 @@
 # MCP tools
 
-Reserved for the seven articles POC adapters documented in [the POC guide](../../../docs/articles-poc.md).
+Five read-only Directus tools are registered: `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`.
 
-Future filenames: `list-collections.ts`, `describe-collection.ts`, `list-records.ts`, `get-record.ts`, `search-records.ts`, `get-facets.ts`, `get-filters.ts`. Set explicit underscore tool names to preserve the agreed public interface.
-
-Keep adapters thin: validate input, call collection/service logic and return structured output plus a readable fallback. Do not register resources or prompts. This README is not a tool definition.
+Adapters delegate to the article catalogue and services and return structured content with a text fallback. `search_records` and `get_facets` are deferred. No resources or prompts are registered. See [the POC guide](../../../docs/articles-poc.md).

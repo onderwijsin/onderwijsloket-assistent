@@ -1,6 +1,8 @@
 import "varlock/auto-load";
 import { ENV } from "varlock/env";
 
+import { version as packageVersion } from "./package.json";
+
 import { app } from "./config/head";
 import identity, { siteDescription, siteTitle } from "./config/identity";
 
@@ -11,6 +13,19 @@ export default defineNuxtConfig({
   compatibilityDate: "2026-06-30",
   devtools: {
     enabled: true
+  },
+
+  nitro: { experimental: { asyncContext: true } },
+
+  mcp: {
+    name: "Onderwijsloket Assistent (experimental)",
+    description: "Experimental read-only access to published Onderwijsloket articles.",
+    version: packageVersion,
+    // instructions: '', TODO add good system instruction
+    icons: [
+      { src: "/mcp_icon.png", mimeType: "image/png", sizes: ["64x64"], theme: "light" },
+      { src: "/mcp_icon.png", mimeType: "image/png", sizes: ["64x64"], theme: "dark" }
+    ]
   },
 
   css: ["~/assets/css/main.css"],

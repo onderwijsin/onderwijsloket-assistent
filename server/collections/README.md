@@ -1,7 +1,7 @@
-# Collection definitions
+# Collections
 
-Reserved for an explicit approved collection catalogue, starting with `articles` only.
+Each collection has a single default `defineMcpCollection(...)` export that owns its schemas, Directus queries, normalization and `list()`, `get()` and `filters()` methods. `articles.ts` defines articles and the seven taxonomy filter dimensions. The shared `defineMcpCollection` helper derives discovery metadata, tool inputs and response envelopes from the collection schemas.
 
-Keep public field projections, supported filter/operator definitions, sort options, publication rules, relation projections and the configured search-index mapping together. Define public input/output Zod contracts here when implementation begins; schemas are server-owned until another consumer needs them.
+Filter values are loaded from Directus. Summaries and details include flattened sectors, qualifications, roles, topics and tracks. The shared `server/utils/content/` pipeline hydrates editor nodes and renders document Markdown.
 
-Discovery must reflect this catalogue rather than enumerate upstream collections. Never publish an upstream collection or field automatically. See [the POC guide](../../docs/articles-poc.md).
+See [the POC guide](../../docs/articles-poc.md).

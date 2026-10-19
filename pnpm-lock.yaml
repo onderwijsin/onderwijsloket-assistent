@@ -248,6 +248,15 @@ catalogs:
     '@tailwindcss/typography':
       specifier: 0.5.20
       version: 0.5.20
+    '@tiptap/core':
+      specifier: 3.24.0
+      version: 3.24.0
+    '@tiptap/markdown':
+      specifier: 3.24.0
+      version: 3.24.0
+    '@tiptap/starter-kit':
+      specifier: 3.24.0
+      version: 3.24.0
     '@varlock/nuxt-integration':
       specifier: 0.1.4
       version: 0.1.4
@@ -382,6 +391,15 @@ importers:
       '@tailwindcss/typography':
         specifier: 'catalog:'
         version: 0.5.20(tailwindcss@4.3.3)
+      '@tiptap/core':
+        specifier: 'catalog:'
+        version: 3.24.0(@tiptap/pm@3.24.0)
+      '@tiptap/markdown':
+        specifier: 'catalog:'
+        version: 3.24.0(@tiptap/core@3.24.0(@tiptap/pm@3.24.0))(@tiptap/pm@3.24.0)
+      '@tiptap/starter-kit':
+        specifier: 'catalog:'
+        version: 3.24.0
       '@varlock/nuxt-integration':
         specifier: 'catalog:'
         version: 0.1.4(58d1aa592de2b8c7a4c5b7525c321d36)
