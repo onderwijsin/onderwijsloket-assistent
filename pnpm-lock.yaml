@@ -191,6 +191,9 @@ catalogs:
     '@iconify-json/simple-icons':
       specifier: 1.2.100
       version: 1.2.100
+    '@modelcontextprotocol/sdk':
+      specifier: 1.32.1
+      version: 1.32.1
     '@nuxt/fonts':
       specifier: 1.0.1
       version: 1.0.1
@@ -257,6 +260,9 @@ catalogs:
     '@tiptap/starter-kit':
       specifier: 3.24.0
       version: 3.24.0
+    '@types/node':
+      specifier: 26.6.5
+      version: 26.6.5
     '@varlock/nuxt-integration':
       specifier: 0.1.4
       version: 0.1.4
@@ -329,6 +335,9 @@ catalogs:
     vue-tsc:
       specifier: 3.3.13
       version: 3.3.13
+    yaml:
+      specifier: 2.9.1
+      version: 2.9.1
     zod:
       specifier: 4.6.7
       version: 4.6.7
@@ -355,6 +364,9 @@ importers:
       '@iconify-json/simple-icons':
         specifier: 'catalog:'
         version: 1.2.100
+      '@modelcontextprotocol/sdk':
+        specifier: 'catalog:'
+        version: 1.32.1(supports-color@10.2.2)(zod@4.6.7)
       '@nuxt/fonts':
         specifier: 'catalog:'
         version: 1.0.1(@nuxt/schema@4.6.2)(cac@7.1.0)(confbox@0.3.1)(db0@0.3.4)(dotenv@17.4.2)(esbuild@0.28.0)(giget@3.3.1)(ioredis@5.10.1(supports-color@10.2.2))(jiti@2.7.0)(lightningcss@1.33.0)(magic-string@1.4.3)(mlly@1.8.2)(ocache@0.3.0)(oxc-parser@0.153.0)(postcss@8.5.30)(rolldown@1.2.12)(rollup@4.60.4)(srvx@1.0.6)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.0)(jiti@2.7.0)(terser@5.47.1)(yaml@2.9.1))
@@ -445,6 +457,9 @@ importers:
       varlock:
         specifier: 'catalog:'
         version: 1.23.0
+      yaml:
+        specifier: 'catalog:'
+        version: 2.9.1
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -479,6 +494,9 @@ importers:
       '@semantic-release/release-notes-generator':
         specifier: 'catalog:'
         version: 14.1.1(semantic-release@25.0.9(supports-color@10.2.2)(typescript@6.0.3))(supports-color@10.2.2)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 5.0.5(vitest@5.0.5)

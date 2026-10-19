@@ -94,4 +94,10 @@ describe("readTaxonomy", () => {
     expect(await readTaxonomy(["topics"])).toHaveLength(1);
     expect(read).toHaveBeenCalledTimes(2);
   });
+  it("does not cache malformed responses and accepts a corrected retry", async () => {
+    read.mockResolvedValueOnce([{ id, title: "Incorrect field for topics" }]);
+    await expect(readTaxonomy(["topics"])).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+    expect(await readTaxonomy(["topics"])).toMatchObject([{ title: "topics" }]);
+    expect(read).toHaveBeenCalledTimes(2);
+  });
 });

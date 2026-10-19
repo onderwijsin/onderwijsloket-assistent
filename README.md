@@ -2,7 +2,7 @@
 
 Experimental, anonymous, read-only MCP access to Onderwijsloket data.
 
-The articles POC currently exposes five Directus-backed tools: `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`. Algolia search and facets are deferred. UI, resources and prompts are outside the current milestone; the existing Nuxt starter UI is unchanged.
+The articles POC currently exposes five Directus-backed tools: `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`. Algolia search and facets are deferred. Article Markdown resources are available through MCP; see [article resources](docs/article-resources.md). UI and prompts remain deferred; the existing Nuxt starter UI is unchanged.
 
 ## Start here
 

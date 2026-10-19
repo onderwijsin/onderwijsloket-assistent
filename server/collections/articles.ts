@@ -170,6 +170,18 @@ export default defineMcpCollection({
   ...articleFilters,
   sorts,
 
+  /** Keep article-specific metadata selection with the collection, not in resource utilities. */
+  resourceMetadata({ content: _content, ...record }) {
+    return {
+      ...record,
+      sectors: record.sectors.map((value) => value.title),
+      qualifications: record.qualifications.map((value) => value.title),
+      roles: record.roles.map((value) => value.title),
+      topics: record.topics.map((value) => value.title),
+      tracks: record.tracks.map((value) => value.title)
+    };
+  },
+
   /** Retrieve a page and detect continuation using one additional record. */
   async list(options) {
     const records = await readArticles(buildArticleQuery(options));

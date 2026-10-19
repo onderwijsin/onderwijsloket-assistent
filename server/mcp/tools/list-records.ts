@@ -1,3 +1,4 @@
+import { describeResource } from "../../utils/resources";
 import articles from "../../collections/articles";
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
 
@@ -16,6 +17,15 @@ export default defineMcpTool({
   handler: async (args) => {
     const result = await articles.list(args);
     // Include text for MCP clients that do not consume structuredContent.
-    return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
+    return {
+      structuredContent: result,
+      content: [
+        { type: "text", text: JSON.stringify(result) },
+        ...result.records.map((record) => ({
+          type: "resource_link" as const,
+          ...describeResource(articles.name, record)
+        }))
+      ]
+    };
   }
 });

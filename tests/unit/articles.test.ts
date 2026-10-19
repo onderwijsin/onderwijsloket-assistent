@@ -164,6 +164,15 @@ describe("article boundaries", () => {
       description: "Sector description"
     });
     expect(detail.record.topics).toEqual(list.records[0]!.topics);
+    const metadata = articles.resourceMetadata?.(detail.record);
+    expect(metadata).toMatchObject({
+      collection: "articles",
+      sectors: ["Primair onderwijs"],
+      topics: ["Zij-instroom"],
+      content_warnings: [],
+      truncated: false
+    });
+    expect(metadata).not.toHaveProperty("content");
   });
   it("retrieves normalized taxonomy choices for each article filter", async () => {
     read.mockImplementation(async (command) => {
@@ -191,6 +200,46 @@ describe("article boundaries", () => {
       values: []
     });
   });
+
+  it("rejects malformed upstream records and filter choices without leaking provider errors", async () => {
+    read.mockResolvedValueOnce([{ ...article, id: "invalid" }]);
+    await expect(articles.list()).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+    read.mockRejectedValue(new Error("provider secret"));
+    await expect(articles.filters()).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+  });
+
+  it("translates every taxonomy dimension and exact scalar matching", async () => {
+    read.mockResolvedValue([]);
+    const ids = [article.id];
+    await articles.list({
+      filters: {
+        title: " Title ",
+        slug: " title ",
+        sectors: ids,
+        qualifications: ids,
+        audiences: ids,
+        phases: ids,
+        roles: ids,
+        topics: ids,
+        tracks: ids
+      }
+    });
+    const filter = read.mock.calls[0]![0]().params.filter;
+    expect(filter.title).toEqual({ _eq: "Title" });
+    expect(filter.slug).toEqual({ _eq: "title" });
+    for (const name of [
+      "sectors",
+      "qualifications",
+      "audiences",
+      "phases",
+      "roles",
+      "topics",
+      "tracks"
+    ]) {
+      expect(filter[name]).toEqual({ [`${name}_id`]: { id: { _in: ids } } });
+    }
+  });
+
   it("does not generate citations for untrusted absolute paths", async () => {
     for (const path of ["https://evil.test", "//evil.test", "/\\evil.test"]) {
       read.mockResolvedValue([{ ...article, path }]);

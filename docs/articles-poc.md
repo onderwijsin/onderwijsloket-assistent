@@ -1,6 +1,6 @@
 # Articles POC
 
-The current implementation exposes five Directus-backed tools. Algolia, UI, resources and prompts remain deferred.
+The current implementation exposes five Directus-backed tools. Article Markdown resources are also available; see [article resources](article-resources.md). Algolia, UI and prompts remain deferred.
 
 ## Collection architecture
 
@@ -74,7 +74,7 @@ Missing records return `NOT_FOUND`; provider and response-validation failures re
 
 ## Verification
 
-Unit tests cover collection inputs, M2M filter translation, taxonomy metadata in lists/details, taxonomy discovery with mocked Directus responses, pagination, safe errors and complete Markdown rendering and traversal limits. Production-build integration tests verify the five-tool MCP catalogue and catalogue invocation. No Algolia integration is required for this milestone.
+Unit tests cover collection inputs, M2M filter translation, taxonomy metadata in lists/details, taxonomy discovery with mocked Directus responses, pagination, safe errors and complete Markdown rendering and traversal limits. Production-build integration tests exercise all five MCP tools against a local Directus HTTP fixture, including pagination, full Markdown rendering, dynamic filters, cache reuse and safe failures. No Algolia integration is required for this milestone.
 
 ## Agent-facing contracts
 

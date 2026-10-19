@@ -23,6 +23,7 @@ catalog:
   "@directus/types": 18.0.0
   "@iconify-json/lucide": "1.2.145"
   "@iconify-json/simple-icons": "1.2.100"
+  "@modelcontextprotocol/sdk": 1.32.1
   "@nuxt/fonts": 1.0.1
   "@nuxt/image": 2.1.0
   "@nuxt/test-utils": 4.3.4
@@ -45,6 +46,7 @@ catalog:
   "@tiptap/core": 3.24.0
   "@tiptap/markdown": 3.24.0
   "@tiptap/starter-kit": 3.24.0
+  "@types/node": 26.6.5
   "@varlock/nuxt-integration": 0.1.4
   "@varlock/proton-pass-plugin": 2.0.2
   "@vitest/coverage-v8": 5.0.5
@@ -69,4 +71,5 @@ catalog:
   varlock: 1.23.0
   vitest: 5.0.5
   "vue-tsc": "3.3.13"
+  "yaml": 2.9.1
   "zod": "4.6.7"

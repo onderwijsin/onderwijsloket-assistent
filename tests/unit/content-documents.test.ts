@@ -276,6 +276,160 @@ describe("content documents", () => {
     ).toContain("[Marked text](<https://onderwijsloket.com/kennisbank/artikelen/related>)");
   });
 
+  it("uses local junctions inside callouts and allows repeated references in separate branches", () => {
+    const local = {
+      title: "Local mention",
+      item: [{ collection: "articles", item: { title: "Local", path: "/local" } }]
+    };
+    const rows = [
+      { id: "shared", collection: "mentions", item: mention },
+      {
+        id: "callout",
+        collection: "callouts",
+        item: {
+          description: doc(paragraph(relation("shared", "mentions", true))),
+          editor_nodes: [{ id: "shared", collection: "mentions", item: local }]
+        }
+      }
+    ];
+    const result = renderContentDocument(
+      doc(
+        relation("callout", "callouts"),
+        paragraph(
+          relation("shared", "mentions", true),
+          text(" and "),
+          relation("shared", "mentions", true)
+        )
+      ),
+      rows,
+      options
+    );
+    expect(result.markdown).toContain("[Local mention](<https://onderwijsloket.com/local>)");
+    expect(result.markdown.match(/Custom mention/g)).toHaveLength(2);
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("validates malformed documents and junction rows at the boundary", () => {
+    expect(() => renderContentDocument({ content: [] }, [], options)).toThrow();
+    expect(() => renderContentDocument(doc(), [{ collection: "buttons" }], options)).toThrow();
+    expect(renderContentDocument([paragraph(text("Array document"))], [], options).markdown).toBe(
+      "Array document"
+    );
+  });
+
+  it("reports the node-count limit for wide documents as well as deep ones", () => {
+    const result = renderContentDocument(
+      doc(...Array.from({ length: 10001 }, () => paragraph())),
+      [],
+      options
+    );
+    expect(result.truncated).toBe(true);
+    expect(result.warnings).toEqual(["Document traversal limit reached."]);
+  });
+
+  it("retains meaningful fallbacks when expanded relation payloads have missing fields", () => {
+    const nodes = [
+      { id: "mention", collection: "mentions", item: { title: "Missing mention", item: [] } },
+      { id: "image", collection: "images", item: {} },
+      { id: "media", collection: "mediaplayers", item: { title: "Missing media", type: "video" } },
+      { id: "related", collection: "related_content_lists", item: { items: [{ item: null }] } },
+      { id: "future", collection: "future_blocks", item: { title: "Unknown" } }
+    ];
+    const result = renderContentDocument(
+      doc(...nodes.map((node) => relation(node.id, node.collection))),
+      nodes,
+      options
+    );
+    expect(result.markdown).toContain("Missing mention");
+    expect(result.markdown).toContain("[Image unavailable]");
+    expect(result.markdown).toContain("Video: Missing media");
+    expect(result.markdown).toContain("[Related content unavailable]");
+    expect(result.markdown).toContain("[Unsupported future\\_blocks]");
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        "Unresolved mention target.",
+        "Image asset is missing.",
+        "Media asset is missing.",
+        "Unresolved related content item.",
+        "Unsupported editor node collection: future_blocks."
+      ])
+    );
+  });
+
+  it("renders callout plain text, list images and media artwork while ignoring invalid chapters", () => {
+    const nodes = [
+      { id: "callout", collection: "callouts", item: { description: "A *literal* description" } },
+      {
+        id: "list",
+        collection: "content_lists",
+        item: { items: [{ title: "Image", mediatype: "image", image: "image-id" }] }
+      },
+      {
+        id: "media",
+        collection: "mediaplayers",
+        item: {
+          title: "Video",
+          type: "video",
+          video: "video-id",
+          artwork: "artwork-id",
+          chapters: [
+            { time: -1, label: "Negative" },
+            { time: "invalid", label: "Invalid" },
+            { time: 0, label: "Start" }
+          ]
+        }
+      }
+    ];
+    const result = renderContentDocument(
+      doc(...nodes.map((node) => relation(node.id, node.collection))),
+      nodes,
+      options
+    );
+    expect(result.markdown).toContain("> A \\*literal\\* description");
+    expect(result.markdown).toContain("![Image](<https://assets.example.test/image-id>)");
+    expect(result.markdown).toContain("![Video](<https://assets.example.test/artwork-id>)");
+    expect(result.markdown).toContain("0:00 Start");
+    expect(result.markdown).not.toContain("Negative");
+    expect(result.markdown).not.toContain("Invalid");
+    expect(result.warnings).toEqual([]);
+  });
+
+  it("flattens merged and uneven tables without treating the first data row as a header", () => {
+    const result = renderContentDocument(
+      doc(
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableCell",
+                  attrs: { colspan: 2, rowspan: 2 },
+                  content: [paragraph(text("First"))]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [{ type: "tableCell", content: [paragraph(text("Second"))] }]
+            }
+          ]
+        },
+        { type: "table", content: [] },
+        paragraph(
+          { ...text("sub"), marks: [{ type: "subscript" }] },
+          { ...text("sup"), marks: [{ type: "superscript" }] }
+        )
+      ),
+      [],
+      options
+    );
+    expect(result.markdown).toContain("|  |  |\n| --- | --- |\n| First |  |\n| Second |  |");
+    expect(result.markdown).toContain("<sub>sub</sub><sup>sup</sup>");
+    expect(result.warnings).toEqual(["Merged table cells are flattened in Markdown."]);
+  });
+
   it("still reports traversal truncation for excessively deep documents", () => {
     let nested = paragraph(text("Deep"));
     for (let depth = 0; depth < 45; depth++) {

@@ -32,6 +32,8 @@ export function defineMcpCollection<
   filterSchema: Filters;
   sorts: Sorts;
   filtersOutput: FilterOutput;
+  /** Collection-specific front matter fields; serialization belongs to the shared content utility. */
+  resourceMetadata?(record: z.output<Detail>): Record<string, unknown>;
   list(
     options: McpListOptions<Filters, Sorts>
   ): Promise<{ records: z.output<Summary>[]; has_more: boolean }>;

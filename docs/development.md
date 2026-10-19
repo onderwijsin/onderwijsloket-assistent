@@ -24,6 +24,23 @@ corepack pnpm lint:fix
 corepack pnpm typecheck
 ```
 
+`typecheck` runs `typecheck:nuxt` followed by `typecheck:test`. The Nuxt check covers
+its generated application, server, shared and tooling projects. The test check uses
+`tsc --noEmit` for all TypeScript under `tests/` (including fixtures) and
+`vitest.config.ts`; Vitest execution alone does not check types.
+
+`tests/tsconfig.json` extends the generated server configuration because these tests
+run in Node and import server code. It retains strict checking and generated aliases,
+adds Node types, and loads `.nuxt/nuxt.d.ts` for module, runtime configuration and
+Varlock declarations. Keeping the config inside `tests/` also gives editors the
+same type context without adding tests to Nuxt's production projects. Vitest APIs
+remain explicit imports rather than global types.
+
+Run either check independently with `corepack pnpm typecheck:nuxt` or
+`corepack pnpm typecheck:test`. The standalone test check requires generated `.nuxt/`
+types: run `corepack pnpm prepare` after initial setup or configuration changes.
+The combined check generates these through Nuxt before checking tests.
+
 For documentation-only edits, formatting can target the changed Markdown files. Inspect the diff after checks and preserve unrelated work. Typecheck may initialize modules and generate ignored Nuxt/schema artifacts.
 
 ## Testing
@@ -57,18 +74,20 @@ dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is di
 
 Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
 `fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The initial smoke test checks the root HTML response and Nuxt
-mount point; it does not verify the planned MCP contract or browser hydration.
+build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all five
+MCP tools. It does not verify browser hydration.
 
 Server and build isolation does not replace upstream services: the app still loads
 its existing Varlock environment and configured Nuxt modules. Their credentials
-and build-time service access must be available as for a normal build. Future tests
-that exercise upstream APIs must use controlled fixtures or explicitly opted-in test services.
+and build-time service access must be available as for a normal build. Runtime article and taxonomy requests use a local HTTP Directus fixture with synthetic
+content and fixture credentials. This exercises the actual SDK, query serialization, collection
+logic, Markdown pipeline and MCP responses. No live content or provider credentials are needed
+for these runtime assertions. Build-time module setup still uses the normal environment.
 
 Coverage reports are written to ignored `coverage/`. No coverage thresholds are imposed.
 Use synthetic or sanitized fixtures and keep checks against live providers opt-in and bounded.
-See [the articles POC](articles-poc.md) for the future MCP acceptance checks.
+See [the articles POC](articles-poc.md) for the implemented MCP contracts.
 
 ## Current implementation entry point
 
-Follow [the articles POC](articles-poc.md). Do not build chat, resources, prompts or additional collections during that milestone. Existing UI and optional module configuration are retained; their presence does not expand the scope.
+Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Chat, prompts and additional collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
