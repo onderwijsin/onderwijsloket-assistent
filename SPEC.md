@@ -2,6 +2,12 @@
 
 Status: rough draft for discussion. Research date: 19 October 2026.
 
+## Current milestone: articles POC
+
+The next implementation is articles-only, with exactly `list_collections`, `describe_collection`, `list_records`, `get_record`, `search_records`, `get_facets` and `get_filters`. No UI, resources, prompts or model integration are in scope at this stage. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria.
+
+The remainder describes the broader product roadmap. Its domain tools, workflows, resources and chat are deferred beyond this POC.
+
 ## 1. Purpose and positioning
 
 Build an experimental, publicly accessible MCP server that makes Onderwijsloket data useful to AI assistants. The primary users are Onderwijsloket advisers and colleagues; external users can connect to the same public service without authentication. A small Dutch-language chat interface demonstrates the server using Nuxt UI, the AI SDK and Mistral AI.
@@ -102,7 +108,7 @@ The following versions are declared in the existing workspace catalogue, not a r
 
 The project already registers the MCP, UI and Directus modules, but has no `server/` implementation. Do not treat module registration as an implemented feature.
 
-Implementation will need compatible `@ai-sdk/vue` and `@ai-sdk/mcp` dependencies; neither is currently declared. Do not add them during specification work. Verify exact compatibility before installing. Reuse existing Comark support for streamed Markdown.
+The repository now declares `@ai-sdk/vue` and `@ai-sdk/mcp` for future chat integration. They are not needed for the articles POC. Verify installed compatibility when implementing chat and reuse existing Comark support for streamed Markdown.
 
 Use [MCP Toolkit](https://mcp-toolkit.nuxt.dev) conventions: `defineMcpTool`, `defineMcpResource`, `defineMcpPrompt` and a single default handler. Verify transport and async-context configuration against the installed release.
 

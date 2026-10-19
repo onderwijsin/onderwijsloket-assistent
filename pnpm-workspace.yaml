@@ -25,6 +25,7 @@ catalog:
   "@iconify-json/simple-icons": "1.2.100"
   "@nuxt/fonts": 1.0.1
   "@nuxt/image": 2.1.0
+  "@nuxt/test-utils": 4.3.4
   "@nuxt/ui": "4.12.0"
   "@nuxtjs/mcp-toolkit": "0.24.2"
   "@nuxtjs/plausible": 4.0.0
@@ -43,6 +44,7 @@ catalog:
   "@tailwindcss/typography": 0.5.20
   "@varlock/nuxt-integration": 0.1.4
   "@varlock/proton-pass-plugin": 2.0.2
+  "@vitest/coverage-v8": 5.0.5
   "@vueuse/core": 15.0.0
   "@vueuse/nuxt": 15.0.0
   ai: 7.0.143
@@ -62,5 +64,6 @@ catalog:
   "typescript": "6.0.3"
   ufo: 1.6.4
   varlock: 1.23.0
+  vitest: 5.0.5
   "vue-tsc": "3.3.13"
   "zod": "4.6.7"
