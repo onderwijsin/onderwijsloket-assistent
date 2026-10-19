@@ -14,6 +14,9 @@ minimumReleaseAgeExclude:
   - "@onderwijsin/*"
 
 catalog:
+  "@ai-sdk/mcp": 2.0.78
+  "@ai-sdk/mistral": 4.0.66
+  "@ai-sdk/vue": 4.0.143
   "@comark/nuxt": 0.7.0
   "@commitlint/cli": 21.2.3
   "@commitlint/config-conventional": 21.2.3
@@ -42,6 +45,7 @@ catalog:
   "@varlock/proton-pass-plugin": 2.0.2
   "@vueuse/core": 15.0.0
   "@vueuse/nuxt": 15.0.0
+  ai: 7.0.143
   algoliasearch: ^5.60.0
   defu: 6.1.7
   "h3": "1.15.11"

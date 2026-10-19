@@ -20,6 +20,9 @@
     "skills:update": "pnpm dlx skills@latest update -p"
   },
   "dependencies": {
+    "@ai-sdk/mcp": "catalog:",
+    "@ai-sdk/mistral": "catalog:",
+    "@ai-sdk/vue": "catalog:",
     "@comark/nuxt": "catalog:",
     "@iconify-json/lucide": "catalog:",
     "@iconify-json/simple-icons": "catalog:",
@@ -39,6 +42,7 @@
     "@varlock/proton-pass-plugin": "catalog:",
     "@vueuse/core": "catalog:",
     "@vueuse/nuxt": "catalog:",
+    "ai": "catalog:",
     "algoliasearch": "catalog:",
     "defu": "catalog:",
     "h3": "catalog:",
