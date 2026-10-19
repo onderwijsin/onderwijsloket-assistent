@@ -69,8 +69,8 @@ Check `content_warnings` and `truncated` before treating a document as complete.
 Use Node.js 24 and the Corepack-managed package manager pinned in `package.json`. Configure the Varlock environment profiles in `envs/` with access to the required services and secrets provider, then run:
 
 ```sh
-corepack pnpm install
-corepack pnpm dev
+pnpm install
+pnpm dev
 ```
 
 Installation and builds initialize Nuxt modules and can require service credentials and schema access. See [development](docs/development.md) for environment and tooling details.
@@ -78,8 +78,8 @@ Installation and builds initialize Nuxt modules and can require service credenti
 For a Node server build:
 
 ```sh
-corepack pnpm build
-corepack pnpm start
+pnpm build
+pnpm start
 ```
 
 ## Documentation
