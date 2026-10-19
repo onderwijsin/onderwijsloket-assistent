@@ -14,6 +14,12 @@ export default defineMcpTool({
   },
   outputSchema: articles.getOutput.shape,
   inputSchema: articles.getInput.shape,
+  /**
+   * Retrieve one complete article and its resource link.
+   *
+   * @param args - Validated operation arguments, including filters and pagination where supported.
+   * @returns Article detail as structured content, JSON text and an MCP resource link.
+   */
   handler: async (args) => {
     const result = await articles.get(args.id);
     // Include text for MCP clients that do not consume structuredContent.

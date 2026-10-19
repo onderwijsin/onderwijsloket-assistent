@@ -13,6 +13,11 @@ export default defineMcpTool({
   },
   outputSchema: articles.filtersOutput.shape,
   inputSchema: articles.collectionInput,
+  /**
+   * Discover accepted list filters and current taxonomy choices.
+   *
+   * @returns Filter definitions as structured content and a JSON text fallback.
+   */
   handler: async () => {
     const result = await articles.filters();
     // Include text for MCP clients that do not consume structuredContent.

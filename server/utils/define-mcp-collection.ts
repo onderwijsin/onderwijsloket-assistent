@@ -1,3 +1,11 @@
+import {
+  searchOptionsSchema,
+  searchResultSchema,
+  facetsOptionsSchema,
+  facetsResultSchema
+} from "./search/schemas";
+import type { SearchOptions, SearchResult, FacetsOptions, FacetsResult } from "./search/schemas";
+import { createError } from "h3";
 import type { Schema } from "#directus";
 import { z } from "zod";
 
@@ -16,6 +24,9 @@ export type McpListOptions<
  * Define a collection once for both direct callers and MCP tools.
  * Wrap list/get with validation and response envelopes; filters supplies its own discovery response.
  * Summary/detail schemas must describe output data without source-normalization transforms.
+ *
+ * @param collection - Collection schemas, operation implementations and discovery metadata.
+ * @returns The collection definition with validated methods, discovery metadata and MCP input/output schemas.
  */
 export function defineMcpCollection<
   const Name extends keyof Schema & string,
@@ -32,12 +43,48 @@ export function defineMcpCollection<
   filterSchema: Filters;
   sorts: Sorts;
   filtersOutput: FilterOutput;
-  /** Collection-specific front matter fields; serialization belongs to the shared content utility. */
+  /**
+   * Optional index-backed discovery operations; advertised only when supplied.
+   *
+   * @param options - Parsed query, selected facets or filters, and operation-specific limits.
+   * @returns Validated lightweight search results with query context and pagination.
+   */
+  search?(options: SearchOptions): Promise<SearchResult>;
+  /**
+   * Discover facet values and counts for the supplied search context.
+   *
+   * @param options - Parsed query, selected facets or filters, and operation-specific limits.
+   * @returns Validated facet values and counts for the supplied query and filters.
+   */
+  facets?(options: FacetsOptions): Promise<FacetsResult>;
+  /**
+   * Collection-specific front matter fields; serialization belongs to the shared content utility.
+   *
+   * @param record - Record whose metadata is being normalized.
+   * @returns Collection-specific fields to serialize as resource front matter.
+   */
   resourceMetadata?(record: z.output<Detail>): Record<string, unknown>;
+  /**
+   * Retrieve a page of collection summaries.
+   *
+   * @param options - Parsed filters, sort order, page number and page size.
+   * @returns Summary records and whether another page is available.
+   */
   list(
     options: McpListOptions<Filters, Sorts>
   ): Promise<{ records: z.output<Summary>[]; has_more: boolean }>;
+  /**
+   * Retrieve one complete collection record.
+   *
+   * @param id - Record identifier.
+   * @returns The record matching the detail schema, without a response envelope.
+   */
   get(id: string): Promise<z.output<Detail>>;
+  /**
+   * Discover supported filter rules and current choices.
+   *
+   * @returns Validated filter definitions with current taxonomy choices.
+   */
   filters(): Promise<z.output<FilterOutput>>;
 }) {
   const collectionInput = {
@@ -76,7 +123,11 @@ export function defineMcpCollection<
   });
   const getInput = z.strictObject({
     ...collectionInput,
-    id: z.uuid().describe("Record ID returned by list_records; not a taxonomy ID or slug.")
+    id: z
+      .uuid()
+      .describe(
+        "Record ID returned by list_records or search_collection; not a taxonomy ID or slug."
+      )
   });
   const listOutput = z.object({
     records: z
@@ -96,6 +147,10 @@ export function defineMcpCollection<
       .datetime()
       .describe("UTC time when this response was assembled; not the source update time.")
   });
+  const searchInput = searchOptionsSchema.extend(collectionInput);
+  const searchOutput = searchResultSchema.extend({ collection: z.literal(collection.name) });
+  const facetsInput = facetsOptionsSchema.extend(collectionInput);
+  const facetsOutput = facetsResultSchema.extend({ collection: z.literal(collection.name) });
   const metadataSchema = z.object({
     name: z.literal(collection.name).describe("Collection name used in tool arguments."),
     description: z.string().describe("Content and purpose of this collection."),
@@ -129,7 +184,45 @@ export function defineMcpCollection<
   return {
     ...collection,
     metadataSchema,
-    /** Validate dynamic discovery results against the advertised output contract. */
+    searchInput,
+    searchOutput,
+    facetsInput,
+    facetsOutput,
+    /**
+     * Validate search boundaries consistently across collections.
+     *
+     * @param input - Caller-supplied options; omitted values use the collection defaults.
+     * @returns Validated lightweight search results with query context and pagination.
+     */
+    async search(input: z.input<typeof searchOptionsSchema> = {}) {
+      const args = searchInput.parse({ ...input, collection: collection.name });
+      if (!collection.search)
+        throw createError({
+          statusCode: 501,
+          message: "UNSUPPORTED_OPERATION: Search is not available for this collection."
+        });
+      return searchOutput.parse(await collection.search(args));
+    },
+    /**
+     * Validate facet discovery and its dynamic response contract.
+     *
+     * @param input - Caller-supplied options; omitted values use the collection defaults.
+     * @returns Validated facet values and counts for the supplied query and filters.
+     */
+    async facets(input: z.input<typeof facetsOptionsSchema> = {}) {
+      const args = facetsInput.parse({ ...input, collection: collection.name });
+      if (!collection.facets)
+        throw createError({
+          statusCode: 501,
+          message: "UNSUPPORTED_OPERATION: Facets are not available for this collection."
+        });
+      return facetsOutput.parse(await collection.facets(args));
+    },
+    /**
+     * Validate dynamic discovery results against the advertised output contract.
+     *
+     * @returns Validated filter definitions with current taxonomy choices.
+     */
     async filters() {
       return collection.filtersOutput.parse(await collection.filters());
     },
@@ -138,7 +231,12 @@ export function defineMcpCollection<
     getInput,
     listOutput,
     getOutput,
-    /** Validate options and normalize the list response for every caller. */
+    /**
+     * Validate options and normalize the list response for every caller.
+     *
+     * @param input - Caller-supplied options; omitted values use the collection defaults.
+     * @returns Validated record summaries, pagination and response timestamp.
+     */
     async list(input: Omit<z.input<typeof listInput>, "collection"> = {}) {
       const args = listInput.parse({ ...input, collection: collection.name });
       const result = await collection.list(args);
@@ -149,7 +247,12 @@ export function defineMcpCollection<
         retrieved_at: new Date().toISOString()
       });
     },
-    /** Validate the identifier and normalize the detail response for every caller. */
+    /**
+     * Validate the identifier and normalize the detail response for every caller.
+     *
+     * @param id - Record identifier.
+     * @returns Validated record detail and response timestamp.
+     */
     async get(id: string) {
       getInput.parse({ collection: collection.name, id });
       return getOutput.parse({
@@ -161,7 +264,13 @@ export function defineMcpCollection<
       name: collection.name,
       description: collection.description,
       // Required methods are available now; advertise search/facets only when implemented.
-      capabilities: { list: true, get: true, filters: true, search: false, facets: false },
+      capabilities: {
+        list: true,
+        get: true,
+        filters: true,
+        search: Boolean(collection.search),
+        facets: Boolean(collection.facets)
+      },
       fields: Object.keys(collection.summary.shape),
       detail_fields: Object.keys(collection.detail.shape).filter(
         (key) => !(key in collection.summary.shape)

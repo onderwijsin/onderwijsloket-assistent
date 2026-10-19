@@ -24,7 +24,13 @@ const supportedNodes = new Set([
   "relation-inline-block"
 ]);
 
-/** Keep children of unknown nodes: Tiptap would otherwise discard the entire unsupported subtree. */
+/**
+ * Keep children of unknown nodes: Tiptap would otherwise discard the entire unsupported subtree.
+ *
+ * @param node - Content node to render or normalize.
+ * @param warn - Callback receiving warnings about unsupported or incomplete content.
+ * @returns A normalized document subtree retaining children of unsupported nodes.
+ */
 function normalizeContentNodes(node: JSONContent, warn: (message: string) => void): JSONContent {
   const result = {
     ...node,
@@ -43,13 +49,25 @@ function normalizeContentNodes(node: JSONContent, warn: (message: string) => voi
   return result;
 }
 
-/** Serialize one hydrated document, sharing a warning set with its nested callout documents. */
+/**
+ * Serialize one hydrated document, sharing a warning set with its nested callout documents.
+ *
+ * @param document - Source document to hydrate or render.
+ * @param options - Asset URL used to resolve media embedded in the document.
+ * @returns Rendered Markdown and deduplicated rendering warnings.
+ */
 export function contentToMarkdown(document: JSONContent, options: ContentMarkdownOptions) {
   const warnings = new Set<string>();
   const warn = (message: string) => {
     warnings.add(message);
   };
 
+  /**
+   * Serialize a nested document using the shared Markdown renderer.
+   *
+   * @param content - Hydrated nested document to serialize.
+   * @returns Serialized Markdown for the nested document.
+   */
   function renderDocument(content: JSONContent): string {
     return manager.serialize(normalizeContentNodes(content, warn));
   }

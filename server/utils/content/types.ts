@@ -35,7 +35,12 @@ export const editorNodesSchema = z.array(
 
 export type EditorNode = z.infer<typeof editorNodesSchema>[number];
 
-/** Narrow arbitrary JSON payloads before inspecting relation fields. */
+/**
+ * Narrow arbitrary JSON payloads before inspecting relation fields.
+ *
+ * @param value - Value to inspect without assuming it has the expected shape.
+ * @returns True when the value is a non-null object rather than an array.
+ */
 export function isContentRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }

@@ -5,6 +5,7 @@ import { renderContentDocument } from "../../server/utils/content/render-content
 
 vi.mock("nitropack/runtime", () => ({
   cachedFunction: (fn: unknown) => fn,
+  defineCachedFunction: (fn: unknown) => fn,
   useRuntimeConfig: () => ({
     public: { directus: { assetBaseUrl: "https://assets.example.test" } }
   })
@@ -36,6 +37,26 @@ describe("article boundaries", () => {
     expect(() => z.toJSONSchema(articles.listOutput)).not.toThrow();
     expect(() => z.toJSONSchema(articles.getOutput)).not.toThrow();
     expect(articles.detail.shape.content.safeParse("a".repeat(25000)).success).toBe(true);
+  });
+  it("advertises index discovery and validates search-specific input/output contracts", () => {
+    expect(articles.metadata.capabilities).toMatchObject({ search: true, facets: true });
+    expect(() => z.toJSONSchema(articles.searchOutput)).not.toThrow();
+    expect(() => z.toJSONSchema(articles.facetsOutput)).not.toThrow();
+    expect(articles.searchInput.parse({ collection: "articles" })).toMatchObject({
+      query: "",
+      page: 1,
+      page_size: 10
+    });
+    expect(
+      articles.searchInput.safeParse({ collection: "articles", filters: { english: false } })
+        .success
+    ).toBe(false);
+    expect(
+      articles.searchInput.safeParse({ collection: "articles", query: "a".repeat(501) }).success
+    ).toBe(false);
+    expect(
+      articles.facetsInput.safeParse({ collection: "articles", max_values: 1001 }).success
+    ).toBe(false);
   });
   it("rejects arbitrary collections, filters and oversized pages", () => {
     expect(articles.listInput.safeParse({ collection: "users" }).success).toBe(false);

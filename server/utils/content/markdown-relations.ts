@@ -14,12 +14,37 @@ import {
 type ContentRecord = Record<string, unknown>;
 
 interface RelationRenderContext extends ContentMarkdownOptions {
+  /**
+   * Serialize a nested document using the shared Markdown renderer.
+   *
+   * @param document - Source document to hydrate or render.
+   * @returns Serialized Markdown for the nested document.
+   */
   renderDocument(document: JSONContent): string;
+  /**
+   * Report incomplete or unsupported document content.
+   *
+   * @param message - Warning text describing incomplete or unsupported content.
+   * @returns Nothing; records a rendering warning.
+   */
   warn(message: string): void;
 }
 
-/** Build the relation renderers for one document and its nested documents. */
+/**
+ * Build the relation renderers for one document and its nested documents.
+ *
+ * @param context - Asset settings, nested-document renderer and warning callback.
+ * @returns A renderer accepting hydrated relation attributes and returning block Markdown.
+ */
 export function createRelationMarkdownRenderer(context: RelationRenderContext) {
+  /**
+   * Resolve a related-record link with collection-specific path and label fallbacks.
+   *
+   * @param item - Expanded related record.
+   * @param collection - Related collection name used to resolve path conventions.
+   * @param customLabel - Optional label overriding the related record title.
+   * @returns A Markdown link using the related record path and title fallbacks.
+   */
   function renderRelatedLink(
     item: ContentRecord,
     collection: unknown,
@@ -32,10 +57,22 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return renderMarkdownLink(label, destination);
   }
 
+  /**
+   * Render an editor button as a link.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns The button label as a Markdown link or plain escaped text.
+   */
   function renderButton(data: ContentRecord): string {
     return renderMarkdownLink(data.label, data.to);
   }
 
+  /**
+   * Render the expanded mention target and report unresolved references.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns The target link, or a visible unresolved-mention placeholder.
+   */
   function renderMention(data: ContentRecord): string {
     // Directus stores this as M2A, but the editor allows only one mention target.
     const target = getContentRecords(data.item)[0];
@@ -47,6 +84,12 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return renderRelatedLink(target.item, target.collection, data.title);
   }
 
+  /**
+   * Render a resolved image asset and its alternative text.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns Markdown image syntax, or a visible placeholder when the asset is missing.
+   */
   function renderImage(data: ContentRecord): string {
     const source = resolveContentAsset(data.image, context.assetBaseUrl);
     if (!source) {
@@ -58,6 +101,12 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return `![${altText}](<${source}>)`;
   }
 
+  /**
+   * Render a callout title, nested content and actions as a blockquote.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns A blockquote containing the title, nested document and action links.
+   */
   function renderCallout(data: ContentRecord): string {
     const sections: string[] = [];
     if (data.title) {
@@ -78,6 +127,12 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return renderMarkdownBlockquote(sections.filter(Boolean).join("\n\n"));
   }
 
+  /**
+   * Render editor-sorted content cards as a Markdown list.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns An ordered-by-editor bullet list of links, descriptions and optional images.
+   */
   function renderContentList(data: ContentRecord): string {
     const items: string[] = [];
     for (const item of getSortedContentItems(data.items)) {
@@ -97,6 +152,12 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return items.join("\n");
   }
 
+  /**
+   * Render expanded related content while preserving unresolved-item warnings.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns A bullet list of related-record links, retaining placeholders for unresolved items.
+   */
   function renderRelatedContentList(data: ContentRecord): string {
     const items: string[] = [];
     for (const junction of getSortedContentItems(data.items)) {
@@ -115,6 +176,13 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return items.join("\n");
   }
 
+  /**
+   * Link a valid chapter timestamp to its media asset.
+   *
+   * @param chapter - Chapter label and playback time in seconds.
+   * @param mediaUrl - Resolved media URL to which the chapter offset is appended.
+   * @returns A timestamped chapter link, or null for an invalid playback time.
+   */
   function renderChapter(chapter: ContentRecord, mediaUrl: string): string | null {
     const time = Number(chapter.time);
     if (!Number.isFinite(time) || time < 0) {
@@ -127,6 +195,12 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return `- ${renderMarkdownLink(label, `${mediaUrl}#t=${time}`)}`;
   }
 
+  /**
+   * Render audio or video metadata, artwork and chapter links.
+   *
+   * @param data - Hydrated payload for the editor block.
+   * @returns Media, artwork and chapter links, or a title fallback for a missing asset.
+   */
   function renderMediaPlayer(data: ContentRecord): string {
     const isAudio = data.type === "audio";
     const media = isAudio ? data.audio : data.video;
@@ -157,6 +231,12 @@ export function createRelationMarkdownRenderer(context: RelationRenderContext) {
     return sections.join("\n\n");
   }
 
+  /**
+   * Dispatch a hydrated relation to its collection-specific Markdown renderer.
+   *
+   * @param attributes - Editor-node attributes identifying the related collection and junction.
+   * @returns Markdown for the hydrated block, or a placeholder for an unresolved or unsupported relation.
+   */
   return function renderRelation(attributes: ContentRecord = {}): string {
     const collection = getContentText(attributes.collection);
     if (!isContentRecord(attributes.data)) {

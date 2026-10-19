@@ -1,3 +1,4 @@
+import { defineCollectionSearch } from "../utils/search/collection-search";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Article, Schema } from "#directus";
@@ -16,7 +17,8 @@ import {
   taxonomyFilters
 } from "../utils/taxonomy/collection-filters";
 import { useSourceUrl } from "../utils/use-source-url";
-import { useRuntimeConfig } from "nitropack/runtime";
+import { cacheDurations } from "../../config/cache";
+import { defineCachedFunction, useRuntimeConfig } from "nitropack/runtime";
 import { editorNodeFields } from "../utils/content/editor-node-fields";
 import { renderContentDocument } from "../utils/content/render-content-document";
 
@@ -83,7 +85,13 @@ const sourceSchema = articleSchema.extend({
 
 const sorts = ["title", "-title", "date_updated", "-date_updated"] as const;
 
-/** Build a deterministic Directus query, translating taxonomy IDs through M2M junctions. */
+/**
+ * Build a deterministic Directus query, translating taxonomy IDs through M2M junctions.
+ *
+ * @param args - Validated operation arguments, including filters and pagination where supported.
+ * @param id - Record identifier.
+ * @returns A deterministic summary or detail query with stable sorting.
+ */
 function buildArticleQuery(
   args: McpListOptions<typeof articleFilters.filterSchema, typeof sorts>,
   id?: string
@@ -126,7 +134,12 @@ function buildArticleQuery(
   } satisfies Query<Schema, Article>;
 }
 
-/** Fetch the article projection and validate the upstream response. */
+/**
+ * Fetch the article projection and validate the upstream response.
+ *
+ * @param query - Field projection, filters and pagination sent to the content API.
+ * @returns Validated article source records; rejects unavailable or malformed responses.
+ */
 async function readArticles(query: ReturnType<typeof buildArticleQuery>) {
   try {
     return z.array(sourceSchema).parse(await useDirectusServer(readItems("articles", query)));
@@ -139,7 +152,12 @@ async function readArticles(query: ReturnType<typeof buildArticleQuery>) {
   }
 }
 
-/** Normalize source fields into the shared summary contract. */
+/**
+ * Normalize source fields into the shared summary contract.
+ *
+ * @param record - Record whose metadata is being normalized.
+ * @returns The validated article summary with normalized taxonomy metadata and source URL.
+ */
 function summarize(record: z.infer<typeof sourceSchema>) {
   return summarySchema.parse({
     ...record,
@@ -168,9 +186,15 @@ export default defineMcpCollection({
       )
   }),
   ...articleFilters,
+  ...defineCollectionSearch({ name: "articles", indexName: "articles" }),
   sorts,
 
-  /** Keep article-specific metadata selection with the collection, not in resource utilities. */
+  /**
+   * Keep article-specific metadata selection with the collection, not in resource utilities.
+   *
+   * @param record - Record whose metadata is being normalized.
+   * @returns Front matter metadata, excluding content and replacing taxonomy objects with titles.
+   */
   resourceMetadata({ content: _content, ...record }) {
     return {
       ...record,
@@ -182,7 +206,12 @@ export default defineMcpCollection({
     };
   },
 
-  /** Retrieve a page and detect continuation using one additional record. */
+  /**
+   * Retrieve a page and detect continuation using one additional record.
+   *
+   * @param options - Parsed filters, sort order and pagination for the article query.
+   * @returns Record summaries and whether another page is available.
+   */
   async list(options) {
     const records = await readArticles(buildArticleQuery(options));
     return {
@@ -191,26 +220,54 @@ export default defineMcpCollection({
     };
   },
 
-  /** Read one article with taxonomy metadata and readable content. */
-  async get(id) {
-    const [record] = await readArticles(
-      buildArticleQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)
-    );
-    if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Article not found." });
-    const rendered = renderContentDocument(record.body, record.editor_nodes, {
-      assetBaseUrl: useRuntimeConfig().public.directus.assetBaseUrl,
-      ensureHeadingOne: true,
-      metadata: record
-    });
-    return {
-      ...summarize(record),
-      content: rendered.markdown,
-      content_warnings: rendered.warnings,
-      truncated: rendered.truncated
-    };
-  },
+  /**
+   * Read one article with taxonomy metadata and readable content.
+   *
+   * @param id - Record identifier.
+   * @returns The article with normalized metadata and rendered Markdown, shared through the detail cache.
+   */
+  get: defineCachedFunction(
+    async (id: string) => {
+      const [record] = await readArticles(
+        buildArticleQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)
+      );
+      if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Article not found." });
+      const rendered = renderContentDocument(record.body, record.editor_nodes, {
+        assetBaseUrl: useRuntimeConfig().public.directus.assetBaseUrl,
+        ensureHeadingOne: true,
+        metadata: record
+      });
+      return {
+        ...summarize(record),
+        content: rendered.markdown,
+        content_warnings: rendered.warnings,
+        truncated: rendered.truncated
+      };
+    },
+    {
+      name: "articles-get",
+      maxAge: cacheDurations.article,
+      swr: false /**
+       * Isolate cached data by its configured identifier.
+       *
+       * @param id - Record identifier.
+       * @returns The stable identifier used to isolate the cache entry.
+       */,
+      /**
+       * Isolate cached data by its configured identifier.
+       *
+       * @param id - Record identifier.
+       * @returns The stable identifier used to isolate the cache entry.
+       */
+      getKey: (id: string) => id
+    }
+  ),
 
-  /** Fetch dynamic filter choices, preserving the collection's upstream error contract. */
+  /**
+   * Fetch dynamic filter choices, preserving the collection's upstream error contract.
+   *
+   * @returns Validated filter definitions with current taxonomy choices.
+   */
   async filters() {
     try {
       return await articleFilters.filters();

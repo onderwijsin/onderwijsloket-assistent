@@ -70,4 +70,10 @@ describe("defineMcpCollection", () => {
     filters.mockResolvedValueOnce({ values: [""] });
     await expect(collection.filters()).rejects.toThrow();
   });
+  it("does not advertise or execute unconfigured search operations", async () => {
+    const { collection } = createCollection();
+    await expect(collection.search()).rejects.toMatchObject({ statusCode: 501 });
+    await expect(collection.facets()).rejects.toMatchObject({ statusCode: 501 });
+    expect(collection.metadata.capabilities).toMatchObject({ search: false, facets: false });
+  });
 });

@@ -12,7 +12,14 @@ export interface ContentDocumentOptions extends ContentMarkdownOptions {
   metadata?: ContentDocumentMetadata;
 }
 
-/** Hydrate and serialize any collection's content document, reporting incomplete or truncated data. */
+/**
+ * Hydrate and serialize any collection's content document, reporting incomplete or truncated data.
+ *
+ * @param document - Source document to hydrate or render.
+ * @param editorNodes - Fetched editor-node junctions used to resolve embedded relations.
+ * @param options - Asset URL and optional heading/record metadata settings.
+ * @returns Rendered Markdown, combined hydration/rendering warnings and the truncation flag.
+ */
 export function renderContentDocument(
   document: unknown,
   editorNodes: unknown,

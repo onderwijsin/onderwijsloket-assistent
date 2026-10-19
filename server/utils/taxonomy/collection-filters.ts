@@ -34,34 +34,73 @@ type FilterDescriptor = z.output<typeof filterDescriptor>;
 /** A filter's input validation and discovery data stay together to prevent contract drift. */
 interface FilterDefinition<Schema extends z.ZodType = z.ZodType> {
   schema: Schema;
+  /**
+   * Describe this filter for list-record discovery.
+   *
+   * @param name - Name of the field, node or mark being defined.
+   * @returns The filter descriptor, including current taxonomy choices where applicable.
+   */
   describe(name: string): Promise<FilterDescriptor>;
 }
 
-/** Reusable equality filter for title, slug or other short text fields. */
+/**
+ * Reusable equality filter for title, slug or other short text fields.
+ *
+ * @param description - Client-facing explanation of the filter and its matching behavior.
+ * @returns An optional text schema and its equality-filter discovery descriptor.
+ */
 export function exactTextFilter(description: string) {
   return {
     schema: z.string().trim().min(1).max(200).optional().describe(description),
+    /**
+     * Describe this filter for list-record discovery.
+     *
+     * @param name - Name of the field, node or mark being defined.
+     * @returns The filter descriptor, including current taxonomy choices where applicable.
+     */
     async describe(name: string): Promise<FilterDescriptor> {
       return { name, description, type: "string", operator: "eq", operations: ["list_records"] };
     }
   } satisfies FilterDefinition;
 }
 
-/** Reusable boolean equality filter; false remains an explicit filter value. */
+/**
+ * Reusable boolean equality filter; false remains an explicit filter value.
+ *
+ * @param description - Client-facing explanation of the filter and its matching behavior.
+ * @returns An optional boolean schema and its equality-filter discovery descriptor.
+ */
 export function booleanFilter(description: string) {
   return {
     schema: z.boolean().optional().describe(description),
+    /**
+     * Describe this filter for list-record discovery.
+     *
+     * @param name - Name of the field, node or mark being defined.
+     * @returns The filter descriptor, including current taxonomy choices where applicable.
+     */
     async describe(name: string): Promise<FilterDescriptor> {
       return { name, description, type: "boolean", operator: "eq", operations: ["list_records"] };
     }
   } satisfies FilterDefinition;
 }
 
-/** Build one taxonomy filter, obtaining dynamic choices through the shared one-minute cache. */
+/**
+ * Build one taxonomy filter, obtaining dynamic choices through the shared one-minute cache.
+ *
+ * @param collection - Collection name or definition used by this operation.
+ * @returns An optional taxonomy-ID array schema and dynamically loaded discovery choices.
+ */
 export function taxonomyFilter(collection: TaxonomyCollection) {
   const description = `Match any selected ${collection}. Supply 1–50 IDs from get_filters, not titles or slugs; combined with other filter fields using AND.`;
   return {
     schema: z.array(taxonomySchema.shape.id).min(1).max(50).optional().describe(description),
+    /**
+     * Describe this filter for list-record discovery.
+     *
+     * @param name - Name of the field, node or mark being defined.
+     * @returns The filter descriptor, including current taxonomy choices where applicable.
+     */
     async describe(name: string): Promise<FilterDescriptor> {
       return {
         name,
@@ -78,14 +117,25 @@ export function taxonomyFilter(collection: TaxonomyCollection) {
   } satisfies FilterDefinition;
 }
 
-/** Select taxonomy dimensions once and retain their exact keys in the inferred input type. */
+/**
+ * Select taxonomy dimensions once and retain their exact keys in the inferred input type.
+ *
+ * @param names - Taxonomy collections to expose as filter dimensions.
+ * @returns Taxonomy filter definitions keyed by the selected collection names.
+ */
 export function taxonomyFilters<const Names extends readonly TaxonomyCollection[]>(names: Names) {
   return Object.fromEntries(names.map((name) => [name, taxonomyFilter(name)])) as {
     [Name in Names[number]]: ReturnType<typeof taxonomyFilter>;
   };
 }
 
-/** Derive validation, discovery output and filters() from the same collection filter definitions. */
+/**
+ * Derive validation, discovery output and filters() from the same collection filter definitions.
+ *
+ * @param collection - Collection name or definition used by this operation.
+ * @param fields - Filter definitions keyed by their public argument names.
+ * @returns The combined input schema, discovery output schema and filters method.
+ */
 export function defineCollectionFilters<
   const Name extends string,
   Fields extends Record<string, FilterDefinition>
@@ -110,7 +160,11 @@ export function defineCollectionFilters<
   return {
     filterSchema: z.strictObject(shape),
     filtersOutput,
-    /** Discover all configured filters or fail, rather than returning incomplete choices. */
+    /**
+     * Discover all configured filters or fail, rather than returning incomplete choices.
+     *
+     * @returns Validated filter definitions with current taxonomy choices.
+     */
     async filters(): Promise<z.output<typeof filtersOutput>> {
       const filters = await Promise.all(
         Object.entries(fields).map(([name, field]) => field.describe(name))

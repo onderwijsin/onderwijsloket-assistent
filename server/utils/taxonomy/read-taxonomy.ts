@@ -1,3 +1,4 @@
+import { cacheDurations } from "../../../config/cache";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Schema } from "#directus";
@@ -9,6 +10,12 @@ import { z } from "zod";
 import type { Taxonomy, TaxonomyCollection } from "./taxonomy";
 import { createTaxonomySourceSchema, taxonomyCollections } from "./taxonomy";
 
+/**
+ * Fetch and validate one taxonomy collection through the shared lookup cache.
+ *
+ * @param collection - Collection name or definition used by this operation.
+ * @returns Validated and normalized records for the selected taxonomy collection.
+ */
 const readCachedTaxonomy = cachedFunction(
   async (collection: TaxonomyCollection): Promise<Taxonomy[]> => {
     const query = { limit: -1, sort: ["id" as const] };
@@ -44,14 +51,25 @@ const readCachedTaxonomy = cachedFunction(
   },
   {
     name: "read-taxonomy",
-    maxAge: 60,
+    maxAge: cacheDurations.taxonomy,
     // Refresh expired values before returning; filter discovery must not serve stale choices.
     swr: false,
+    /**
+     * Isolate cached data by its configured identifier.
+     *
+     * @param collection - Collection name or definition used by this operation.
+     * @returns The stable identifier used to isolate the cache entry.
+     */
     getKey: (collection: TaxonomyCollection) => collection
   }
 );
 
-/** Read selected taxonomies (all by default), caching each collection for one minute. */
+/**
+ * Read selected taxonomies (all by default), caching each collection for one minute.
+ *
+ * @param selected - Taxonomy collections to read; omitted selects all supported collections.
+ * @returns Normalized values from the selected taxonomies, using the shared per-collection cache.
+ */
 export async function readTaxonomy(
   selected: readonly TaxonomyCollection[] = taxonomyCollections
 ): Promise<Taxonomy[]> {

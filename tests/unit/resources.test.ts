@@ -7,6 +7,11 @@ import {
   serveResource
 } from "../../server/utils/resources";
 
+vi.mock("nitropack/runtime", () => ({
+  cachedFunction: (fn: unknown) => fn,
+  defineCachedFunction: (fn: unknown) => fn
+}));
+
 const record = { id: "example-id", title: "Title", description: "Description" };
 
 describe("collection-independent resource descriptors", () => {

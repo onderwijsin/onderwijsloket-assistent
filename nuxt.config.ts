@@ -179,6 +179,11 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     apiToken: ENV.API_TOKEN,
+    algolia: {
+      applicationId: ENV.ALGOLIA_APPLICATION_ID,
+      token: ENV.ALGOLIA_TOKEN,
+      host: ""
+    },
     public: {
       directus: {
         assetBaseUrl: ENV.DIRECTUS_ASSET_URL

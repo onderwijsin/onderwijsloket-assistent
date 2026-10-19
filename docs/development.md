@@ -14,7 +14,7 @@ With dependencies and environment access available:
 corepack pnpm dev
 ```
 
-Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
+Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools plus `search_collection` and `get_facets`. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
 
 ## Checks
 
@@ -74,7 +74,7 @@ dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is di
 
 Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
 `fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all five
+build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all seven
 MCP tools. It does not verify browser hydration.
 
 Server and build isolation does not replace upstream services: the app still loads
@@ -91,3 +91,7 @@ See [the articles POC](articles-poc.md) for the implemented MCP contracts.
 ## Current implementation entry point
 
 Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Chat, prompts and additional collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
+
+## Server JSDoc
+
+MCP handlers, collection methods and their supporting server utilities document behavior, each declared parameter with `@param`, and the return value with `@returns`. Functions without parameters omit `@param`; void and throwing functions explain their effects under `@returns`. Schema, configuration and type comments describe their purpose without function tags. Keep client-facing MCP descriptions independent of infrastructure details.

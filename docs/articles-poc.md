@@ -1,6 +1,6 @@
 # Articles POC
 
-The current implementation exposes five Directus-backed tools. Article Markdown resources are also available; see [article resources](article-resources.md). Algolia, UI and prompts remain deferred.
+The current implementation exposes five Directus-backed tools. Article Markdown resources are also available; see [article resources](article-resources.md). `search_collection` and `get_facets` add [Algolia discovery](search.md). Global search, UI and prompts remain deferred.
 
 ## Collection architecture
 
@@ -17,7 +17,7 @@ await articles.get("00f81660-a2e4-48af-b8d7-98ce338de447");
 await articles.filters();
 ```
 
-`search()` and `facets()` are reserved for the later Algolia integration; neither is implemented yet.
+`search()` and `facets()` delegate to the shared Algolia discovery utilities, with collection-specific index configuration.
 
 ## Tools
 
@@ -29,7 +29,7 @@ await articles.filters();
 | `get_record`          | Retrieves article detail by UUID, including readable content and taxonomy metadata. |
 | `get_filters`         | Describes accepted filters and fetches current taxonomy choices from Directus.      |
 
-`search_records` and `get_facets` are not registered. Collection metadata advertises `list`, `get` and `filters` as available, with `search` and `facets` unavailable.
+The two additional tools `search_collection` and `get_facets` are registered. Collection metadata advertises `list`, `get`, `filters`, `search` and `facets` as available. Search filters are index facet values, separate from the Directus taxonomy ID filters described below.
 
 ## Filtering
 
@@ -62,7 +62,7 @@ The ID above is illustrative. Retrieve actual current IDs using `get_filters`. I
 
 Both summary and detail include flattened metadata for sectors, qualifications, roles, topics and tracks. Each metadata entry uses the shared `{ id, title, slug, description }` contract; unavailable slug/description values are null. The same shape is used by filter choices and `readTaxonomy()`. Null junction targets are skipped. Audiences and phases are available as filters but are not included in record metadata.
 
-Records also contain ID, title, slug, description, summary, update date, language flag and source URL. The shared `server/utils/use-source-url.ts` helper constructs source URLs with `ufo`. Detail adds content, content warnings and truncation. Tool results include structured content and a JSON text fallback; all five tools advertise output schemas and validate their successful structured responses.
+Records also contain ID, title, slug, description, summary, update date, language flag and source URL. The shared `server/utils/use-source-url.ts` helper constructs source URLs with `ufo`. Detail adds content, content warnings and truncation. Tool results include structured content and a JSON text fallback; all seven tools advertise output schemas and validate their successful structured responses.
 
 Pagination is one-based with a default page size of 10 and maximum of 25. Supported sorts are `title`, `-title`, `date_updated` and `-date_updated`, with ID as a tie-breaker. Listing fetches one extra record for `has_more` without promising an exact count.
 
@@ -74,7 +74,7 @@ Missing records return `NOT_FOUND`; provider and response-validation failures re
 
 ## Verification
 
-Unit tests cover collection inputs, M2M filter translation, taxonomy metadata in lists/details, taxonomy discovery with mocked Directus responses, pagination, safe errors and complete Markdown rendering and traversal limits. Production-build integration tests exercise all five MCP tools against a local Directus HTTP fixture, including pagination, full Markdown rendering, dynamic filters, cache reuse and safe failures. No Algolia integration is required for this milestone.
+Unit tests cover collection inputs, M2M filter translation, taxonomy metadata in lists/details, taxonomy discovery with mocked Directus responses, pagination, safe errors and complete Markdown rendering and traversal limits. Production-build integration tests exercise all five MCP tools against a local Directus HTTP fixture, including pagination, full Markdown rendering, dynamic filters, cache reuse and safe failures. The Algolia HTTP fixture exercises both discovery tools; see [search](search.md).
 
 ## Agent-facing contracts
 

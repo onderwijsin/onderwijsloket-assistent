@@ -4,7 +4,7 @@ Status: rough draft for discussion. Research date: 19 October 2026.
 
 ## Current milestone: articles POC
 
-The current implementation exposes articles through `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Algolia search/facets, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria.
+The current implementation exposes articles through `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_collection` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria.
 
 The remainder describes the broader product roadmap. Its additional domain tools, workflows, workflow resources and chat are deferred beyond this POC.
 

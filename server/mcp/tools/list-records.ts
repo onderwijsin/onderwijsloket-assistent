@@ -14,6 +14,12 @@ export default defineMcpTool({
   },
   outputSchema: articles.listOutput.shape,
   inputSchema: articles.listInput.shape,
+  /**
+   * Retrieve one filtered page of article summaries.
+   *
+   * @param args - Validated operation arguments, including filters and pagination where supported.
+   * @returns Paginated summaries as structured content, JSON text and resource links.
+   */
   handler: async (args) => {
     const result = await articles.list(args);
     // Include text for MCP clients that do not consume structuredContent.

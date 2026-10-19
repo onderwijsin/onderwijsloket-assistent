@@ -34,7 +34,12 @@ export const taxonomySchema = z.object({
 /** Normalized taxonomy metadata, independent of the upstream label field. */
 export type Taxonomy = z.infer<typeof taxonomySchema>;
 
-/** Validate and normalize one Directus taxonomy record into the shared contract. */
+/**
+ * Validate and normalize one Directus taxonomy record into the shared contract.
+ *
+ * @param collection - Collection name or definition used by this operation.
+ * @returns A source schema mapping the collection label and optional fields into normalized metadata.
+ */
 export function createTaxonomySourceSchema(collection: TaxonomyCollection) {
   // Some taxonomy collections use `title` instead of `name` for their primary label
   const label = ["sectors", "phases", "audiences"].includes(collection) ? "title" : "name";

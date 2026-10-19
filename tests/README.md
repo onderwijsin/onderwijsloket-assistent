@@ -23,3 +23,5 @@ The normal Nuxt build still requires its configured environment and build-time s
 `corepack pnpm test:coverage` writes V8 reports to ignored `coverage/`. Coverage guides investigation; there are no percentage targets or changed include paths. Tests protect meaningful behavior rather than mirroring implementation details.
 
 Article resource tests additionally exercise URI templates, complete catalogue discovery across multiple summary pages, Markdown/front matter, record-tool resource links and sanitized resource errors. YAML serialization, collection metadata selection and generic resource descriptors and reusable list/read callbacks also have unit coverage. See [article resources](../docs/article-resources.md).
+
+Search tests cover reusable Algolia clients and query adapters, dynamic facets, literal filter values, nested matched snippets and index-to-Directus discovery. HTTP e2e uses `tests/fixtures/algolia.ts` with private fixture credentials and a local host override, exercising the installed SDK rather than a mocked SDK transport. See [search](../docs/search.md).

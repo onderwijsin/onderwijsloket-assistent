@@ -2,7 +2,12 @@ import { z } from "zod";
 import type { TaxonomyCollection } from "./taxonomy";
 import { createTaxonomySourceSchema } from "./taxonomy";
 
-/** Flatten Directus M2M junctions into normalized taxonomy metadata, skipping null targets. */
+/**
+ * Flatten Directus M2M junctions into normalized taxonomy metadata, skipping null targets.
+ *
+ * @param collection - Collection name or definition used by this operation.
+ * @returns A schema flattening expanded junction rows into normalized taxonomy metadata.
+ */
 export function createTaxonomyRelationSchema(collection: TaxonomyCollection) {
   // Directus exposes targets inside junction rows, e.g. { topics_id: { ... } }.
   const key = `${collection}_id`;

@@ -12,7 +12,7 @@ const outputSchema = z.object({
 export default defineMcpTool({
   name: "list_collections",
   description:
-    "Discover available collections and their purpose, capabilities, fields, sorts and pagination limits. Use the returned name as collection in subsequent calls. Only articles is currently available; search and facets are not implemented.",
+    "Discover available collections and their purpose, capabilities, fields, sorts and pagination limits. Use the returned name as collection in subsequent calls. Only articles is currently available. Check capabilities before choosing an operation.",
   annotations: {
     readOnlyHint: true,
     destructiveHint: false,
@@ -21,6 +21,11 @@ export default defineMcpTool({
   },
   inputSchema: {},
   outputSchema: outputSchema.shape,
+  /**
+   * List the collections and operations available to MCP clients.
+   *
+   * @returns Collection metadata as structured content and a JSON text fallback.
+   */
   handler: async () => {
     const result = outputSchema.parse({ collections: [articles.metadata] });
     // Include text for MCP clients that do not consume structuredContent.

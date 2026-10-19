@@ -10,12 +10,23 @@ export interface ContentDocumentMetadata {
   summary?: string | null;
 }
 
-/** Pick the first nonblank field rather than letting an empty CMS field hide its fallback. */
+/**
+ * Pick the first nonblank field rather than letting an empty CMS field hide its fallback.
+ *
+ * @param values - Candidate text fields, from highest to lowest priority.
+ * @returns The first nonblank string, or undefined when none is available.
+ */
 function firstText(...values: (string | null | undefined)[]): string | undefined {
   return values.find((value) => value?.trim())?.trim();
 }
 
-/** Prepend metadata only when the first nonblank Markdown line is not already an H1. */
+/**
+ * Prepend metadata only when the first nonblank Markdown line is not already an H1.
+ *
+ * @param markdown - Markdown body to format.
+ * @param metadata - Record metadata used for the document header.
+ * @returns Markdown with a metadata header when the body does not already start with an H1.
+ */
 export function ensureHeadingOne(markdown: string, metadata: ContentDocumentMetadata): string {
   // Tiptap emits ATX headings. Leading blank paragraphs/lines do not change the first heading.
   if (/^\s*#(?:[\t ]|$)/.test(markdown)) {

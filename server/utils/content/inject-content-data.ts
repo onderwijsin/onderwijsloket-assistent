@@ -9,7 +9,13 @@ interface RelationScope {
   ancestors: ReadonlySet<string>;
 }
 
-/** Resolve editor-node junctions into attrs.data without mutating the fetched document or rows. */
+/**
+ * Resolve editor-node junctions into attrs.data without mutating the fetched document or rows.
+ *
+ * @param document - Source document to hydrate or render.
+ * @param editorNodes - Fetched editor-node junctions used to resolve embedded relations.
+ * @returns A cloned hydrated document, warnings and a traversal-truncation flag.
+ */
 export function injectContentData(document: unknown, editorNodes: unknown = []) {
   const source = contentNodeSchema.parse(document);
   const initialScope: RelationScope = {
@@ -20,6 +26,14 @@ export function injectContentData(document: unknown, editorNodes: unknown = []) 
   let visitedNodes = 0;
   let truncated = false;
 
+  /**
+   * Resolve one embedded relation and hydrate any nested documents.
+   *
+   * @param attributes - Editor-node attributes identifying the related collection and junction.
+   * @param scope - Available junction rows and the current relation ancestry.
+   * @param depth - Current traversal depth, checked against the document limit.
+   * @returns Cloned attributes containing resolved data, or an unresolved placeholder with a warning.
+   */
   function hydrateRelation(
     attributes: Record<string, unknown> = {},
     scope: RelationScope,
@@ -60,6 +74,14 @@ export function injectContentData(document: unknown, editorNodes: unknown = []) 
     return result;
   }
 
+  /**
+   * Clone and hydrate a document node while enforcing traversal limits.
+   *
+   * @param node - Content node to render or normalize.
+   * @param scope - Available junction rows and the current relation ancestry.
+   * @param depth - Current traversal depth, checked against the document limit.
+   * @returns A hydrated node, or an omission marker when traversal limits are reached.
+   */
   function visitNode(node: ContentNode, scope: RelationScope, depth: number): ContentNode {
     visitedNodes += 1;
     // Both limits apply across the whole document, including documents nested inside relations.
