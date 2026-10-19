@@ -1,27 +1,46 @@
-# Verification
+# Tests
 
-Run `corepack pnpm test` for the complete unit and HTTP e2e suite.
+The test suite verifies collection contracts, document rendering and the public MCP endpoint. Vitest runs separate unit and HTTP end-to-end projects.
 
-## Unit tests
+## Commands
 
-`corepack pnpm test:unit` exercises collection schemas and response validation, query translation, all article filter dimensions, taxonomy normalization, dynamic filter discovery, Markdown rendering and environment resolution.
+```sh
+corepack pnpm test            # Complete suite
+corepack pnpm test:unit       # Unit tests
+corepack pnpm test:e2e        # Production HTTP integration tests
+corepack pnpm test:watch      # Unit tests in watch mode
+corepack pnpm test:coverage   # Unit tests with V8 coverage reports
+```
 
-Document fixtures cover every supported relation type, nested callout scopes, repeated references, cycles, malformed inputs, missing/unsupported payloads, tables, text formatting, URL handling, H1 insertion and full content beyond 20,000 characters. Node-count and depth limits are tested separately.
+Use the Node version in `.nvmrc` and the package manager pinned in `package.json`. Application builds load the configured environment and require access to the services used during module initialization and schema generation. See [development](../docs/development.md) for setup.
 
-Taxonomy cache tests use Nitro's actual cache implementation with isolated in-memory storage to verify reuse, 60-second expiry and retries after transport or validation failures.
+## Unit coverage
 
-## HTTP e2e tests
+`unit/` covers collection schemas, boundary validation, query translation, pagination, taxonomy normalization, filter discovery, search mapping and safe errors.
 
-`corepack pnpm test:e2e` builds and starts the actual Node application. A local Directus HTTP fixture in `tests/fixtures/directus.ts` supplies synthetic records; server runtime configuration points exclusively to that fixture using a synthetic token. The Directus SDK and application handlers are not mocked.
+Document tests exercise supported editor relations, nested callouts, repeated references, cycles, malformed or unresolved content, tables, text formatting, links, assets, H1 insertion and documents beyond 20,000 characters. Traversal depth and node-count limits have separate assertions.
 
-The suite covers MCP discovery and schema portability, catalogue/collection metadata, filtered pagination, full Markdown details and embedded assets, dynamic filter choices, cache reuse, input rejection before upstream requests, missing records and sanitized upstream failures. Successful responses verify structured content and the JSON text fallback.
+Resource tests verify URI construction, descriptors, collection metadata selection, reusable list/read callbacks and YAML front matter. Search tests verify client reuse, dynamic facets, literal filter values and nested matched snippets.
 
-The normal Nuxt build still requires its configured environment and build-time schema access. These tests do not validate production Directus permissions, live content, browser behavior or Cloudflare deployment.
+Cache tests use Nitro’s actual function cache with isolated storage and controlled time. They verify key isolation, expiry, shared article/tool/resource reads and retries after failures, including incomplete catalogues.
 
-## Coverage
+## HTTP integration coverage
 
-`corepack pnpm test:coverage` writes V8 reports to ignored `coverage/`. Coverage guides investigation; there are no percentage targets or changed include paths. Tests protect meaningful behavior rather than mirroring implementation details.
+`e2e/` builds and starts the application with the Node server preset using `@nuxt/test-utils`. Each run uses an isolated build directory and a server on an available port, with teardown managed by the test runner.
 
-Article resource tests additionally exercise URI templates, complete catalogue discovery across multiple summary pages, Markdown/front matter, record-tool resource links and sanitized resource errors. YAML serialization, collection metadata selection and generic resource descriptors and reusable list/read callbacks also have unit coverage. See [article resources](../docs/article-resources.md).
+Local HTTP fixtures supply synthetic content and search responses:
 
-Search tests cover reusable Algolia clients and query adapters, dynamic facets, literal filter values, nested matched snippets and index-to-Directus discovery. HTTP e2e uses `tests/fixtures/algolia.ts` with private fixture credentials and a local host override, exercising the installed SDK rather than a mocked SDK transport. See [search](../docs/search.md).
+- `fixtures/directus.ts` serves article and taxonomy records.
+- `fixtures/algolia.ts` serves search results, snippets and facets.
+
+Runtime requests use these fixtures and synthetic credentials. The installed SDKs and application handlers run against real HTTP boundaries. Build-time module initialization still uses the normal configured environment.
+
+Assertions cover all seven tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
+
+These tests cover the Node server’s HTTP contracts. They do not verify browser hydration, live service permissions or a deployed Cloudflare Workers instance.
+
+## Adding tests
+
+Place isolated behavior tests in `unit/**/*.test.ts` and HTTP contract tests in `e2e/**/*.test.ts`. Import Vitest APIs explicitly. Use synthetic or sanitized fixtures and add cases that protect observable behavior or known regressions.
+
+Coverage reports are written to ignored `coverage/`. Use them to investigate gaps; percentage targets are not enforced.
