@@ -1,0 +1,85 @@
+name: Release and Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: Create new release
+        required: true
+        default: true
+        type: boolean
+      create_deploy:
+        description: Create new deploy
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release-deploy-main
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate workflow inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ inputs.create_release }}" = 'true' ] && [ "${GITHUB_REF}" != 'refs/heads/main' ]; then
+            echo 'This workflow can only run from main.'
+            exit 1
+          fi
+
+          if [ "${{ inputs.create_release }}" != 'true' ] && [ "${{ inputs.create_deploy }}" != 'true' ]; then
+            echo 'Select at least one action.'
+            exit 1
+          fi
+
+  release:
+    needs: preflight
+    if: ${{ inputs.create_release }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository with app token
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Setup node, pnpm, GitHub packages authentication and install dependencies
+        uses: ./.github/actions/setup
+        with:
+          gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
+          proton-pass-personal-access-token: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Run semantic-release
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: corepack pnpm exec semantic-release
+
+  deploy:
+    needs:
+      - preflight
+      - release
+    if: ${{ always() && inputs.create_deploy && (needs.release.result == 'success' ||
+      needs.release.result == 'skipped') }}
+    uses: ./.github/workflows/deploy_coolify.yml
+    with:
+      environment: production
+    secrets:
+      PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+      PROTON_VAULT: ${{ secrets.PROTON_VAULT }}

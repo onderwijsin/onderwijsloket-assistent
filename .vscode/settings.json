@@ -1,0 +1,13 @@
+{
+  "chat.tools.terminal.autoApprove": {
+    "corepack": true
+  },
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+  "prettier.enable": false,
+  "[vue]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  }
+}

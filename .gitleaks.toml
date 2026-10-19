@@ -1,0 +1,27 @@
+title = "Gitleaks Configuration"
+description = "Security scanning configuration for TypeScript project"
+minVersion = "v8.29.0"
+
+[extend]
+useDefault = true
+
+# Global allowlists for the project
+[[allowlists]]
+description = "Project ignore paths and patterns"
+paths = [
+  '''(^|/)\.agents/skills/''',
+  '''node_modules/.*''',
+  '''\.git/.*''',
+  '''dist/.*''',
+  '''\.output/.*''',
+  '''coverage/.*''',
+  '''.*\.log$''',
+  '''\.env\.example$''',
+  '''\.env\.template$''',
+  '''public/.*\.json$''',
+  '''assets/.*\.svg$''',
+  '''data/.*''',
+  '''.data/*''',
+  '''.idea/*''',
+  '''.nuxt/.*'''
+]

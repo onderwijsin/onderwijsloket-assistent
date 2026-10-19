@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Get list of staged files (Added, Copied, Modified) as NUL-delimited data
+# so filenames with spaces are handled correctly.
+STAGED_FILES_FILE="$(mktemp)"
+trap 'rm -f "$STAGED_FILES_FILE"' EXIT
+git diff --cached --name-only --diff-filter=ACM -z > "$STAGED_FILES_FILE"
+
+# Run gitleaks to scan for secrets in staged files
+# Disables user git config to prevent color codes from breaking gitleaks parsing
+GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_SYSTEM=/dev/null \
+  gitleaks git --staged --config .gitleaks.toml --verbose --exit-code 1
+
+# Load tracked development defaults used by local hooks.
+# .env.local takes precedence over .env.development for duplicate keys
+if [ -f "envs/.env.development" ]; then
+  set -a
+  . "envs/.env.development"
+  set +a
+fi
+if [ -f "envs/.env.local" ]; then
+  set -a
+  . "envs/.env.local"
+  set +a
+fi
+
+# Format and lint staged files. lint-staged automatically re-stages fixes.
+if [ "${DISABLE_PRE_COMMIT_FORMAT:-false}" != "true" ] \
+  || [ "${DISABLE_PRE_COMMIT_LINT:-false}" != "true" ]; then
+  corepack pnpm exec lint-staged --concurrent false
+fi

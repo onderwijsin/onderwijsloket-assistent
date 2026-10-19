@@ -1,0 +1,162 @@
+{
+  "version": 1,
+  "skills": {
+    "algolia-cli": {
+      "source": "algolia/skills",
+      "sourceType": "github",
+      "skillPath": "skills/algolia-cli/SKILL.md",
+      "computedHash": "bdcb8acc1f3e1bfdad9e15981931e190bd1ef3532ec215d64bbb1b596e1bb460"
+    },
+    "algolia-index-configuration": {
+      "source": "algolia/skills",
+      "sourceType": "github",
+      "skillPath": "skills/algolia-index-configuration/SKILL.md",
+      "computedHash": "617a4db3a42cc8a762ad9ca4f2dccd99baaa2d156eaa83cb0c5ccf61003b50c4"
+    },
+    "algolia-mcp": {
+      "source": "algolia/skills",
+      "sourceType": "github",
+      "skillPath": "skills/algolia-mcp/SKILL.md",
+      "computedHash": "fa5ad8290a17a242995662c5fd429c0a58dff8c98140198468141907be810fab"
+    },
+    "algolia-quickstart": {
+      "source": "algolia/skills",
+      "sourceType": "github",
+      "skillPath": "skills/algolia-quickstart/SKILL.md",
+      "computedHash": "85f1769171d833cf69865aef8547a3ec7eb872828e6579c3c9061d1d4bee7102"
+    },
+    "algolia-search-implementation": {
+      "source": "algolia/skills",
+      "sourceType": "github",
+      "skillPath": "skills/algolia-search-implementation/SKILL.md",
+      "computedHash": "5917ccecd06c0cbf7bd735db6fbaa25b496499e7c1c05ad005d75642e961f469"
+    },
+    "manage-mcp": {
+      "source": "mcp-toolkit.nuxt.dev",
+      "sourceUrl": "https://mcp-toolkit.nuxt.dev",
+      "sourceType": "well-known",
+      "computedHash": "64f7ebfedc6c0a82b5cef3a595d4f58b4f719171a9c0008be434229d69596a9f",
+      "wellKnownDigest": "sha256:0014e3572c69f1eb0b276845c89393f3f1f74c1dd8a5d6940e6bb299831e4e2b"
+    },
+    "nitro": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/nitro/SKILL.md",
+      "computedHash": "ab59b74e7ca03aa5565f810f7a162f31522648ba5252c3ab6ad1c6ad0d8d3c95"
+    },
+    "nuxt": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt/SKILL.md",
+      "computedHash": "03fc229d7c6a300b2ded6d9f984b45d8a554c2c991199c54760893e627c91371"
+    },
+    "nuxt-directus-client": {
+      "source": "onderwijsin/nuxt-modules",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-directus-client/SKILL.md",
+      "computedHash": "35870faa45efb3182aac753ecf95c0f829bbaf590c5465fecef8166d15d3bc4b"
+    },
+    "nuxt-directus-config": {
+      "source": "onderwijsin/nuxt-modules",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-directus-config/SKILL.md",
+      "computedHash": "748c0a71a62ca6fef9fbd63596c5bf50b1b83973d63e68e9f47de8c3b689b1af"
+    },
+    "nuxt-newsletter-signup": {
+      "source": "onderwijsin/nuxt-modules",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-newsletter-signup/SKILL.md",
+      "computedHash": "59caf54b9921ecfdd26d477b86de8418ad9e1d6a1ac790684e81d3d71174600a"
+    },
+    "nuxt-sentry-config": {
+      "source": "onderwijsin/nuxt-modules",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-sentry-config/SKILL.md",
+      "computedHash": "df7cbf36ccaf7c02fb96efb5788b057327978a60c79de0f41761ca86bcf6733b"
+    },
+    "nuxt-ui": {
+      "source": "nuxt/ui",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-ui/SKILL.md",
+      "computedHash": "23710257054af81129f08bdf972e8c94af0fa2adfa63168b928d443d30cab90f"
+    },
+    "pinia": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pinia/SKILL.md",
+      "computedHash": "b02c9f6c2e1ec051be0ca5025804d8262815221fd7f5020734b5a9ad87f15617"
+    },
+    "pnpm": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/pnpm/SKILL.md",
+      "computedHash": "d1bd6f4fd38ff1ba33b857223c58a832d1cd5b488163ba0d389db449be472603"
+    },
+    "vite": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vite/SKILL.md",
+      "computedHash": "88ee465fd10f711efecc76e91e96accae2b229dda371614dcf219099c264a486"
+    },
+    "vitest": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vitest/SKILL.md",
+      "computedHash": "21af2b13d47d31f3094b61c0f41abc8d6a7eed0df3c9a4029ea671f6978b7209"
+    },
+    "vue": {
+      "source": "antfu/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vue/SKILL.md",
+      "computedHash": "29ad402cf2ff868b3b43160883fbc42e135223655a41d16092d0d205f2c1ed31"
+    },
+    "vue-best-practices": {
+      "source": "vuejs-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vue-best-practices/SKILL.md",
+      "computedHash": "4147a729067271c2743723c2b2d5b19999b3ce05eae059bbf988fb31411ea7d6"
+    },
+    "vue-debug-guides": {
+      "source": "vuejs-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vue-debug-guides/SKILL.md",
+      "computedHash": "fa7b31c32a6717ae47cd2ea208773e27536225ad053a564effe656bf927fe9ef"
+    },
+    "vue-pinia-best-practices": {
+      "source": "vuejs-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vue-pinia-best-practices/SKILL.md",
+      "computedHash": "d4ba913bec21910b8e37b2115cd964df2dc43ad62346b981c7b88d4ddc8cf792"
+    },
+    "vue-router-best-practices": {
+      "source": "vuejs-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vue-router-best-practices/SKILL.md",
+      "computedHash": "f0745ed318c113e592ab4a9ded57ceadd0db2edab00cdb46b216c83f5ce0799e"
+    },
+    "vue-testing-best-practices": {
+      "source": "vuejs-ai/skills",
+      "sourceType": "github",
+      "skillPath": "skills/vue-testing-best-practices/SKILL.md",
+      "computedHash": "58d365899f54be9e5fa2c2e455093f9567620600578ae92aaa2f31d9b19a59ad"
+    },
+    "vueuse-functions": {
+      "source": "vueuse/vueuse",
+      "sourceType": "github",
+      "skillPath": "skills/vueuse-functions/SKILL.md",
+      "computedHash": "804d8e5d81a540e7c8ae06783d5109032b3a61827b0dde37d168e9f862f30c79"
+    },
+    "writing-for-agents": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/productivity/writing-for-agents/SKILL.md",
+      "computedHash": "95da47fc97af998e85b7d7e6d57b3ac76727c1e290cfe9ea09005aacb826959f"
+    },
+    "zod": {
+      "source": "anivar/zod-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "580ef0ceb6f98c541c8944d304707335bd8d29e04a05fcc1229b089a9253a4d0"
+    }
+  }
+}

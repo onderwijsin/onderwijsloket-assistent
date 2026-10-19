@@ -1,0 +1,14 @@
+[mcp_servers.nuxt]
+url = "https://nuxt.com/mcp"
+
+[mcp_servers.nuxt_toolkit]
+url = "https://mcp-toolkit.nuxt.dev/mcp"
+
+[mcp_servers.nuxt_seo]
+url = "https://nuxtseo.com/mcp"
+
+[mcp_servers.algolia]
+url = "https://mcp.algolia.com/mcp"
+
+[mcp_servers.algolia_snippets]
+url = "https://mcp.algolia.com/1/snippets/mcp"

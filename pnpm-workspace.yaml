@@ -1,0 +1,62 @@
+allowBuilds:
+  "@parcel/watcher": false
+  "@tailwindcss/oxide": false
+  esbuild: false
+  unrs-resolver: false
+  vue-demi: false
+
+shamefullyHoist: true
+catalogMode: "strict"
+cleanupUnusedCatalogs: true
+saveExact: true
+
+minimumReleaseAgeExclude:
+  - "@onderwijsin/*"
+
+catalog:
+  "@comark/nuxt": 0.7.0
+  "@commitlint/cli": 21.2.3
+  "@commitlint/config-conventional": 21.2.3
+  "@directus/types": 18.0.0
+  "@iconify-json/lucide": "1.2.145"
+  "@iconify-json/simple-icons": "1.2.100"
+  "@nuxt/fonts": 1.0.1
+  "@nuxt/image": 2.1.0
+  "@nuxt/ui": "4.12.0"
+  "@nuxtjs/mcp-toolkit": "0.24.2"
+  "@nuxtjs/plausible": 4.0.0
+  "@nuxtjs/seo": 6.0.1
+  "@onderwijsin/nuxt-directus-client": 0.12.4
+  "@onderwijsin/nuxt-directus-config": 0.9.0
+  "@onderwijsin/nuxt-healthcheck": 0.3.9
+  "@onderwijsin/nuxt-newsletter-signup": 1.2.2
+  "@pinia/nuxt": 1.0.3
+  "@semantic-release/changelog": 7.0.0
+  "@semantic-release/commit-analyzer": 13.0.1
+  "@semantic-release/git": 11.0.1
+  "@semantic-release/github": 12.0.10
+  "@semantic-release/npm": 13.2.0
+  "@semantic-release/release-notes-generator": 14.1.1
+  "@tailwindcss/typography": 0.5.20
+  "@varlock/nuxt-integration": 0.1.4
+  "@varlock/proton-pass-plugin": 2.0.2
+  "@vueuse/core": 15.0.0
+  "@vueuse/nuxt": 15.0.0
+  algoliasearch: ^5.60.0
+  defu: 6.1.7
+  "h3": "1.15.11"
+  husky: 9.1.7
+  lint-staged: 17.6.0
+  motion-v: 2.8.0
+  "nuxt": "4.6.2"
+  oxfmt: 0.73.0
+  oxlint: 1.88.0
+  pinia: 4.1.0
+  pinia-plugin-persistedstate: 4.7.1
+  semantic-release: 25.0.9
+  "tailwindcss": "4.3.3"
+  "typescript": "6.0.3"
+  ufo: 1.6.4
+  varlock: 1.23.0
+  "vue-tsc": "3.3.13"
+  "zod": "4.6.7"

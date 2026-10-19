@@ -1,0 +1,23 @@
+# Scan for secrets using gitleaks
+name: Gitleaks
+
+on:
+  push: {}
+  repository_dispatch:
+    types: [retrigger-workflows]
+
+jobs:
+  scan:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        with:
+          config: .gitleaks.toml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_NOTIFY_USER_LIST: "@remihuigen"
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}

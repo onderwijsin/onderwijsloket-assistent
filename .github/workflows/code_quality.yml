@@ -1,0 +1,87 @@
+name: Code Quality
+
+on:
+  workflow_call:
+    inputs:
+      build-command:
+        description: "Build command to run before typechecking"
+        required: false
+        type: string
+      build-before-lint:
+        description: "Whether to build before linting"
+        required: false
+        default: false
+        type: boolean
+      lint-command:
+        description: "Lint command to run instead of default"
+        required: false
+        default: pnpm lint
+        type: string
+      build-before-typecheck:
+        description: "Whether to build before typechecking"
+        required: false
+        default: false
+        type: boolean
+      typecheck-command:
+        description: "Typecheck command to run instead of default"
+        required: false
+        default: pnpm typecheck
+        type: string
+
+      runner:
+        description: "Runner to execute the job on"
+        required: false
+        default: ubuntu-latest
+        type: string
+    secrets:
+      GH_PACKAGES_TOKEN:
+        description: "GitHub Packages token for installing private packages."
+      PROTON_PASS_PERSONAL_ACCESS_TOKEN:
+        description: "Personal access token for Proton authentication."
+
+jobs:
+  lint:
+    runs-on: ${{ inputs.runner }}
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    env:
+      PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup node, pnpm, GitHub packages authentication and install dependencies
+        uses: ./.github/actions/setup
+        with:
+          gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
+          proton-pass-personal-access-token: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Build packages before linting
+        if: ${{ inputs.build-command && inputs.build-before-lint }}
+        run: ${{ inputs.build-command }}
+        env:
+          PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Lint
+        run: ${{ inputs.lint-command }}
+
+  typecheck:
+    runs-on: ${{ inputs.runner }}
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    env:
+      PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup node, pnpm, GitHub packages authentication and install dependencies
+        uses: ./.github/actions/setup
+        with:
+          gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
+          proton-pass-personal-access-token: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Build packages before typechecking
+        if: ${{ inputs.build-command && inputs.build-before-typecheck }}
+        run: ${{ inputs.build-command }}
+        env:
+          PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Typecheck
+        run: ${{ inputs.typecheck-command }}
