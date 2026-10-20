@@ -5,7 +5,7 @@
   "description": "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education.",
   "type": "module",
   "scripts": {
-    "build": "nuxt cleanup && NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build --profile=verbose",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build --profile=verbose",
     "dev": "nuxt dev",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
