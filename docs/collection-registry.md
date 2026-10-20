@@ -1,6 +1,6 @@
 # Collection registry and application boundaries
 
-The server exposes ten core collections through thirty-four tools: three record operations per collection and four shared discovery operations. Each core also has a readable Markdown resource and URI template. The registry makes this surface explicit without forcing every collection into an article-shaped record or exposing arbitrary Directus tables.
+The server exposes ten core collections through thirty-four collection tools: three record operations per collection and four shared discovery operations. Three additional [route workflow tools](routes.md) expose the questionnaire, matching and route detail without registering route tables as generic collections. Each core collection also has a readable Markdown resource and URI template. The registry makes this surface explicit without forcing every collection into an article-shaped record or exposing arbitrary Directus tables.
 
 ## Server instructions
 

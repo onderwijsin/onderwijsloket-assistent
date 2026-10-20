@@ -6,6 +6,7 @@ import { version as packageVersion } from "./package.json";
 import { app } from "./config/head";
 import identity, { siteDescription, siteTitle } from "./config/identity";
 import { INSTRUCTIONS } from "./config/mcp";
+import { MCP_SERVER } from "./config/mcp-server";
 
 import { resolveEnvironment } from "./config/helpers";
 const { environment, isDebug, isProd, isPreview, isDev, isTest } = resolveEnvironment(ENV.MODE);
@@ -19,9 +20,7 @@ export default defineNuxtConfig({
   nitro: { experimental: { asyncContext: true } },
 
   mcp: {
-    name: "Onderwijsloket Assistent (experimental)",
-    description:
-      "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education.",
+    ...MCP_SERVER,
     version: packageVersion,
     instructions: INSTRUCTIONS,
     icons: [

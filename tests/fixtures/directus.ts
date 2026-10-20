@@ -1,4 +1,5 @@
 import { showRecord, episodeRecord, videoRecord } from "./podcasts-and-videos";
+import { routeFixtureRows } from "./routes";
 import { deskRecord } from "./regional-education-desks";
 import { institutionRecord, programRecord } from "./institutions-and-programs";
 import { testimonialRecord, supportingRelations } from "./article-evidence-and-testimonials";
@@ -91,6 +92,11 @@ export async function createDirectusFixture() {
     }
     const collection = url.pathname.split("/").pop();
     const filter = JSON.parse(url.searchParams.get("filter") ?? "{}");
+    const routeRows = routeFixtureRows(collection ?? "", Object.fromEntries(url.searchParams));
+    if (routeRows) {
+      response.end(JSON.stringify({ data: routeRows }));
+      return;
+    }
     if (
       filter.title?._eq === "upstream-error" ||
       collection === state.failingTaxonomy ||

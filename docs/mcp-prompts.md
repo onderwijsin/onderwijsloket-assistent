@@ -1,16 +1,17 @@
 # MCP prompts
 
-Four user-selected workflows are auto-discovered from `server/mcp/prompts/`.
+Five user-selected workflows are auto-discovered from `server/mcp/prompts/`.
 They complement shared `mcp.instructions` without changing tool or resource
 contracts. Clients must support prompt listing and retrieval; retrieving a prompt
 returns a user message, not executed tool calls.
 
-| Prompt                     | Arguments                            | Purpose                                                                                                   |
-| -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes. |
-| `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                |
-| `find-supporting-articles` | Optional `source`, `focus`           | Find useful related reading using contextually relevant taxonomy filters or text search.                  |
-| `find-supporting-media`    | Optional `source`, `focus`           | Find podcast episodes, videos and personal stories, respecting format preferences and available content.  |
+| Prompt                     | Arguments                            | Purpose                                                                                                               |
+| -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes.             |
+| `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                            |
+| `find-supporting-articles` | Optional `source`, `focus`           | Find useful related reading using contextually relevant taxonomy filters or text search.                              |
+| `find-supporting-media`    | Optional `source`, `focus`           | Find podcast episodes, videos and personal stories, respecting format preferences and available content.              |
+| `find-education-routes`    | Optional `background`                | Ask the source-defined route questions, validate confirmed choices, find matching pathways and explain ordered steps. |
 
 Arguments are strings validated with Zod. Whitespace-only values are rejected;
 optional values should be omitted when not needed. A source can be a collection
@@ -30,3 +31,8 @@ tags do not establish corroboration. Missing bodies/transcripts remain explicit,
 and metadata-only recommendations must not summarize unheard or unseen content.
 Shortlist sizes are guidance, not enforced limits. Client/model behavior requires
 evaluation with representative conversations.
+
+The route prompt complements three dedicated [route tools](routes.md). It asks
+one enabled question at a time, requires confirmed choices and revalidates state
+after edits. Route matching remains server-side; the prompt cannot override
+questionnaire completion or matching rules.

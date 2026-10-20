@@ -9,6 +9,7 @@ Onderwijsloket Assistent lets AI assistants find guidance, compare education pro
 ## What the server provides
 
 - **Ten core content collections** with dedicated tools for browsing, searching and reading individual records.
+- **Education pathways** through a source-defined questionnaire, matching routes and ordered step-by-step guidance.
 - **Geo-search** for programs, educational institutions and regional education desks: resolve a city, postcode or address, search within a configurable radius and return nearest-first results with location and distance metadata.
 - **Filter discovery** for education sectors, qualifications, audiences, career phases, roles, topics and tracks, with collection-specific search facets and counts.
 - **Structured detail records** with relevant relationships, including program forms, institution locations, regional service areas, authors, sources and podcast participants.
@@ -89,6 +90,21 @@ and each hit's distance in metres. Regional desk distances approximate service-a
 coverage using indexed grid points. See [geographic search](docs/search.md#geographic-search)
 for the contract and [geocoding](docs/geocoding.md) for Mapbox environment configuration.
 
+## Education pathways
+
+Route data is exposed through a guided workflow rather than generic collection tools.
+
+| Tool                  | Purpose                                                                                               |
+| --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `get_route_questions` | Start or advance the questionnaire; return valid choices, canonical selections and the next question. |
+| `find_routes`         | Match completed selections to potential routes, ordered by estimated duration with paginated results. |
+| `get_route`           | Read a known route's ordered steps, estimated durations and supporting article/FAQ references.        |
+
+Pass the returned question-ID to answer-ID `selections` map between calls. Earlier
+answers can be changed; invalid downstream selections are cleared. Route matches
+provide guidance rather than admission or qualification guarantees. See
+[education pathways](docs/routes.md) for the contracts and differences from the website.
+
 ## Prompts
 
 In clients that support MCP prompts, select a workflow to guide the assistant through relevant tools and resources.
@@ -99,6 +115,7 @@ In clients that support MCP prompts, select a workflow to guide the assistant th
 | `find-local-support`       | Find regional education desks near a location and check their advice services, contact options and stated coverage.                                 |
 | `find-supporting-articles` | Find articles that explain or complement a previously discussed FAQ, article or other item, using relevant topics, qualifications, roles or tracks. |
 | `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                     |
+| `find-education-routes`    | Guide the source-defined questionnaire one question at a time, then present matching pathways and explain their steps.                              |
 
 See [MCP prompts](docs/mcp-prompts.md) for arguments and workflow details.
 
@@ -149,17 +166,18 @@ See the [testing guide](tests/README.md) for focused commands, fixture conventio
 
 ## Documentation
 
-| Guide                                              | Covers                                                           |
-| -------------------------------------------------- | ---------------------------------------------------------------- |
-| [Collection registry](docs/collection-registry.md) | Architecture, public contracts and responsibilities by layer.    |
-| [Collection data](docs/collection-data.md)         | Domain relationships, native records and reusable projections.   |
-| [Search](docs/search.md)                           | Source filters, geo-search, search indexes, snippets and facets. |
-| [Resources](docs/collection-resources.md)          | Catalogues, URI templates and readable documents.                |
-| [Content documents](docs/content-documents.md)     | Editor content hydration and Markdown rendering.                 |
-| [Taxonomies](docs/taxonomies.md)                   | Filter identities, archive links and normalization.              |
-| [Caching](docs/cache.md)                           | Cache configuration, freshness and failure behavior.             |
-| [Data access](docs/data-access.md)                 | Visibility and source-system responsibilities.                   |
-| [Development](docs/development.md)                 | Environment setup, checks and contributor conventions.           |
-| [Tool analytics](docs/tool-analytics.md)           | Optional server-side analytics and query-data controls.          |
+| Guide                                              | Covers                                                                |
+| -------------------------------------------------- | --------------------------------------------------------------------- |
+| [Collection registry](docs/collection-registry.md) | Architecture, public contracts and responsibilities by layer.         |
+| [Education pathways](docs/routes.md)               | Route questionnaire, answer dependencies, matching and ordered steps. |
+| [Collection data](docs/collection-data.md)         | Domain relationships, native records and reusable projections.        |
+| [Search](docs/search.md)                           | Source filters, geo-search, search indexes, snippets and facets.      |
+| [Resources](docs/collection-resources.md)          | Catalogues, URI templates and readable documents.                     |
+| [Content documents](docs/content-documents.md)     | Editor content hydration and Markdown rendering.                      |
+| [Taxonomies](docs/taxonomies.md)                   | Filter identities, archive links and normalization.                   |
+| [Caching](docs/cache.md)                           | Cache configuration, freshness and failure behavior.                  |
+| [Data access](docs/data-access.md)                 | Visibility and source-system responsibilities.                        |
+| [Development](docs/development.md)                 | Environment setup, checks and contributor conventions.                |
+| [Tool analytics](docs/tool-analytics.md)           | Optional server-side analytics and query-data controls.               |
 
 Maintained by [Stichting Onderwijs in](https://onderwijsin.nl) for [Onderwijsloket](https://onderwijsloket.com). Report bugs and request features through [GitHub issues](https://github.com/onderwijsin/onderwijsloket-assistent/issues).

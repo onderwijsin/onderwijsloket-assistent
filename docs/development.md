@@ -57,7 +57,7 @@ The [testing guide](../tests/README.md) owns test commands, fixture conventions,
 
 ## Architecture entry points
 
-Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. The [geocoding utility](geocoding.md) resolves location text for geographic searches of programs, institutions and regional education desks. [MCP prompts](mcp-prompts.md) provide program comparison, local support and related-content workflows. Chat remains future work.
+Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. [Education pathways](routes.md) use dedicated questionnaire, matching and detail tools. The [geocoding utility](geocoding.md) resolves location text for geographic searches of programs, institutions and regional education desks. [MCP prompts](mcp-prompts.md) provide program comparison, local support, related-content and route-questionnaire workflows. Chat remains future work.
 
 ## Server JSDoc
 

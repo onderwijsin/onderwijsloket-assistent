@@ -1,4 +1,5 @@
 import { sourceVariantId } from "../fixtures/directus";
+import { routeId, routeSelections, questionIds, answerIds } from "../fixtures/routes";
 import {
   episodeRecord,
   videoRecord,
@@ -83,6 +84,51 @@ describe("application", async () => {
     }
   });
 
+  it("publishes discovery catalogs matching the MCP definitions", async () => {
+    const cardResponse = await fetch("/.well-known/mcp/server-card.json");
+    const toolsResponse = await fetch("/api/tools");
+    expect(cardResponse.status).toBe(200);
+    expect(toolsResponse.status).toBe(200);
+    expect(cardResponse.headers.get("content-type")).toContain("application/json");
+    expect(toolsResponse.headers.get("content-type")).toContain("application/json");
+
+    const card = await cardResponse.json();
+    const catalog = await toolsResponse.json();
+    const initialization = await rpc("initialize", {
+      protocolVersion: "2025-11-25",
+      capabilities: {},
+      clientInfo: { name: "discovery-test", version: "1.0.0" }
+    });
+    expect(card.name).toBe(initialization.result.serverInfo.name);
+    for (const [key, method] of [
+      ["tools", "tools/list"],
+      ["resources", "resources/templates/list"],
+      ["prompts", "prompts/list"]
+    ] as const) {
+      const response = await rpc(method);
+      const definitions = response.result[key === "resources" ? "resourceTemplates" : key];
+      expect(card[key]).toEqual(
+        definitions.map(
+          (definition: { name: string; description?: string; uriTemplate?: string }) => ({
+            name: definition.name,
+            description: definition.description,
+            ...(key === "resources" ? { uri: definition.uriTemplate } : {})
+          })
+        )
+      );
+    }
+    const tools = Object.values(catalog).flat() as { name: string; group?: string }[];
+    expect(tools.map((tool) => tool.name).sort()).toEqual(
+      card.tools.map((tool: { name: string }) => tool.name).sort()
+    );
+    for (const [group, entries] of Object.entries(catalog)) {
+      for (const tool of entries as { group?: string }[]) {
+        expect(tool.group ?? "default").toBe(group);
+      }
+    }
+    expect(JSON.stringify(catalog)).not.toContain('"inputSchema"');
+  });
+
   it("serves the application HTML", async () => {
     const response = await fetch("/");
 
@@ -147,6 +193,7 @@ describe("application", async () => {
     }
     expect(result.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
       "describe_collection",
+      "find_routes",
       "get_article",
       "get_educational_institution",
       "get_facets",
@@ -156,6 +203,8 @@ describe("application", async () => {
       "get_podcast_show",
       "get_program",
       "get_regional_education_desk",
+      "get_route",
+      "get_route_questions",
       "get_sector",
       "get_testimonial",
       "get_video",
@@ -181,6 +230,35 @@ describe("application", async () => {
       "search_testimonials",
       "search_videos"
     ]);
+  });
+
+  it("guides and matches pathways over MCP without exposing route source collections", async () => {
+    const start = await call("get_route_questions", {});
+    expect(start.result.structuredContent.next_question_id).toBe(questionIds[0]);
+    expect(start.result.structuredContent.complete).toBe(false);
+    const invalid = await call("find_routes", { selections: {} });
+    expect(invalid.result.isError).toBe(true);
+    expect(JSON.stringify(invalid)).toContain("INVALID_ROUTE_SELECTIONS");
+    const complete = await call("get_route_questions", { selections: routeSelections });
+    expect(complete.result.structuredContent.complete).toBe(true);
+    const matches = await call("find_routes", { selections: routeSelections });
+    expect(matches.result.structuredContent.records).toHaveLength(3);
+    expect(matches.result.structuredContent.has_more).toBe(true);
+    const detail = await call("get_route", { id: routeId });
+    expect(detail.result.structuredContent.record.steps[0].body).toContain("Step 1 body.");
+    expect(detail.result.structuredContent.record.duration_in_months).toBe(18);
+    const edited = await call("get_route_questions", {
+      selections: { ...routeSelections, [questionIds[0]!]: answerIds[2] }
+    });
+    expect(edited.result.structuredContent.removed_selections).toHaveLength(2);
+    const prompts = await rpc("prompts/list");
+    expect(prompts.result.prompts.map((prompt: { name: string }) => prompt.name)).toContain(
+      "find-education-routes"
+    );
+    const prompt = await rpc("prompts/get", { name: "find-education-routes", arguments: {} });
+    expect(prompt.result.messages[0].content.text).toContain("get_route_questions");
+    const catalogue = await call("list_collections", {});
+    expect(catalogue.result.structuredContent.collections).toHaveLength(10);
   });
 
   it("keeps MCP guidance and schemas independent of infrastructure providers", async () => {
