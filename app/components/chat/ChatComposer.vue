@@ -50,7 +50,7 @@ defineExpose({ focus });
   <UChatPrompt
     ref="prompt"
     v-model="input"
-    placeholder="Stel je vraag over werken in het onderwijs…"
+    placeholder="Stel je vraag aan de Onderwijsloket Assistent…"
     aria-label="Je vraag aan de Onderwijsloket-assistent"
     :disabled="busy"
     :rows="compact ? 1 : 2"

@@ -51,9 +51,10 @@ export default defineNuxtConfig({
     "@onderwijsin/nuxt-healthcheck",
     "@onderwijsin/nuxt-directus-config",
     "@onderwijsin/nuxt-directus-client",
-    "@onderwijsin/nuxt-newsletter-signup",
     "@onderwijsin/nuxt-simple-rate-limiter"
   ],
+
+  piniaPluginPersistedstate: { storage: "localStorage" },
 
   routeRules: {
     "/_nuxt/**": {
@@ -168,17 +169,6 @@ export default defineNuxtConfig({
         warn: 200,
         error: 1000
       }
-    }
-  },
-
-  newsletterSignup: {
-    provider: "loops",
-    apiKey: ENV.LOOPS_API_KEY,
-    lists: { default: ENV.LOOPS_LIST_ID },
-    fields: {
-      firstName: { required: true },
-      lastName: { target: "lastName" },
-      organization: { target: "organisation" }
     }
   },
 

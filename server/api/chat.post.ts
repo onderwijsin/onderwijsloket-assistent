@@ -6,11 +6,13 @@ import {
   isStepCount,
   convertToModelMessages,
   toUIMessageStream,
+  createUIMessageStream,
   createUIMessageStreamResponse
 } from "ai";
 import { chatRequestSchema } from "../utils/chat/request";
 import { createChatProvider } from "../utils/chat/provider";
 import { connectChatMcp, withMcpCleanup } from "../utils/chat/mcp";
+import { generateChatTitle } from "../utils/chat/title";
 import { prepareChatMessages } from "../utils/chat/messages";
 
 /**
@@ -64,8 +66,31 @@ ${mcp.instructions}`,
       sendSources: request.webSearch,
       onError: () => "Het antwoord kon niet worden gegenereerd. Probeer het opnieuw."
     });
+    const titleAbort = new AbortController();
+    const combined = createUIMessageStream({
+      execute: async ({ writer }) => {
+        writer.merge(stream);
+        if (request.generateTitle && request.messages.length === 1) {
+          const text = request.messages[0]!.parts.filter((part) => part.type === "text")
+            .map((part) => part.text)
+            .join(" ");
+          const title = await generateChatTitle(
+            request.model,
+            text,
+            credentials,
+            titleAbort.signal
+          );
+          if (title)
+            writer.write({ type: "data-conversation-title", data: { title }, transient: true });
+        }
+      },
+      onError: () => "Het antwoord kon niet worden gegenereerd. Probeer het opnieuw."
+    });
     return createUIMessageStreamResponse({
-      stream: withMcpCleanup(stream, mcp.close),
+      stream: withMcpCleanup(combined, async () => {
+        titleAbort.abort();
+        await mcp.close();
+      }),
       headers: { "Cache-Control": "no-store" }
     });
   } catch (error) {

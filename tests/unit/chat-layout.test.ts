@@ -39,7 +39,7 @@ const Interface = defineComponent({
     status: "ready",
     messages: [],
     error: undefined,
-    dockHeight: 160,
+
     submit: () => {},
     stop: () => {},
     selectSuggestion: () => {},
@@ -70,36 +70,34 @@ function registerStubs(app: ReturnType<typeof createSSRApp>, names: string[]) {
 }
 
 describe("chat viewport contracts", () => {
-  it.each([false, true])("uses page scrolling in transcript mode=%s", async (showTranscript) => {
-    const app = createSSRApp({ render: () => h(Interface, { showTranscript }) });
-    registerStubs(app, ["ChatWelcome", "ChatComposer", "ChatTranscript", "UAlert", "UButton"]);
-    const html = await renderToString(app);
-    expect(html).not.toContain("overflow-y-auto");
-    expect(html).not.toContain("overflow-x-auto");
-    expect(html.includes("fixed inset-x-0 bottom-0")).toBe(showTranscript);
-    if (showTranscript) expect(html).toContain("padding-bottom:160px");
-  });
-
   it.each([false, true])(
-    "hides newsletter and footer only in transcript mode=%s",
-    async (chatTranscriptActive) => {
-      const app = createSSRApp({ render: () => h(Shell, { chatTranscriptActive }) });
-      registerStubs(app, [
-        "UApp",
-        "NuxtRouteAnnouncer",
-        "NuxtLoadingIndicator",
-        "Header",
-        "UMain",
-        "NuxtLayout",
-        "NuxtPage",
-        "NewsletterBanner",
-        "Footer"
-      ]);
+    "keeps the composer outside the scrolling transcript for mode=%s",
+    async (showTranscript) => {
+      const app = createSSRApp({ render: () => h(Interface, { showTranscript }) });
+      registerStubs(app, ["ChatWelcome", "ChatComposer", "ChatTranscript", "UAlert", "UButton"]);
       const html = await renderToString(app);
-      expect(html.includes('data-component="NewsletterBanner"')).toBe(!chatTranscriptActive);
-      expect(html.includes('data-component="Footer"')).toBe(!chatTranscriptActive);
+      expect(html).not.toContain("overflow-x-auto");
+      expect(html).not.toContain("fixed inset-x-0");
+      expect(html).toContain("overflow-y-auto");
+      if (showTranscript) expect(html).toContain("shrink-0 bg-sand-light");
     }
   );
+
+  it("removes the retired site shell", async () => {
+    const app = createSSRApp(Shell);
+    registerStubs(app, [
+      "UApp",
+      "NuxtRouteAnnouncer",
+      "NuxtLoadingIndicator",
+      "NuxtLayout",
+      "NuxtPage"
+    ]);
+    const html = await renderToString(app);
+    expect(html).not.toContain("NewsletterBanner");
+    expect(html).not.toContain("Header");
+    expect(html).not.toContain("Footer");
+    expect(html).toContain('data-component="NuxtPage"');
+  });
 
   it("does not trigger the library's document-scrolling submitted handler", async () => {
     const app = createSSRApp({

@@ -26,6 +26,14 @@ export default defineAppConfig({
         }
       ]
     },
+    skeleton: {
+      base: "bg-sand-dark dark:bg-elevated"
+    },
+    navigationMenu: {
+      slots: {
+        linkLeadingIcon: "size-4 -translate-y-px"
+      }
+    },
     formField: {
       slots: {
         root: "form-field flex-1",

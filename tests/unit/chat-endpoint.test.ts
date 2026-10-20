@@ -2,13 +2,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, toWebHandler } from "h3";
 import handler from "../../server/api/chat.post";
 
-const { storage, config, streamTextMock, mcpClose, mcpConnect } = vi.hoisted(() => ({
+const { storage, config, streamTextMock, mcpClose, mcpConnect, titleMock } = vi.hoisted(() => ({
   storage: new Map<string, unknown>(),
   config: { chat: { mistralApiKey: "test-mistral", openaiApiKey: "test-openai" } },
   streamTextMock: vi.fn(),
+  titleMock: vi.fn(),
   mcpClose: vi.fn(),
   mcpConnect: vi.fn()
 }));
+
+vi.mock("../../server/utils/chat/title", () => ({ generateChatTitle: titleMock }));
 
 vi.mock("nitropack/runtime", () => ({
   useRuntimeConfig: () => config,
@@ -52,6 +55,7 @@ function request(body: unknown = payload) {
 
 beforeEach(() => {
   storage.clear();
+  titleMock.mockReset().mockResolvedValue("Werken in het onderwijs");
   mcpClose.mockReset().mockResolvedValue(undefined);
   mcpConnect
     .mockReset()
@@ -72,6 +76,58 @@ beforeEach(() => {
 });
 
 describe("chat HTTP boundary", () => {
+  it("streams a title once alongside the first response when requested", async () => {
+    const response = await request({ ...payload, generateTitle: true });
+    const stream = await response.text();
+    expect(stream).toContain('"delta":"Hallo!"');
+    expect(stream).toContain('"type":"data-conversation-title"');
+    expect(stream).toContain('"transient":true');
+    expect(titleMock).toHaveBeenCalledTimes(1);
+    await (await request()).text();
+    expect(titleMock).toHaveBeenCalledTimes(1);
+    const followup = {
+      ...payload,
+      generateTitle: true,
+      messages: [...payload.messages, ...payload.messages]
+    };
+    await (await request(followup)).text();
+    expect(titleMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not hold answer chunks while the title call is pending", async () => {
+    let complete!: (value: string) => void;
+    titleMock.mockImplementation(
+      () =>
+        new Promise<string>((resolve) => {
+          complete = resolve;
+        })
+    );
+    const response = await request({ ...payload, generateTitle: true });
+    const reader = response.body!.getReader();
+    const decoder = new TextDecoder();
+    let text = "";
+    while (!text.includes('"delta":"Hallo!"')) {
+      const chunk = await reader.read();
+      expect(chunk.done).toBe(false);
+      text += decoder.decode(chunk.value);
+    }
+    expect(text).not.toContain("data-conversation-title");
+    complete("Werken in het onderwijs");
+    while (true) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      text += decoder.decode(chunk.value);
+    }
+    expect(text).toContain("data-conversation-title");
+  });
+
+  it("continues the answer when title generation produces no result", async () => {
+    titleMock.mockResolvedValue(undefined);
+    const text = await (await request({ ...payload, generateTitle: true })).text();
+    expect(text).toContain('"delta":"Hallo!"');
+    expect(text).not.toContain("data-conversation-title");
+  });
+
   it("streams the UI message protocol with cache prevention", async () => {
     const response = await request();
     expect(response.status).toBe(200);

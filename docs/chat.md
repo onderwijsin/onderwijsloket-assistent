@@ -11,6 +11,7 @@ conversation session is involved.
 {
   "model": "gpt-6-luna",
   "webSearch": false,
+  "generateTitle": true,
   "extendedThinking": true,
   "messages": [
     { "id": "user-1", "role": "user", "parts": [{ "type": "text", "text": "Hoe word ik leraar?" }] }
@@ -66,8 +67,8 @@ an explicit memory storage mount, reset on process restart and are independent
 per server instance. They are best effort under concurrency. Forwarded IP headers
 are not trusted; deployment behind a proxy needs a separately reviewed IP policy.
 
-The application retains no chat history. The client will own browser-session state;
-no client persistence is introduced here. OpenAI requests set `store: false` and
+The server retains no chat history. The browser persists conversations, drafts, model
+settings and sidebar collapse state in Pinia via localStorage, never chat cookies. OpenAI requests set `store: false` and
 the installed Mistral Conversations adapter also sets `store: false`. This does
 not override either provider's separate abuse-monitoring retention policy.
 
@@ -103,37 +104,86 @@ local dispatch, a discovered tool, a prompt and a resource without paid provider
 
 ## Chat interface
 
-The home page mounts the central chat interface inside the existing site shell.
-Nuxt UI’s `UChatPrompt`, `UChatMessages`, `UChatReasoning`, `UChatTool` and
-`UChatPromptSubmit` follow the template’s central conversation UI without its
-dashboard layout, authentication, uploads or dictation. Comark renders streamed
-Markdown through the installed renderer’s `value` prop. A local Suspense boundary
-provides plain text while its async parser initializes, for both answers and
-reasoning. HTTP(S) source links open separately.
+The home page follows the [Nuxt UI chat dashboard template](https://github.com/nuxt-ui-templates/chat),
+using `UDashboardGroup`, `UDashboardSidebar`, `UDashboardPanel`, `UDashboardNavbar`
+and `UDashboardSearch`. It uses our logo and has no login, upload, voice or share controls.
+The old header, footer, newsletter banner and their exclusive components are removed.
+Draft-only conversations stay out of sidebar history and search until the first user
+message is submitted. Typing alone does not add a navigation item.
+The sidebar provides new conversations, grouped local history, title search and links to
+Onderwijs in, the GitHub repository and the newsletter page. The conversation title menu
+supports rename and delete; the toolbar retains the color-mode toggle. In a conversation,
+an Experimenteel badge follows the title on desktop and occupies a compact second
+toolbar row on mobile, remaining outside the scrolling transcript. The welcome view
+omits the redundant new-chat title and keeps its badge above the greeting. The command
+palette includes a new-chat action and the built-in system/light/dark theme choices.
+The page uses `sand-main` in light mode and `neutral-950` in dark mode; the conversation
+panel uses `sand-light` in light mode and a scoped `bg-default` → `zinc-900` at 50% opacity in dark mode.
+The composer dock and loading skeleton match the panel.
+Navigation icons use a compact size and optical alignment with the labels. Mobile navigation
+uses the dashboard sidebar menu. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
+Cmd/Ctrl+K for search. Dashboard component persistence is disabled: Pinia owns its state.
 
-The server selects the Dutch greeting in Europe/Amsterdam time and serializes it
-with `useState`, so hydration keeps the same text without layout shift. The home
-page uses request-time SSR rather than prerendering to avoid build-time greetings.
-The composer owns the input controls; the interface coordinates `useChat` with
-`DefaultChatTransport`, submitting the current model, search and thinking flags
-to `/api/chat`. Web search defaults off; extended thinking defaults on. Sending is disabled during a response;
-the submit control becomes a stop button. Failed requests show a Dutch error
-with retry and dismissal controls; rate-limit failures explain the hourly quota.
+The dashboard mounts only on the client, after the persisted-state plugin is installed.
+Skeleton backgrounds use `sand-dark` in light mode via `app.config.ts`, retaining
+`bg-elevated` in dark mode.
+SSR and initial hydration show an accessible branded skeleton until localStorage has
+been read synchronously and the dashboard is ready. No private chat data is serialized
+into the server-rendered page. The `chat` setup store owns conversations (IDs, titles,
+timestamps, drafts, SDK message snapshots), active conversation and model settings.
+Only durable fields are persisted; open menus and search state remain transient.
+The storage boundary validates saved data with Zod. Invalid data falls back to defaults;
+unfinished tool calls are removed when reopening a stopped or interrupted conversation.
+Local history survives reloads until deleted or browser storage is cleared. It does not
+sync across devices. Browser storage restrictions or quota exhaustion can prevent saving.
+
+Each keyed chat instance uses the SDK for streaming and writes detached snapshots to its
+own Pinia conversation ID. Switching or deleting a conversation stops the old stream;
+late snapshots cannot populate another conversation or resurrect a deleted conversation.
+New conversations request one short Dutch title (3–6 words, at most 60 characters)
+through an additional model call inside the same `/api/chat` HTTP request. The optional
+`generateTitle` flag defaults to false and is honored only with a single-message history.
+It uses OpenAI `gpt-5-nano` (minimal reasoning, `store: false`) or Mistral
+`ministral-3b-2512`, matching the selected provider. These are budget models suitable
+for short topic summaries; model choices were checked against the official
+[OpenAI model guide](https://developers.openai.com/api/docs/models/gpt-5-nano) and
+[Mistral pricing](https://docs.mistral.ai/inference/pricing) on 20 October 2026.
+OpenAI has [scheduled GPT-5 nano removal](https://developers.openai.com/api/docs/deprecations)
+for 11 December 2026. Replace the title model before that date; no automatic switch
+to a more expensive model is made.
+Only the first 2,000 characters of the first message are sent, without tools, with
+256 output tokens, no retries and a five-second timeout. The call runs alongside
+the answer and emits a transient `data-conversation-title` event on the existing SSE
+stream. The stream can remain open until the bounded title call completes; answer
+chunks are not held back. Cancellation aborts the title call. Missing or invalid titles
+silently keep the first-message fallback. Title requests share the chat endpoint quota.
+Pinia records the attempt to avoid extra calls on retries or regeneration, validates
+the event and applies it only to the owning conversation if it has not been renamed.
+Generated titles survive subsequent message updates. Existing saved titles are treated
+as manual during storage migration and are left unchanged. Reloading does
+not resume interrupted generation. Chat content is still sent to `/api/chat` for generation
+and MCP retrieval, but no conversation database or server session is introduced.
+
+Nuxt UI’s `UChatPrompt`, `UChatMessages`, `UChatReasoning`, `UChatTool` and
+`UChatPromptSubmit` retain the existing conversation UI. Comark renders streamed
+Markdown through the installed renderer’s `value` prop, with a Suspense fallback.
+The composer submits the current model, search and thinking flags using
+`DefaultChatTransport`. Web search defaults off; extended thinking defaults on.
+Sending is disabled during a response and the submit control becomes a stop button.
+Failed requests show Dutch errors with retry and dismissal controls; quota errors
+explain the hourly limit.
+
 The conversation omits the extra title/action row and decorative message
 icons. The model selector retains its Mistral and OpenAI provider logos. User bubbles are white in light mode and neutral-800 in dark mode. The composer
 uses neutral-950 in dark mode; message
 text is 14px. The narrower reading column and compact Markdown spacing keep long
-answers readable. The welcome view fills the viewport below the header. Both views use normal
-page scrolling without a nested chat scroll container. Transcript mode hides the
-newsletter and site footer through request-scoped Nuxt state shared with the app
-shell. The composer is fixed to the bottom, with space below the transcript
-measured from its actual height, including expanded text or error feedback.
-Source links are constrained to the reading column and long text can wrap.
-The compact composer starts at one row and expands to five while typing; it does
-not autofocus when transcript mode mounts. The first submission uses a shared-
-element View Transition where supported, with a short transcript fade and
-reduced-motion support. Streaming begins after the view update, without waiting
-for the animation. Leaving the chat restores the newsletter and footer.
+answers readable. The dashboard fills the viewport. Only the conversation pane scrolls;
+the composer remains below it in the panel, outside the transcript scroll area, without
+an additional document scrollbar. Its compact form starts at one row and expands to
+five while typing. The first submission retains the shared-element View Transition,
+short transcript fade and reduced-motion support. Streaming starts after the view update,
+without waiting for the animation. The welcome view retains the Dutch greeting and
+experimental badge; its greeting is calculated when the client dashboard mounts.
 The built-in floating scroll button is disabled to avoid overlap with the composer;
 automatic scrolling during generation remains enabled. Completed assistant
 responses show copy and regenerate actions, without voting controls. Copy includes
@@ -143,9 +193,10 @@ settings; as in the SDK, retrying an earlier answer discards the later conversat
 Seven Dutch starters cover routes, programme comparison, local advice,
 required teaching qualifications, salaries, lateral entry and personal experiences.
 The routes, comparison, advice and experiences starters reflect the existing MCP
-prompt themes. Choosing a starter immediately submits it with the current model and feature
+prompt themes. Choosing a starter sends its text directly without assigning or clearing the composer
+draft, preventing a flash of the prompt in the input. It submits with the current model and feature
 selections. The agent can retrieve the corresponding MCP prompt workflow during
 the conversation.
 
-Messages, drafts and options live only in the mounted chat instance. No local
-storage, session storage or server persistence is used; reloading clears the chat.
+Messages, drafts and options are stored locally through Pinia. No server-side
+conversation persistence or authentication is used.

@@ -6,6 +6,8 @@
 @theme static {
   --font-sans: "Poppins", sans-serif;
   --color-sand-main: oklch(96% 0.011 76.6);
+  --color-sand-light: oklch(97.4% 0.006 75.4);
+  --color-sand-dark: oklch(92.1% 0.01 72.7);
 
   --color-primary-50: oklch(97.4% 0.015 54.9);
   --color-primary-100: oklch(94.8% 0.029 50.6);
@@ -82,6 +84,10 @@
 }
 
 @layer base {
+  html.dark body {
+    background: var(--color-neutral-950);
+  }
+
   html:not(.dark) body {
     background: var(--color-sand-main);
   }

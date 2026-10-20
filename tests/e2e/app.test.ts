@@ -93,6 +93,17 @@ describe("application", async () => {
     }
   });
 
+  it("server-renders the dashboard loading state without private chat data or the old site shell", async () => {
+    const response = await fetch("/");
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain("Je gesprekken worden geladen");
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain("Schrijf je in voor onze");
+    expect(html).not.toContain("main-header");
+    expect(html).not.toContain('"conversations":');
+  });
+
   it("connects the chat MCP adapter to the actual local server, including tools, workflows and resources", async () => {
     const response = await fetch("/__test__/chat-mcp");
     expect(response.status).toBe(200);

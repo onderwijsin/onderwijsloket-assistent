@@ -1,7 +1,6 @@
 <script setup>
 import { nl } from "@nuxt/ui/locale";
 
-const chatTranscriptActive = useState("chat-transcript-active", () => false);
 import {
   ORGANIZATION_SCHEMA_ID,
   WEBSITE_SCHEMA_ID,
@@ -37,15 +36,8 @@ useSeoMeta({
       color="repeating-linear-gradient(to right, var(--color-primary-400) 0%, var(--color-tertiary-500) 100%)"
       class="fixed top-0 right-0 left-0 z-50"
     />
-    <Header />
-
-    <UMain>
-      <NuxtLayout>
-        <NuxtPage />
-      </NuxtLayout>
-    </UMain>
-
-    <NewsletterBanner v-if="!chatTranscriptActive" class="mb-4 sm:mb-6 mt-8" />
-    <Footer v-if="!chatTranscriptActive" />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
   </UApp>
 </template>

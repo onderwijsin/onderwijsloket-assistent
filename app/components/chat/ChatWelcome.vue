@@ -68,13 +68,13 @@ const suggestions = [
   <div class="space-y-7 sm:space-y-9">
     <div class="space-y-3">
       <UBadge
-        label="experimenteel"
+        label="Experimenteel"
         icon="i-lucide-sparkles"
         :ui="{ leadingIcon: 'size-3' }"
         color="primary"
         variant="subtle"
         size="sm"
-        class="rounded-full"
+        class="shrink-0 rounded-full"
       />
       <h1
         id="chat-heading"

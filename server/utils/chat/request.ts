@@ -35,6 +35,7 @@ const messageSchema = z
 export const chatRequestSchema = z
   .object({
     model: z.enum(["mistral-medium-latest", "gpt-6-luna"]).default("gpt-6-luna"),
+    generateTitle: z.boolean().default(false),
     webSearch: z.boolean().default(false),
     extendedThinking: z.boolean().default(true),
     messages: z.array(messageSchema).min(1).max(100)
