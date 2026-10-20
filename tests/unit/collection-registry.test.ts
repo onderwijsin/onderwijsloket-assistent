@@ -30,7 +30,10 @@ describe("allowlisted collection discovery", () => {
       "testimonials",
       "educational_institutions",
       "programs",
-      "regional_education_desks"
+      "regional_education_desks",
+      "podcast_shows",
+      "podcast_episodes",
+      "videos"
     ]);
     expect(registry.catalogue().map(({ name }) => name)).toEqual(["articles", "faqs"]);
     expect(z.toJSONSchema(articles.getOutput)).toEqual(before);

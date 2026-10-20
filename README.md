@@ -38,7 +38,7 @@ For a hosted instance, use its origin followed by `/mcp`. No API key or sign-in 
 | `search_articles`     | Search or browse articles with lightweight results and matched snippets. |
 | `get_facets`          | Discover search filter names, values and match counts.                   |
 
-The available collections are `articles`, `faqs`, `sectors`, `testimonials`, `educational_institutions`, `programs` and `regional_education_desks`. The three article record tools do not take a `collection` argument; shared discovery tools do. Start with `list_collections`, then use the operation that fits the question.
+The available collections are `articles`, `faqs`, `sectors`, `testimonials`, `educational_institutions`, `programs`, `regional_education_desks`, `podcast_shows`, `podcast_episodes` and `videos`. The three article record tools do not take a `collection` argument; shared discovery tools do. Start with `list_collections`, then use the operation that fits the question.
 
 To find articles about entering education through an alternative route, call `search_articles` with:
 
@@ -51,7 +51,7 @@ To find articles about entering education through an alternative route, call `se
 
 Pass a returned ID to `get_article` for the complete article. For filtered search, discover values with `get_facets`. For `list_articles`, use `get_filters`; its taxonomy IDs are a separate filter contract. Pagination starts at page 1, with a maximum of 25 records per page.
 
-FAQs and sectors have independent `list_faqs`/`get_faq`/`search_faqs` and `list_sectors`/`get_sector`/`search_sectors` tools. Shared discovery covers all seven collections; all seven expose resources/templates. Sector facets remain unavailable. See [FAQ and sector guidance contracts](docs/collection-inventory/faqs-and-sectors.md).
+FAQs and sectors have independent `list_faqs`/`get_faq`/`search_faqs` and `list_sectors`/`get_sector`/`search_sectors` tools. Shared discovery covers all ten collections; all ten expose resources/templates. Sector facets remain unavailable. See [FAQ and sector guidance contracts](docs/collection-inventory/faqs-and-sectors.md).
 
 ### Collection resources
 
@@ -65,6 +65,9 @@ onderwijsloket://testimonials/{id}
 onderwijsloket://educational_institutions/{id}
 onderwijsloket://programs/{id}
 onderwijsloket://regional_education_desks/{id}
+onderwijsloket://podcast_shows/{id}
+onderwijsloket://podcast_episodes/{id}
+onderwijsloket://videos/{id}
 ```
 
 Browse `resources/list` for record URIs, or follow resource links returned by record tools. Each document includes YAML metadata and its Markdown body. These URIs are MCP identifiers; use the record’s `source_url` to open or cite the original website article.
@@ -117,3 +120,5 @@ Article evidence and testimonial support adds article source/document/author ref
 Institutions and programs enable institution and program list/get/search tools, source filters, verified facets and resources. Programs retain providers, locations and ordered form descriptions; institutions expose contacts and locations. See [institutions and programs](docs/collection-inventory/institutions-and-programs.md) for supported filters and source schema differences.
 
 Regional desks expose `list_regional_education_desks`, `get_regional_education_desk` and `search_regional_education_desks`, with coverage, consultation services and contacts. See [desk contracts and verification](docs/collection-inventory/regional-education-desks.md).
+
+Podcast shows, episodes and videos each provide collection-specific list/get/search tools and Markdown resources. Details retain native attribution, safe media links and any available transcripts. See [media contracts](docs/collection-inventory/podcasts-and-videos.md).

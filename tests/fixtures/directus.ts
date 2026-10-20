@@ -1,3 +1,4 @@
+import { showRecord, episodeRecord, videoRecord } from "./podcasts-and-videos";
 import { deskRecord } from "./regional-education-desks";
 import { institutionRecord, programRecord } from "./institutions-and-programs";
 import { testimonialRecord, supportingRelations } from "./article-evidence-and-testimonials";
@@ -60,7 +61,8 @@ export async function createDirectusFixture() {
     extraArticles: 0,
     extraPrograms: 0,
     missingInstitutionDescription: false,
-    deskResponse: ""
+    deskResponse: "",
+    mediaResponse: ""
   };
   const server = createServer((request, response) => {
     const url = new URL(request.url!, "http://fixture.local");
@@ -88,6 +90,67 @@ export async function createDirectusFixture() {
     }
     if (filter.title?._eq === "upstream-invalid") {
       response.end(JSON.stringify({ data: [{ id: "malformed" }] }));
+      return;
+    }
+    if (["podcast_shows", "podcast_episodes", "videos"].includes(collection ?? "")) {
+      if (state.mediaResponse === "unavailable") {
+        response.statusCode = 403;
+        response.end(JSON.stringify({ errors: [{ message: "fixture media secret" }] }));
+        return;
+      }
+      const source =
+        collection === "podcast_shows"
+          ? showRecord
+          : collection === "podcast_episodes"
+            ? episodeRecord
+            : videoRecord;
+      const row: Record<string, unknown> =
+        state.mediaResponse === "missing-content"
+          ? {
+              ...source,
+              body: null,
+              description: null,
+              transcript_string: null,
+              transcript_string_with_speakers: null
+            }
+          : source;
+      const rows =
+        state.mediaResponse === "invalid"
+          ? [{ id: "invalid" }]
+          : [row].filter((row) =>
+              Object.entries(filter).every(([key, condition]) => {
+                const operation = condition as { _eq?: unknown; id?: { _eq: unknown } };
+                if ("_eq" in operation) return row[key] === operation._eq;
+                if (operation.id)
+                  return (row[key] as { id?: string } | null)?.id === operation.id._eq;
+                const target =
+                  key === "hosts"
+                    ? "podcast_hosts_id"
+                    : key === "guests" || key === "profiles"
+                      ? "profiles_id"
+                      : key + "_id";
+                return (
+                  (row[key] as Record<string, { id: string }>[] | undefined)?.some((item) =>
+                    JSON.stringify(condition).includes(item[target]?.id ?? "missing")
+                  ) ?? false
+                );
+              })
+            );
+      const offset = Number(url.searchParams.get("offset") ?? 0),
+        limit = Number(url.searchParams.get("limit") ?? 10);
+      const page = rows.slice(offset, offset + limit);
+      response.end(
+        JSON.stringify({
+          data:
+            url.searchParams.get("fields") === "id,title,date_updated"
+              ? page.map((row) => ({
+                  id: row.id,
+                  title: "title" in row ? row.title : undefined,
+                  date_updated: null
+                }))
+              : page
+        })
+      );
       return;
     }
     if (collection === "regional_education_desks") {

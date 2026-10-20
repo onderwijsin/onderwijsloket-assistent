@@ -70,6 +70,9 @@ export async function readToolCallDetails(
     "search_educational_institutions",
     "search_programs",
     "search_regional_education_desks",
+    "search_podcast_shows",
+    "search_podcast_episodes",
+    "search_videos",
     "get_facets"
   ].includes(name);
   if (includeData && supportsQuery && args?.query) {

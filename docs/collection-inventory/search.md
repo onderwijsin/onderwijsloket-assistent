@@ -4,7 +4,7 @@ Observed through the [official index documentation](https://docs.onderwijsloket.
 
 ## Documented index inventory
 
-All nine core collections have a documented index with the same name. Supporting sources/documents/authors/podcast_hosts/profiles do not have standalone documented indexes. Locations has an index but is embedded in this scope; videos is deferred. Absence from the documentation is not proof an index does not exist.
+All ten core collections, including the added videos, have a documented index with the same name. Supporting sources/documents/authors/podcast_hosts/profiles do not have standalone documented indexes. Locations has an index but is embedded in this scope; videos now has standalone tools/resources. Absence from the documentation is not proof an index does not exist.
 
 | Index                    | Documented facets                                                                                                              | Documented searchable fields                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
@@ -62,3 +62,5 @@ Testimonials now implement the seven documented plural-relation facet keys, with
 Institutions and programs verifies `degrees` (display labels), `program_forms.track.name` and `school_subjects.name` among nine program facets, and type as the sole institution facet. These replace the earlier proposed singular-degree/plural-tracks paths. Native search hits retain partial providers/locations without invented descriptions or opening schedules. See [institutions and programs](institutions-and-programs.md).
 
 Regional desk source/index shapes and four supported facets are live-verified; index grids are not physical locations or exact eligibility. See [regional education desks](regional-education-desks.md).
+
+Shows, episodes and videos now use live-verified projections and strict facet keys: three taxonomy labels for shows, six plus show.title for episodes, six for videos. Readable full transcripts remain detail/resource content; snippets do not establish a complete transcript. See [media evidence](podcasts-and-videos.md).

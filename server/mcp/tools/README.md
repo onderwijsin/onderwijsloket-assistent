@@ -41,3 +41,5 @@ Testimonials add `list_testimonials`, `get_testimonial`, `search_testimonials` a
 Institutions and programs adds list/get/search tools for programs and educational institutions with resource links. Shared enum filter discovery describes source codes, while facets describe index labels. Institution programs remain a filtered program list instead of a recursive expansion. See [contracts](../../../docs/collection-inventory/institutions-and-programs.md).
 
 Regional desk entrypoints are `list_regional_education_desks`, `get_regional_education_desk` and `search_regional_education_desks`. Source booleans/sector IDs and search facets have distinct contracts. See [desk contracts](../../../docs/collection-inventory/regional-education-desks.md).
+
+Podcast/video tools are collection-specific list/get/search entrypoints with native schemas and readable resource links. Episode source filters use show/season IDs and integer episode numbers; search uses verified taxonomy/show labels. See [media contracts](../../../docs/collection-inventory/podcasts-and-videos.md).

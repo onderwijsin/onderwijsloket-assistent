@@ -44,7 +44,7 @@ The five supporting collections remain embedded; taxonomies remain filter vocabu
 
 ## Public tool catalogue
 
-The complete intended surface has **31 tools**: four shared discovery tools plus three record operations for each of nine cores. This adds 24 collection-specific tools to the existing seven, rather than duplicating seven operations for every collection or exposing supporting tables. At phase 3's architecture-only milestone, all seven existing tools remain the only production tools; the contrasting collection is a test fixture.
+The complete intended surface has **34 tools**: four shared discovery tools plus three record operations for each of ten cores, including the later video scope extension. This adds 27 collection-specific tools to the existing seven, rather than duplicating seven operations for every collection or exposing supporting tables. At phase 3's architecture-only milestone, all seven existing tools remain the only production tools; the contrasting collection is a test fixture.
 
 Article record tools use `list_articles`, `get_article` and `search_articles`, implemented in `list-articles.ts`, `get-article.ts` and `search-articles.ts`. Backward compatibility is not required: there are no old-name aliases. Every collection-specific record tool omits `collection` because its name already determines the target. Output records retain their collection literal; shared describe/filter/facet tools still accept a collection selector.
 

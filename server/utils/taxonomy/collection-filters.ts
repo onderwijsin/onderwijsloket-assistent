@@ -29,6 +29,12 @@ function createFilterDescriptor(operation: z.ZodType<string>) {
     z.object({ ...descriptorFields, type: z.literal("boolean"), operator: z.literal("eq") }),
     z.object({
       ...descriptorFields,
+      type: z.literal("integer"),
+      operator: z.literal("eq"),
+      minimum: z.literal(0)
+    }),
+    z.object({
+      ...descriptorFields,
       type: z.literal("array"),
       operator: z.literal("in"),
       items: z.object({ type: z.literal("string"), pattern: z.string() }),
@@ -144,6 +150,31 @@ export function enumFilter<const Values extends readonly string[]>(
         type: "string",
         operator: "eq",
         enum: [...values],
+        operations: ["list_articles"]
+      };
+    }
+  } satisfies FilterDefinition;
+}
+
+/**
+ * Advertise a nonnegative whole-number equality filter, preserving episode zero.
+ * @param description - Native numeric field meaning.
+ * @returns Optional integer validation and matching discovery metadata.
+ */
+export function integerFilter(description: string) {
+  return {
+    schema: z.number().int().nonnegative().optional().describe(description),
+    /**
+     * @param name - Public field key.
+     * @returns Integer equality descriptor.
+     */
+    async describe(name: string): Promise<FilterDescriptor> {
+      return {
+        name,
+        description,
+        type: "integer",
+        operator: "eq",
+        minimum: 0,
         operations: ["list_articles"]
       };
     }

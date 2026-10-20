@@ -1,3 +1,6 @@
+import shows from "./podcast-shows";
+import episodes from "./podcast-episodes";
+import videos from "./videos";
 import desks from "./regional-education-desks";
 import institutions from "./educational-institutions";
 import programs from "./programs";
@@ -15,5 +18,8 @@ export const collections = createCollectionRegistry([
   testimonials,
   institutions,
   programs,
-  desks
+  desks,
+  shows,
+  episodes,
+  videos
 ]);

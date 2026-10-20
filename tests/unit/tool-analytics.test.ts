@@ -279,7 +279,10 @@ it.each([
   "search_testimonials",
   "search_programs",
   "search_educational_institutions",
-  "search_regional_education_desks"
+  "search_regional_education_desks",
+  "search_podcast_shows",
+  "search_podcast_episodes",
+  "search_videos"
 ])("captures query context for %s without a collection argument", async (name) => {
   const { readToolCallDetails } = await import("../../server/utils/tool-analytics");
   const collection = name.replace("search_", "");

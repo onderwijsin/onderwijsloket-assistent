@@ -86,6 +86,9 @@ export function listResources(collection: {
     | "programs"
     | "educational_institutions"
     | "regional_education_desks"
+    | "podcast_shows"
+    | "podcast_episodes"
+    | "videos"
   >;
   getInput: { shape: { id: z.ZodType<string> } };
 }) {

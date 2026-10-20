@@ -24,7 +24,7 @@ Implemented in faq and sector guidance; see [the implementation contract](faqs-a
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug, code (exact). Sort allowlist: `sort, -sort, title, -title`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, code:string, description:string, alt_names:string[]|null, icon:string|null.
 - **Detail:** summary plus introduction, roles_content, routes_content, salary_content, costs_content: string|null; costs_actions:{label:string,link:string,internal:boolean}[]|null; salary_cards:{title,description,link,link_label,link_internal,icon:string}[]|null; featured_articles:ArticleRef[], featured_faqs:FaqRef[], featured_media:MediaRef[].
-- **Relationships / transformations:** featured_articles.articles_id; featured_faqs.faqs_id; featured_media is M2A {collection,item,sort}. Preserve ordering and collection discriminator; videos remain a deferred reference. Do not expand all reverse articles/programs/media.
+- **Relationships / transformations:** featured_articles.articles_id; featured_faqs.faqs_id; featured_media is M2A {collection,item,sort}. Preserve ordering and collection discriminator; videos retain bounded references; full video records have their own tools/resources. Do not expand all reverse articles/programs/media.
 - **Distinct behavior / unresolved evidence:** Use GUID ID compatibility because sectors already serve taxonomy filters. No path field exists; canonical page mapping TBD. Content sections are upstream strings, not JSON documents; actual markup format TBD before Markdown conversion. routes_content is sector prose, not permission to implement route traversal. sort is nullable upstream: null placement TBD.
 - **Evidence / status:** local `Sector` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
 
@@ -92,24 +92,24 @@ Implemented in faq and sector guidance; see [the implementation contract](faqs-a
 
 ## podcast_episodes
 
-- **Purpose / audience:** Discover individual audio conversations and retrieve readable transcripts.
-- **Source / exposure:** Directus `podcast_episodes` (`PodcastEpisode`); documented Algolia `podcast_episodes` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with episode metadata and available transcript; missing transcript does not disable the resource. Never advertise audio binary as a Markdown resource.
-- **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug (exact); show, season (single IDs); hosts, guests (ID arrays); sectors, audiences, phases, roles, topics, tracks (GUID arrays); episode_number (integer, valid range TBD). Sort allowlist: `publication_date, -publication_date, episode_number, -episode_number`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
-- **Summary:** common keys plus title:string, slug:string, duration:number, episode_number:number, publication_date:string|null; show:ShowRef, season:Season; hosts:PodcastHost[], guests:ProfileRef[]; sectors, audiences, phases, roles, topics, tracks:Taxonomy[].
-- **Detail:** summary plus content:Markdown from body; transcript_string:string|null; transcript_string_with_speakers:string|null; speaker_map:{speaker:number,name:string}[]|null; external_urls:{name:source enum,url:URL}[]|null; audio:normalized media|null (schema TBD); content_warnings:string[], truncated:boolean.
-- **Relationships / transformations:** show and season are required M2O; season includes show identity so mismatches can be detected. hosts.podcast_hosts_id and guests.profiles_id flatten separately. No episode editor_nodes field exists.
-- **Distinct behavior / unresolved evidence:** No description field; never require an article-shaped description. Audio JSON and duration units TBD; generated number does not prove positive integer seconds. Missing transcript is explicit null, not an inferred transcript from the description. Directus owns visibility of assets and transcripts; no local publication gates.
-- **Evidence / status:** local `PodcastEpisode` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
+- **Implemented:** list/get/search/filter discovery/facets and `onderwijsloket://podcast_episodes/{id}` Markdown resource/template.
+- **Inputs:** title/slug, show/season IDs, nonnegative integer episode_number, host/guest IDs and six taxonomy-ID dimensions. Source sort uses publication_date or episode_number in either direction. Search has six taxonomy facets plus show.title.
+- **Summary:** identity/title/slug, source URL/update date, publication_date, native duration, episode_number, nullable show and season, hosts, guest profiles, taxonomies and completeness fields.
+- **Detail:** nullable content Markdown, audio asset, two nullable transcript strings, nullable speaker map, nullable platform links and document truncated flag. Missing speaker indices remain null with warnings; mismatched season ownership is reported explicitly.
+- **Evidence:** exact source/index contracts and regression coverage in [podcasts and videos](podcasts-and-videos.md). Duration units are not inferred, no editor_nodes relation is invented, and Directus owns visibility at every depth.
 
 ## podcast_shows
 
-- **Purpose / audience:** Discover a podcast series, hosts, release state and its episodes.
-- **Source / exposure:** Directus `podcast_shows` (`PodcastShow`); documented Algolia `podcast_shows` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template for series description, hosts and platform links, not an unbounded episode dump.
-- **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug, creator_name (exact); podcast_status (ongoing|ended|planned); sectors, audiences, phases (GUID arrays); hosts (ID arrays). Sort allowlist: `title, -title, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
-- **Summary:** common keys plus title:string, slug:string, creator_name:string, tagline:string, podcast_status:ongoing|ended|planned; artwork:Asset|null; hosts:PodcastHost[]; sectors, audiences, phases:Taxonomy[].
-- **Detail:** summary plus description:Markdown; header_image:Asset|null; trailer:normalized media|null (schema TBD); external_urls:{name:source enum,url:URL}[]|null; seasons:Season[]; content_warnings:string[], truncated:boolean. Retrieve episodes via list filter show rather than expanding the full series.
-- **Relationships / transformations:** hosts.podcast_hosts_id → podcast_hosts; seasons is O2M; episodes is O2M. Never treat hosts as profiles.
-- **Distinct behavior / unresolved evidence:** description is JSON; no show editor_nodes relation exists. podcast_status is release state, independent of Directus publication status. Arrays may be empty; missing/inaccessible host data must be distinguished from an empty host list. Trailer shape and resource description mapping TBD.
-- **Evidence / status:** local `PodcastShow` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
+- **Implemented:** list/get/search/filter discovery/facets and `onderwijsloket://podcast_shows/{id}` Markdown resource/template.
+- **Inputs:** title/slug/creator_name, podcast_status, host IDs and sectors/audiences/phases IDs. Sort uses title/date_updated in either direction. Search facets are those three taxonomy labels.
+- **Summary:** identity/title/slug, source URL/update date, creator_name, tagline, native podcast_status, artwork, hosts, three taxonomies and completeness fields.
+- **Detail:** nullable description Markdown, header image, trailer asset, platform links, bounded seasons with show_id, document truncated flag. Retrieve episodes through the filtered episode list rather than expanding a whole series.
+- **Evidence:** [podcasts and videos](podcasts-and-videos.md). Presenters remain distinct from guests; no host email or recursive episodes are selected. Series lifecycle is independent of source publication policy.
+
+## videos
+
+- **Scope extension:** explicitly added after the initial nine-core inventory; now implemented with list/get/search/filter discovery/facets and `onderwijsloket://videos/{id}` Markdown resource/template.
+- **Inputs:** exact title/slug, profile IDs and sectors/audiences/phases/roles/topics/tracks IDs. Sort uses title/publication_date in either direction. Search exposes those six taxonomy-label facets.
+- **Summary:** identity/title/slug, source URL/update date, native duration, publication_date, featured profiles, six taxonomies and completeness metadata.
+- **Detail:** nullable content Markdown, normalized video asset, nullable plain/speaker-attributed transcripts, nullable speaker map, nullable chapters with seconds offsets and document truncated flag. No invented article description or editor-node junction.
+- **Evidence:** live source/index contracts, explicit null/metadata behavior and deterministic regressions in [podcasts and videos](podcasts-and-videos.md). Duration units remain unspecified; publication and playback policy stay upstream.

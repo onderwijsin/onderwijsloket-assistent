@@ -86,25 +86,26 @@ All collections follow [data access responsibilities](../data-access.md): Direct
 
 **Resolved:** live area encodings, public source projections, nullable relations/descriptions, source enum drift, source JSON-filter limitations and four search facets; see [regional education desks](regional-education-desks.md). **Regression focus:** inaccessible area is not an empty service region; nullable location does not erase coverage; false booleans remain filters; no inference that area grid points are an address or proof of exact service eligibility.
 
-## Podcast series and episodes
+## Podcast series, episodes and videos (implemented)
 
-**Collections:** `podcast_shows`, `podcast_episodes`. **Supporting collections:** `podcast_hosts`, reuse `profiles`. **Embedded dependencies:** `seasons`, file/media assets, relevant taxonomy and host/guest junctions. **Prerequisite:** reuse the implemented person/asset projections and verify podcast-specific payloads independently.
+**Collections:** `podcast_shows`, `podcast_episodes`, `videos` (videos added by explicit scope extension). **Supporting collections:** `podcast_hosts`, reuse `profiles`. **Embedded dependencies:** `seasons`, file/media assets, relevant taxonomy and host/guest junctions. **Prerequisite:** reuse the implemented person/asset projections and verify podcast-specific payloads independently.
 
 **Why together:** shows, seasons and episodes have required relationships and shared host identity. Deliver show references and hosts before episode detail. A host and a guest profile remain separate roles; season identity must agree with show identity.
 
 **Order and deliverables:**
 
-1. Verify show description and episode body documents without assuming an editor_nodes relation. Resolve audio/trailer JSON structure, URL delivery, duration units, publication metadata format and nullability. Exclude host email and raw processing/transcription internals.
+1. Verify show description and episode body documents without assuming an editor_nodes relation. Resolve audio/trailer/video JSON structure, URL delivery, duration semantics, publication metadata format and nullability. Preserve raw duration values if the source does not establish a unit. Exclude host email and raw processing/transcription internals.
 2. Implement bounded host and season projections, show list/detail/search, podcast_status and external platform URLs. List episodes through a show filter instead of embedding an entire series.
 3. Implement episode list/detail/search with show/season, ordered episode metadata, hosts/guests and nullable readable transcripts. Preserve speaker mapping when allowed; never invent transcript text from episode descriptions or search snippets.
-4. Verify that search and embedded references follow the upstream visibility boundary without local publication guards. Implement required show and episode resource/templates with verified descriptor/read mappings. Show resources contain series guidance, hosts and links; episode resources contain metadata and available transcript, including explicit absence. Audio is not a Markdown resource.
+4. Implement videos with featured profiles, native body, safe media identity, transcript variants, speaker maps and chapter offsets; include a collection resource/template and verified search facets.
+5. Verify that search and embedded references follow the upstream visibility boundary without local publication guards. Implement required show and episode resource/templates with verified descriptor/read mappings. Show resources contain series guidance, hosts and links; episode resources contain metadata and available transcript, including explicit absence. Audio is not a Markdown resource.
 
-**Release gates:** media schemas/units, date metadata nullability, transcript/speaker permissions and show/season consistency. **Regression focus:** source availability representation without date-based omission; null transcripts; accurate show/season/host/guest identity; no dead media links or false full-content guarantees.
+**Resolved:** native source/index projections, media references, date nullability, readable transcripts, incomplete speaker maps/platform placeholders and show/season identity; see [podcasts and videos](podcasts-and-videos.md). Duration units remain unspecified rather than guessed. **Regression focus:** source availability representation without date-based omission; null transcripts; accurate show/season/host/guest identity; no dead media links or false full-content guarantees.
 
 ## Remaining scope
 
-The plan covers every requested core and supporting collection. Standalone supporting collections, videos, route/question/answer workflows, geocoding and exact geographic matching remain excluded or deferred as recorded in the inventory. Do not enable them as a side effect of reference expansion. Resources and URI templates are required deliverables for every core collection; their registration and tests belong in each collection implementation.
+The plan covers every requested core and supporting collection. Standalone supporting collections, route/question/answer workflows, geocoding and exact geographic matching remain excluded or deferred as recorded in the inventory. Do not enable them as a side effect of reference expansion. Resources and URI templates are required deliverables for every core collection; their registration and tests belong in each collection implementation.
 
-No timeline or effort estimate is assumed before the live evidence gates are resolved. Implemented domains are listed first; podcast series and episodes remain planned. Each collection can release independently when its prerequisites and contracts pass. No additional generic tool factory, dependency, registry discovery mechanism or further article migration is required by this plan.
+No timeline or effort estimate is assumed before the live evidence gates are resolved. All ten requested core collections, including the later video scope extension, are implemented. Each collection can release independently when its prerequisites and contracts pass. No additional generic tool factory, dependency, registry discovery mechanism or further article migration is required by this plan.
 
 Every future core implementation must follow the [shared missing-body contract](../collection-resources.md#missing-body-content): nullable JSON content, preserved metadata and a globally formatted Markdown notice for missing source content.

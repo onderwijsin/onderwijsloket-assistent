@@ -2,17 +2,18 @@
 
 Every core collection must ship a resource URI template, catalogue entries and readable resource documents alongside its record tools. Each template uses `onderwijsloket://{collection}/{id}` and MIME type `text/markdown`. Supporting collections remain embedded in parent documents; this requirement does not create standalone supporting tools or resources.
 
-| Collection               | Representation                                                                   | State                                   |
-| ------------------------ | -------------------------------------------------------------------------------- | --------------------------------------- |
-| articles                 | Existing article Markdown and attribution metadata                               | Implemented                             |
-| faqs                     | Rendered answer; native question as descriptor title                             | Implemented                             |
-| sectors                  | Named guidance sections under Markdown headings                                  | Implemented                             |
-| testimonials             | Story Markdown with author/profile attribution                                   | Implemented                             |
-| educational_institutions | Institution description, contacts and locations                                  | Implemented                             |
-| programs                 | Program overview and separately named form descriptions, providers and locations | Implemented                             |
-| regional_education_desks | Desk description, consultation services, coverage and contacts                   | Implemented                             |
-| podcast_shows            | Series description, hosts and platform links                                     | Required in podcast series and episodes |
-| podcast_episodes         | Episode metadata and available transcript; explicit null when absent             | Required in podcast series and episodes |
+| Collection               | Representation                                                                   | State       |
+| ------------------------ | -------------------------------------------------------------------------------- | ----------- |
+| articles                 | Existing article Markdown and attribution metadata                               | Implemented |
+| faqs                     | Rendered answer; native question as descriptor title                             | Implemented |
+| sectors                  | Named guidance sections under Markdown headings                                  | Implemented |
+| testimonials             | Story Markdown with author/profile attribution                                   | Implemented |
+| educational_institutions | Institution description, contacts and locations                                  | Implemented |
+| programs                 | Program overview and separately named form descriptions, providers and locations | Implemented |
+| regional_education_desks | Desk description, consultation services, coverage and contacts                   | Implemented |
+| podcast_shows            | Series description, hosts and platform links                                     | Implemented |
+| podcast_episodes         | Episode metadata and available transcript; explicit null when absent             | Implemented |
+| videos                   | Video metadata, body, available transcript and chapter/speaker metadata          | Implemented |
 
 The representation for each future collection must be verified against its native detail schema. A missing transcript does not prevent an episode resource: return its metadata and available content without inventing transcript text. Media links are metadata; audio binaries are not Markdown.
 
@@ -52,3 +53,5 @@ The shared resource handler renders absent content as:
 YAML front matter remains available and completeness warnings are preserved. Notices belong only to the Markdown representation; they are never stored in JSON content fields. Composite resources use the same formatter for missing component documents; programs without forms also include the notice alongside their generated overview. Sector resources render their native description and named text sections rather than requiring a rich-text body.
 
 Desk resources keep desk and consultation descriptions separate, with expanded coverage, contacts and independent schedules in front matter. See [regional education desks](collection-inventory/regional-education-desks.md).
+
+Podcast and video resource contracts, nullable transcript behavior and season/host identity are documented in [podcasts and videos](collection-inventory/podcasts-and-videos.md).

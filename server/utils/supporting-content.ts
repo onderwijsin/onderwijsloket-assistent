@@ -58,7 +58,10 @@ function evidenceUrl(value: string) {
  * @param kind - Cloudinary asset delivery type.
  * @returns Public asset identity and URL; sensitive file metadata is never copied.
  */
-function asset(file: z.output<typeof fileSource>, kind: "image"): z.output<typeof assetSchema> {
+export function asset(
+  file: z.output<typeof fileSource>,
+  kind: "image" | "video"
+): z.output<typeof assetSchema> {
   const id = typeof file === "string" ? file : file.id;
   return {
     id,

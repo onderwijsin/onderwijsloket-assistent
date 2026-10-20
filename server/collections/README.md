@@ -51,3 +51,5 @@ Article details add bounded sources, documents and authors with independent rela
 `educational-institutions.ts` and `programs.ts` expose source filters, typed search and resources with bounded locations/providers/forms. `navigator-content.ts` owns verified enum, GeoJSON, schedule and provider projections. List degrees filtering is deliberately unsupported; source and index labels differ from generated assumptions. See [institutions and programs](../../docs/collection-inventory/institutions-and-programs.md).
 
 `regional-education-desks.ts` exposes desk services, expanded coverage and contacts with independent phone/location schedules. `service-areas.ts` validates source GeoJSON; the index projection omits geometry/grid samples. See [regional desk contracts](../../docs/collection-inventory/regional-education-desks.md).
+
+Podcast shows, episodes and videos have independent definitions. `media-content.ts` shares public host/season/media/transcript normalization without creating a generic record-tool surface. See [media contracts](../../docs/collection-inventory/podcasts-and-videos.md).
