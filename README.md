@@ -151,6 +151,13 @@ pnpm start
 
 Module initialization and schema generation can require service credentials and network access during installation and builds. See [development](docs/development.md) for environment setup and build requirements.
 
+## Release and deployment
+
+Run **Release and Deploy** manually in GitHub Actions to release from `main`, deploy
+to Coolify, or do both. Combined runs deploy the exact release commit. Workflow
+success confirms that Coolify queued the deployment; verify completion in Coolify.
+See [release and deployment](docs/release-deployment.md) for setup and operation.
+
 ## Verification
 
 The automated suite covers collection contracts, validation, search mappings, content rendering, cache behavior and the public MCP endpoint. HTTP integration tests build and run the application against local Directus and Algolia fixtures.
@@ -166,18 +173,19 @@ See the [testing guide](tests/README.md) for focused commands, fixture conventio
 
 ## Documentation
 
-| Guide                                              | Covers                                                                |
-| -------------------------------------------------- | --------------------------------------------------------------------- |
-| [Collection registry](docs/collection-registry.md) | Architecture, public contracts and responsibilities by layer.         |
-| [Education pathways](docs/routes.md)               | Route questionnaire, answer dependencies, matching and ordered steps. |
-| [Collection data](docs/collection-data.md)         | Domain relationships, native records and reusable projections.        |
-| [Search](docs/search.md)                           | Source filters, geo-search, search indexes, snippets and facets.      |
-| [Resources](docs/collection-resources.md)          | Catalogues, URI templates and readable documents.                     |
-| [Content documents](docs/content-documents.md)     | Editor content hydration and Markdown rendering.                      |
-| [Taxonomies](docs/taxonomies.md)                   | Filter identities, archive links and normalization.                   |
-| [Caching](docs/cache.md)                           | Cache configuration, freshness and failure behavior.                  |
-| [Data access](docs/data-access.md)                 | Visibility and source-system responsibilities.                        |
-| [Development](docs/development.md)                 | Environment setup, checks and contributor conventions.                |
-| [Tool analytics](docs/tool-analytics.md)           | Optional server-side analytics and query-data controls.               |
+| Guide                                                | Covers                                                                |
+| ---------------------------------------------------- | --------------------------------------------------------------------- |
+| [Collection registry](docs/collection-registry.md)   | Architecture, public contracts and responsibilities by layer.         |
+| [Education pathways](docs/routes.md)                 | Route questionnaire, answer dependencies, matching and ordered steps. |
+| [Collection data](docs/collection-data.md)           | Domain relationships, native records and reusable projections.        |
+| [Search](docs/search.md)                             | Source filters, geo-search, search indexes, snippets and facets.      |
+| [Resources](docs/collection-resources.md)            | Catalogues, URI templates and readable documents.                     |
+| [Content documents](docs/content-documents.md)       | Editor content hydration and Markdown rendering.                      |
+| [Taxonomies](docs/taxonomies.md)                     | Filter identities, archive links and normalization.                   |
+| [Caching](docs/cache.md)                             | Cache configuration, freshness and failure behavior.                  |
+| [Data access](docs/data-access.md)                   | Visibility and source-system responsibilities.                        |
+| [Release and deployment](docs/release-deployment.md) | Manual releases, pinned deployments and required configuration.       |
+| [Development](docs/development.md)                   | Environment setup, checks and contributor conventions.                |
+| [Tool analytics](docs/tool-analytics.md)             | Optional server-side analytics and query-data controls.               |
 
 Maintained by [Stichting Onderwijs in](https://onderwijsin.nl) for [Onderwijsloket](https://onderwijsloket.com). Report bugs and request features through [GitHub issues](https://github.com/onderwijsin/onderwijsloket-assistent/issues).

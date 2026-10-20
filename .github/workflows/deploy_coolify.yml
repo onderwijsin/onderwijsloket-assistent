@@ -7,6 +7,11 @@ on:
         required: true
         description: The environment to deploy to
         type: string
+      commit_sha:
+        required: false
+        description: Exact commit to deploy; mutually exclusive with tag
+        default: ""
+        type: string
       tag:
         required: false
         description: Optional git tag to deploy instead of the latest commit on main
@@ -63,27 +68,37 @@ jobs:
       - name: Resolve version
         id: resolve
         shell: bash
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
 
           git fetch origin main --tags
 
-          if [ -z "${{ inputs.tag }}" ]; then
-            sha="$(git rev-parse origin/main)"
-            echo "COMMIT_SHA=${sha}" >> "$GITHUB_OUTPUT"
-            echo "LABEL=origin/main (${sha})" >> "$GITHUB_OUTPUT"
-            echo "Deploying latest commit on main: ${sha}"
-          else
-            if ! git rev-parse "refs/tags/${{ inputs.tag }}" >/dev/null 2>&1; then
-              echo "Tag '${{ inputs.tag }}' does not exist."
+          if [ -n "$COMMIT_SHA" ] && [ -n "$TAG" ]; then
+            echo 'Specify either commit_sha or tag, not both.'
+            exit 1
+          fi
+
+          if [ -n "$COMMIT_SHA" ]; then
+            if [[ ! "$COMMIT_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo 'commit_sha must be a full 40-character Git SHA.'
               exit 1
             fi
-
-            sha="$(git rev-list -n 1 "refs/tags/${{ inputs.tag }}")"
-            echo "COMMIT_SHA=${sha}" >> "$GITHUB_OUTPUT"
-            echo "LABEL=${{ inputs.tag }} (${sha})" >> "$GITHUB_OUTPUT"
-            echo "Deploying tag ${{ inputs.tag }} -> ${sha}"
+            sha="$(git rev-parse --verify "${COMMIT_SHA}^{commit}")"
+            label="$sha"
+          elif [ -n "$TAG" ]; then
+            sha="$(git rev-parse --verify "refs/tags/${TAG}^{commit}")"
+            label="$TAG ($sha)"
+          else
+            sha="$(git rev-parse origin/main)"
+            label="origin/main ($sha)"
           fi
+
+          echo "COMMIT_SHA=${sha}" >> "$GITHUB_OUTPUT"
+          echo "LABEL=${label}" >> "$GITHUB_OUTPUT"
+          echo "Deploying ${label}"
 
       - name: Update commit SHA in Coolify
         shell: bash
