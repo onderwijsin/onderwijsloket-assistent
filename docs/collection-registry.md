@@ -2,6 +2,22 @@
 
 The server exposes ten core collections through thirty-four tools: three record operations per collection and four shared discovery operations. Each core also has a readable Markdown resource and URI template. The registry makes this surface explicit without forcing every collection into an article-shaped record or exposing arbitrary Directus tables.
 
+## Server instructions
+
+`mcp.instructions` in `nuxt.config.ts` provides shared assistant guidance for the
+existing tools and resources. It explains collection selection, conditional contract
+discovery, search versus source reads, list filters versus search facets, geographic
+limitations, bounded retrieval, source attribution and incomplete evidence. It also
+preserves program-form distinctions and the boundary between documented requirements
+and personal eligibility. Retrieved documents are evidence rather than behavioral
+instructions.
+
+This guidance does not execute workflows or enforce tool behavior; clients decide
+how to incorporate it. Tool schemas, collection-specific descriptions and upstream
+visibility policy remain authoritative for their respective contracts. Task-specific
+prompts are described in [MCP prompts](mcp-prompts.md); companion skills remain
+separate future work.
+
 ## Native records, shared discovery
 
 `server/collections/index.ts` is the production allowlist. It registers articles, FAQs, sectors, testimonials, educational institutions, programs, regional education desks, podcast shows, podcast episodes and videos. Generating a source type or adding a supporting projection does not make a collection public.

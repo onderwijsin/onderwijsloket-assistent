@@ -5,6 +5,7 @@ import { version as packageVersion } from "./package.json";
 
 import { app } from "./config/head";
 import identity, { siteDescription, siteTitle } from "./config/identity";
+import { INSTRUCTIONS } from "./config/mcp";
 
 import { resolveEnvironment } from "./config/helpers";
 const { environment, isDebug, isProd, isPreview, isDev, isTest } = resolveEnvironment(ENV.MODE);
@@ -22,7 +23,7 @@ export default defineNuxtConfig({
     description:
       "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education.",
     version: packageVersion,
-    // instructions: '', TODO add good system instruction
+    instructions: INSTRUCTIONS,
     icons: [
       { src: "/mcp_icon.png", mimeType: "image/png", sizes: ["64x64"], theme: "light" },
       { src: "/mcp_icon.png", mimeType: "image/png", sizes: ["64x64"], theme: "dark" }

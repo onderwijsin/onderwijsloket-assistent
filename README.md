@@ -89,6 +89,19 @@ and each hit's distance in metres. Regional desk distances approximate service-a
 coverage using indexed grid points. See [geographic search](docs/search.md#geographic-search)
 for the contract and [geocoding](docs/geocoding.md) for Mapbox environment configuration.
 
+## Prompts
+
+In clients that support MCP prompts, select a workflow to guide the assistant through relevant tools and resources.
+
+| Prompt                     | Description                                                                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `compare-programs`         | Compare education programs or find alternatives to a known program, using your priorities and current program-form details.                         |
+| `find-local-support`       | Find regional education desks near a location and check their advice services, contact options and stated coverage.                                 |
+| `find-supporting-articles` | Find articles that explain or complement a previously discussed FAQ, article or other item, using relevant topics, qualifications, roles or tracks. |
+| `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                     |
+
+See [MCP prompts](docs/mcp-prompts.md) for arguments and workflow details.
+
 ## Resources and data quality
 
 Every collection exposes a resource catalogue and a URI template:
