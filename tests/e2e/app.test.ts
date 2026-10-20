@@ -80,8 +80,38 @@ describe("application", async () => {
     },
     nuxtConfig: {
       devtools: { enabled: false },
-      nitro: { preset: "node-server" }
+      nitro: {
+        preset: "node-server",
+        handlers: [
+          {
+            route: "/__test__/chat-mcp",
+            method: "get",
+            handler: fileURLToPath(new URL("../fixtures/chat-mcp.get.ts", import.meta.url))
+          }
+        ]
+      }
     }
+  });
+
+  it("connects the chat MCP adapter to the actual local server, including tools, workflows and resources", async () => {
+    const response = await fetch("/__test__/chat-mcp");
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.toolNames).toEqual(
+      expect.arrayContaining([
+        "get_route_questions",
+        "find_routes",
+        "get_route",
+        "search_articles",
+        "get_article",
+        "mcp_get_prompt",
+        "mcp_read_resource"
+      ])
+    );
+    expect(result.instructions).toContain("Use Onderwijsloket");
+    expect(result.questions).not.toMatchObject({ isError: true });
+    expect(result.prompt.messages[0].content.text).toContain("get_route_questions");
+    expect(result.resource.contents[0].text).toContain("Can I teach?");
   });
 
   it("publishes discovery catalogs matching the MCP definitions", async () => {
@@ -704,7 +734,10 @@ describe("application", async () => {
       "/kennisbank/artikelen/"
     );
     expect(detail.content).toHaveLength(2);
-    const query = directus.requests.at(-1)!;
+    const query = directus.requests.findLast(
+      (request) => request.searchParams.get("filter") === JSON.stringify({ id: { _eq: faqId } })
+    )!;
+    expect(query).toBeDefined();
     expect(JSON.parse(query.searchParams.get("filter")!)).toEqual({ id: { _eq: faqId } });
     expect(query.search).not.toContain("status");
     const search = (await call("search_faqs", { query: "teach" })).result;

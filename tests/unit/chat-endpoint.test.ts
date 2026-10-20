@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createApp, toWebHandler } from "h3";
 import handler from "../../server/api/chat.post";
 
-const { storage, config, streamTextMock } = vi.hoisted(() => ({
+const { storage, config, streamTextMock, mcpClose, mcpConnect } = vi.hoisted(() => ({
   storage: new Map<string, unknown>(),
   config: { chat: { mistralApiKey: "test-mistral", openaiApiKey: "test-openai" } },
-  streamTextMock: vi.fn()
+  streamTextMock: vi.fn(),
+  mcpClose: vi.fn(),
+  mcpConnect: vi.fn()
 }));
 
 vi.mock("nitropack/runtime", () => ({
@@ -17,9 +19,18 @@ vi.mock("nitropack/runtime", () => ({
     }
   })
 }));
+vi.mock("../../server/utils/chat/mcp", async (original) => ({
+  ...(await original<typeof import("../../server/utils/chat/mcp")>()),
+  connectChatMcp: mcpConnect
+}));
 vi.mock("ai", async (original) => ({
   ...(await original<typeof import("ai")>()),
-  streamText: streamTextMock
+  ToolLoopAgent: class {
+    constructor(private settings: Record<string, unknown>) {}
+    async stream(options: Record<string, unknown>) {
+      return streamTextMock({ ...this.settings, ...options });
+    }
+  }
 }));
 
 const app = createApp({ debug: false }).use("/api/chat", handler);
@@ -41,6 +52,10 @@ function request(body: unknown = payload) {
 
 beforeEach(() => {
   storage.clear();
+  mcpClose.mockReset().mockResolvedValue(undefined);
+  mcpConnect
+    .mockReset()
+    .mockResolvedValue({ tools: {}, instructions: "MCP source guidance", close: mcpClose });
   config.chat.mistralApiKey = "test-mistral";
   config.chat.openaiApiKey = "test-openai";
   streamTextMock.mockReset();
@@ -66,6 +81,8 @@ describe("chat HTTP boundary", () => {
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(await response.text()).toContain('"delta":"Hallo!"');
+    expect(mcpClose).toHaveBeenCalledTimes(1);
+    expect(streamTextMock.mock.calls[0]?.[0].instructions).toContain("MCP source guidance");
     expect(streamTextMock.mock.calls[0]?.[0].messages).toEqual([
       { role: "user", content: [{ type: "text", text: "Hallo" }] }
     ]);
@@ -97,6 +114,20 @@ describe("chat HTTP boundary", () => {
       expect(body.includes('"type":"source-url"')).toBe(enabled);
     }
   );
+
+  it("fails with 503 instead of answering without MCP evidence when connection fails", async () => {
+    mcpConnect.mockRejectedValueOnce(new Error("private upstream error"));
+    const response = await request();
+    expect(response.status).toBe(503);
+    expect(await response.text()).not.toContain("private upstream error");
+    expect(streamTextMock).not.toHaveBeenCalled();
+  });
+
+  it("closes the MCP client when agent setup fails", async () => {
+    streamTextMock.mockRejectedValueOnce(new Error("setup failed"));
+    expect((await request()).status).toBe(500);
+    expect(mcpClose).toHaveBeenCalledTimes(1);
+  });
 
   it("rejects invalid bodies without invoking a provider", async () => {
     const response = await request({ ...payload, model: "unknown" });

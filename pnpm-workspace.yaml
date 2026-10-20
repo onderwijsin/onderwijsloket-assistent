@@ -14,7 +14,7 @@ minimumReleaseAgeExclude:
   - "@onderwijsin/*"
 
 catalog:
-  "@ai-sdk/mcp": 2.0.78
+  "@ai-sdk/mcp": 2.0.79
   "@ai-sdk/mistral": 4.0.67
   "@ai-sdk/openai": 4.0.97
   "@ai-sdk/vue": 4.0.144

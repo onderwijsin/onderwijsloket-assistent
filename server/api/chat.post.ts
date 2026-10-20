@@ -2,13 +2,16 @@ import { defineEventHandler, readValidatedBody, createError, setResponseHeader }
 import { useRuntimeConfig } from "nitropack/runtime";
 import { enforceRateLimit } from "@onderwijsin/nuxt-simple-rate-limiter/runtime";
 import {
-  streamText,
+  ToolLoopAgent,
+  isStepCount,
   convertToModelMessages,
   toUIMessageStream,
   createUIMessageStreamResponse
 } from "ai";
 import { chatRequestSchema } from "../utils/chat/request";
 import { createChatProvider } from "../utils/chat/provider";
+import { connectChatMcp, withMcpCleanup } from "../utils/chat/mcp";
+import { prepareChatMessages } from "../utils/chat/messages";
 
 /**
  * Stream a stateless text conversation using the AI SDK UI message protocol.
@@ -24,25 +27,49 @@ export default defineEventHandler(async (event) => {
   if (!apiKey) {
     throw createError({ statusCode: 503, statusMessage: "Chat provider is not configured." });
   }
-  setResponseHeader(event, "Cache-Control", "no-store");
-  const result = streamText({
-    ...createChatProvider(request, credentials),
-    instructions:
-      "Je bent de Onderwijsloket-assistent. Help gebruikers met vragen over werken in het onderwijs. Antwoord in de taal van de gebruiker. Schrijf alle zichtbare redeneersamenvattingen en bijbehorende kopjes in het Nederlands. Wees helder over onzekerheid en verzin geen bronnen. Gebruik alleen bronnen van het Onderwijsloket en verwijs alleen naar webpagina's van onderwijsloket.com.",
-    messages: await convertToModelMessages(
-      request.messages.filter((message) => message.parts.length > 0)
-    ),
-    maxOutputTokens: 10_000,
-    // Avoid logging provider payloads or conversation content through the SDK's default handler.
-    onError: () => {}
-  });
-  return createUIMessageStreamResponse({
-    stream: toUIMessageStream({
+  let mcp: Awaited<ReturnType<typeof connectChatMcp>>;
+  try {
+    mcp = await connectChatMcp(event);
+  } catch {
+    throw createError({
+      statusCode: 503,
+      statusMessage: "Onderwijsloket knowledge is unavailable."
+    });
+  }
+  try {
+    let messages;
+    try {
+      messages = await prepareChatMessages(request.messages, mcp.tools);
+    } catch {
+      throw createError({ statusCode: 400, statusMessage: "Invalid chat message history." });
+    }
+    const provider = createChatProvider(request, credentials);
+    const agent = new ToolLoopAgent({
+      ...provider,
+      tools: { ...mcp.tools, ...provider.tools },
+      instructions: `Je bent de Onderwijsloket-assistent. Help gebruikers met vragen over werken in het onderwijs. Antwoord in de taal van de gebruiker. Schrijf alle zichtbare redeneersamenvattingen en bijbehorende kopjes in het Nederlands.
+
+Gebruik de Onderwijsloket MCP-tools als primaire kennisbron voor inhoudelijke vragen, ook als zoeken op internet uit staat. Haal relevante feiten op voordat je ze presenteert; beantwoord begroetingen zonder onnodige toolcalls. Gebruik web search alleen aanvullend wanneer ingeschakeld en verwijs alleen naar pagina's van onderwijsloket.com. Verzin geen bronnen. Gebruik mcp_get_prompt voor passende meerstapswerkwijzen en volg de opgehaalde werkwijze. Beschikbare werkwijzen: find-education-routes, compare-programs, find-local-support, find-supporting-articles, find-supporting-media. Gebruik de toolbeschrijving voor de vereiste argumenten. Je kunt leesbare bronnen ophalen met mcp_list_resources en mcp_read_resource. Houd bevestigde antwoorden en de canonical selections uit route-tools bij in de toolhistorie; vraag ze niet opnieuw als ze al bekend zijn.
+
+De MCP-server geeft deze gebruiksinstructies:
+${mcp.instructions}`,
+      stopWhen: isStepCount(12),
+      maxOutputTokens: 10_000
+    });
+    setResponseHeader(event, "Cache-Control", "no-store");
+    const result = await agent.stream({ messages: await convertToModelMessages(messages) });
+    const stream = toUIMessageStream({
       stream: result.stream,
       sendReasoning: request.extendedThinking,
       sendSources: request.webSearch,
       onError: () => "Het antwoord kon niet worden gegenereerd. Probeer het opnieuw."
-    }),
-    headers: { "Cache-Control": "no-store" }
-  });
+    });
+    return createUIMessageStreamResponse({
+      stream: withMcpCleanup(stream, mcp.close),
+      headers: { "Cache-Control": "no-store" }
+    });
+  } catch (error) {
+    await mcp.close();
+    throw error;
+  }
 });

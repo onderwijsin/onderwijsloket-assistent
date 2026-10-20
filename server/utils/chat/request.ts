@@ -1,18 +1,21 @@
 import { z } from "zod";
 
 const textPart = z.object({ type: z.literal("text"), text: z.string().max(32_000) });
-const displayPart = z.object({
-  type: z.enum([
-    "reasoning",
-    "step-start",
-    "source-url",
-    "source-document",
-    "tool-web_search",
-    "dynamic-tool"
+const displayPart = z.looseObject({
+  type: z.union([
+    z.enum([
+      "reasoning",
+      "step-start",
+      "source-url",
+      "source-document",
+      "tool-web_search",
+      "dynamic-tool"
+    ]),
+    z.string().regex(/^tool-[a-zA-Z0-9_-]+$/)
   ])
 });
 
-/** Accept UI messages while replaying only conversational text across providers. */
+/** Bound UI messages before SDK validation against the discovered tool schemas. */
 const messageSchema = z
   .object({
     id: z.string().min(1).max(256),
@@ -26,11 +29,7 @@ const messageSchema = z
     if (message.role === "user" && !message.parts.every((part) => part.type === "text")) {
       context.addIssue({ code: "custom", message: "User messages must contain text only." });
     }
-  })
-  .transform((message) => ({
-    ...message,
-    parts: message.parts.filter((part): part is z.infer<typeof textPart> => part.type === "text")
-  }));
+  });
 
 /** Public request contract, compatible with the AI SDK's default chat transport. */
 export const chatRequestSchema = z

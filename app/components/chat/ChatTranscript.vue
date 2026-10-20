@@ -1,6 +1,14 @@
 <script setup lang="ts">
-import { isReasoningUIPart, isTextUIPart, isToolUIPart, type ChatStatus, type UIMessage } from "ai";
+import {
+  getToolName,
+  isReasoningUIPart,
+  isTextUIPart,
+  isToolUIPart,
+  type ChatStatus,
+  type UIMessage
+} from "ai";
 import { isPartStreaming, isToolStreaming } from "@nuxt/ui/utils/ai";
+import { chatToolLabel } from "../../utils/chat-tool-label";
 
 defineProps<{ messages: UIMessage[]; status: ChatStatus }>();
 defineEmits<{ regenerate: [messageId: string] }>();
@@ -58,7 +66,7 @@ defineEmits<{ regenerate: [messageId: string] }>();
         </UChatReasoning>
         <UChatTool
           v-else-if="isToolUIPart(part)"
-          text="Zoeken op internet"
+          :text="chatToolLabel(getToolName(part), part.input)"
           :streaming="isToolStreaming(part)"
         />
         <template v-else-if="isTextUIPart(part)">

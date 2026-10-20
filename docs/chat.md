@@ -1,7 +1,7 @@
 # Chat server
 
 `POST /api/chat` follows the [Nuxt UI chat example](https://ui.nuxt.com/docs/components/chat)
-using AI SDK 7 `streamText`, `convertToModelMessages`, `toUIMessageStream` and
+using AI SDK 7 `ToolLoopAgent`, `convertToModelMessages`, `toUIMessageStream` and
 `createUIMessageStreamResponse`. No authentication, uploads, database or server
 conversation session is involved.
 
@@ -34,25 +34,26 @@ best-effort language preference, not a provider-enforced guarantee.
 The boundary accepts up to 100 user/assistant UI messages with up to 100 parts
 per message, 32,000 characters per text part and 100,000 text characters total.
 The final message must contain non-blank user text. File parts and system roles
-are rejected. Assistant display parts (reasoning, sources, step markers and native
-search tool results) are accepted but dropped from replay: only text is sent back
-to the model. This lets users switch providers without replaying provider-specific
-references or tool state. Transport fields such as `id` and `trigger` are ignored.
+are rejected. Assistant reasoning, sources and native search results are dropped from replay.
+Text, step markers and validated MCP tool calls/results are retained, including canonical
+questionnaire selections. Provider metadata is removed so users can switch models.
+Unknown tool names are rejected; dynamic MCP parts are normalized and checked against
+the discovered tool schemas. History remains client-supplied, not authenticated evidence. Transport fields such as `id` and `trigger` are ignored.
 Client-provided instructions, tools and provider options are never forwarded.
 
 ## Response and errors
 
 Successful requests return the AI SDK UI message SSE protocol with `Cache-Control:
-no-store`. Output is capped at 10,000 tokens including reasoning. Invalid requests
+no-store`. Each model step is capped at 10,000 tokens including reasoning, with at most 12 steps. Invalid requests
 return `400`, missing provider configuration returns `503`, and quota exhaustion
 returns the module's `429` contract with `data.bannedUntil` and `data.limits`.
-Provider failures after streaming starts emit a generic Dutch stream error;
-provider payloads and chat content are not logged by the SDK error callback.
+MCP setup failures return a sanitized `503`. Provider failures after streaming starts
+emit a generic Dutch stream error. SDK server-side error logging retains its default behavior.
 
 ## Credentials, limits and retention
 
 The existing SDK packages are aligned to `ai` 7.0.144, `@ai-sdk/vue` 4.0.144,
-`@ai-sdk/mistral` 4.0.67 and `@ai-sdk/openai` 4.0.97. These patch versions
+`@ai-sdk/mistral` 4.0.67, `@ai-sdk/openai` 4.0.97 and `@ai-sdk/mcp` 2.0.79. These patch versions
 share the provider schema types required for native web-search tools.
 
 Varlock's existing `MISTRAL_API_KEY` and `OPENAI_API_KEY` values are projected into
@@ -73,8 +74,32 @@ not override either provider's separate abuse-monitoring retention policy.
 Tests cover request restrictions, default flags, provider routing, high reasoning,
 native search selection, streamed text/source/reasoning chunks, sanitized errors
 and hourly quota enforcement/reset without calling paid APIs. Live provider access and
-deployed Workers streaming remain deployment checks. The endpoint does not yet
-connect the existing Onderwijsloket MCP tools or retrieve Directus content.
+deployed Workers streaming remain deployment checks.
+
+## MCP integration
+
+Every chat request opens an AI SDK HTTP MCP client against the existing `/mcp`
+endpoint through Nitro’s local dispatcher. The fixed internal route avoids trusting
+the incoming Host header or requiring a public self-request, preserving Node and
+Workers compatibility. Existing tools, data access and Directus visibility rules remain unchanged.
+
+The agent discovers all server tools and prompt metadata, receives the server’s own
+instructions, and exposes three additional adapters: `mcp_list_resources`,
+`mcp_read_resource` and `mcp_get_prompt`. Resources are restricted to the
+`onderwijsloket://` namespace; prompt names must match the discovered catalog.
+The agent is instructed to retrieve MCP evidence before factual education answers,
+use relevant prompt workflows and preserve route-questionnaire selections. MCP is
+available regardless of the web-search toggle; native web search is supplementary.
+The transcript labels tool calls by their actual action in Dutch (such as searching
+articles, reading a source or retrieving route questions), with workflow-specific
+labels when loading a known MCP prompt. Unknown tools use a neutral fallback.
+Tool selection remains a model decision rather than a guarantee that every answer calls a tool.
+
+The multi-step agent executes tools and feeds results back to the model. Each
+request owns its MCP client and closes it on completion, stream error, cancellation
+or setup failure. Tests exercise real MCP protocol calls, a mock-model multi-step
+loop, history validation and cleanup. The built-app integration test exercises
+local dispatch, a discovered tool, a prompt and a resource without paid provider calls.
 
 ## Chat interface
 
@@ -119,9 +144,8 @@ Seven Dutch starters cover routes, programme comparison, local advice,
 required teaching qualifications, salaries, lateral entry and personal experiences.
 The routes, comparison, advice and experiences starters reflect the existing MCP
 prompt themes. Choosing a starter immediately submits it with the current model and feature
-selections. These are conversation
-starters, not execution of the server MCP prompt workflows: the chat endpoint
-still has no Onderwijsloket collection tools. Tool integration remains separate.
+selections. The agent can retrieve the corresponding MCP prompt workflow during
+the conversation.
 
 Messages, drafts and options live only in the mounted chat instance. No local
 storage, session storage or server persistence is used; reloading clears the chat.

@@ -14,7 +14,7 @@ With dependencies and environment access available:
 corepack pnpm dev
 ```
 
-Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers thirty collection-specific record tools, four shared discovery tools and ten resource templates. Exercise `/mcp` through an MCP client; the website does not call these tools.
+Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers thirty collection-specific record tools, four shared discovery tools and ten resource templates. Exercise `/mcp` through an MCP client; the [chat endpoint](chat.md) discovers and executes these tools through the same protocol.
 
 ## Checks
 
@@ -57,7 +57,7 @@ The [testing guide](../tests/README.md) owns test commands, fixture conventions,
 
 ## Architecture entry points
 
-Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. [Education pathways](routes.md) use dedicated questionnaire, matching and detail tools. The [geocoding utility](geocoding.md) resolves location text for geographic searches of programs, institutions and regional education desks. [MCP prompts](mcp-prompts.md) provide program comparison, local support, related-content and route-questionnaire workflows. Chat remains future work.
+Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. [Education pathways](routes.md) use dedicated questionnaire, matching and detail tools. The [geocoding utility](geocoding.md) resolves location text for geographic searches of programs, institutions and regional education desks. [MCP prompts](mcp-prompts.md) provide program comparison, local support, related-content and route-questionnaire workflows. The [chat integration](chat.md) exposes these workflows to the assistant.
 
 ## Server JSDoc
 

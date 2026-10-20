@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chatRequestSchema } from "../../server/utils/chat/request";
+import { prepareChatMessages } from "../../server/utils/chat/messages";
 import { createChatProvider } from "../../server/utils/chat/provider";
 
 const user = { id: "user-1", role: "user", parts: [{ type: "text", text: "Hoe word ik leraar?" }] };
@@ -29,7 +30,7 @@ describe("chat request boundary", () => {
     }
   });
 
-  it("replays assistant text while dropping provider-specific display and tool state", () => {
+  it("replays assistant text while dropping provider-specific display and tool state", async () => {
     const request = chatRequestSchema.parse({
       messages: [
         {
@@ -45,7 +46,9 @@ describe("chat request boundary", () => {
         user
       ]
     });
-    expect(request.messages[0]?.parts).toEqual([{ type: "text", text: "Een eerder antwoord" }]);
+    expect((await prepareChatMessages(request.messages, {}))[0]?.parts).toEqual([
+      { type: "text", text: "Een eerder antwoord" }
+    ]);
   });
 
   it("bounds message count, text size and total conversation length", () => {
