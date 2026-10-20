@@ -1,4 +1,4 @@
-import { describeResource } from "../../utils/resources";
+import { describeResource } from "../../utils/resources/descriptors";
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
 import sectors from "../../collections/sectors";
 import { toolResult } from "../../utils/tool-result";

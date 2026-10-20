@@ -1,4 +1,5 @@
-import sectors, { sectorResourceContent } from "../../server/collections/sectors";
+import sectors from "../../server/collections/sectors";
+import { sectorResourceContent } from "../../server/utils/content/sector-resource";
 import { sectorRecord, faqId, sectorId, relatedArticle } from "../fixtures/faqs-and-sectors";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";

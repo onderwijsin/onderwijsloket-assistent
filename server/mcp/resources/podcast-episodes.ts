@@ -1,7 +1,10 @@
+import { mediaResourceContent } from "../../utils/content/media-resource";
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
-import collection, { resourceBody } from "../../collections/podcast-episodes";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import collection from "../../collections/podcast-episodes";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Native podcast_episodes resource template and complete descriptor catalogue. */
 export default defineMcpResource({
@@ -18,7 +21,7 @@ export default defineMcpResource({
     name: collection.name,
     id: collection.getInput.shape.id,
     get: collection.get,
-    content: resourceBody,
+    content: mediaResourceContent,
     metadata: collection.resourceMetadata
   })
 });

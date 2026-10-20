@@ -1,6 +1,7 @@
+import { mediaResourceContent } from "../../server/utils/content/media-resource";
 import { beforeEach, it, expect, vi } from "vitest";
 import { z } from "zod";
-import episodes, { resourceBody } from "../../server/collections/podcast-episodes";
+import episodes from "../../server/collections/podcast-episodes";
 import {
   episodeRecord,
   episodeId,
@@ -10,7 +11,8 @@ import {
   mediaId,
   mediaTaxonomyId
 } from "../fixtures/podcasts-and-videos";
-import { listResources, serveResource } from "../../server/utils/resources";
+import { listResources } from "../../server/utils/resources/catalogue";
+import { serveResource } from "../../server/utils/resources/read";
 const { read, search } = vi.hoisted(() => ({ read: vi.fn(), search: vi.fn() }));
 vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectusServer: read }));
 vi.mock("../../server/utils/search/algolia-client", () => ({
@@ -56,7 +58,7 @@ it("retains native attribution, source-returned visibility and safe public media
   expect(record.transcript_string).toBe(episodeRecord.transcript_string);
   expect(record.transcript_string!.length).toBeGreaterThan(20000);
   expect(record.speaker_map).toEqual([{ speaker: 0, name: "Alex" }]);
-  expect(resourceBody(record)).toContain("## Transcript");
+  expect(mediaResourceContent(record)).toContain("## Transcript");
   expect(episodes.resourceMetadata!(record)).not.toHaveProperty("transcript_string");
 });
 it("translates source filters, stable pagination and junction targets without fetching bodies or transcripts", async () => {
@@ -101,8 +103,8 @@ it("preserves nullable documents and missing relationships without fabricating c
   const { record } = await episodes.get(episodeId);
   expect(record.content).toBeNull();
   expect(record.transcript_string).toBeNull();
-  expect(resourceBody(record)).toContain("No transcript is available.");
-  expect(resourceBody(record)).toContain("No body content is available.");
+  expect(mediaResourceContent(record)).toContain("No transcript is available.");
+  expect(mediaResourceContent(record)).toContain("No body content is available.");
   expect(record.show).toBeNull();
   expect(record.season).toBeNull();
   expect(record.content_warnings.join()).toContain("show is unavailable");
@@ -171,7 +173,7 @@ it("advertises portable resource contracts and descriptor-only catalogue queries
     name: episodes.name,
     id: episodes.getInput.shape.id,
     get: episodes.get,
-    content: resourceBody,
+    content: mediaResourceContent,
     metadata: episodes.resourceMetadata
   });
   const result = await handler(new URL(`onderwijsloket://podcast_episodes/${episodeId}`), {

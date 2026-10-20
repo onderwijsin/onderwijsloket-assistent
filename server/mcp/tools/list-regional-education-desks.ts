@@ -1,7 +1,7 @@
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
 import desks from "../../collections/regional-education-desks";
 import { toolResult } from "../../utils/tool-result";
-import { describeResource } from "../../utils/resources";
+import { describeResource } from "../../utils/resources/descriptors";
 
 /** Collection-specific list with validated output and readable resource links. */
 export default defineMcpTool({

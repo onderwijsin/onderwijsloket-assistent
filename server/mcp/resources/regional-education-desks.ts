@@ -1,7 +1,10 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
-import desks, { deskResourceContent } from "../../collections/regional-education-desks";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import desks from "../../collections/regional-education-desks";
+import { deskResourceContent } from "../../utils/content/desk-resource";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Native regional_education_desks resource template and complete descriptor catalogue. */
 export default defineMcpResource({

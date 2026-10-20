@@ -1,10 +1,12 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { z } from "zod";
-import desks, { deskResourceContent } from "../../server/collections/regional-education-desks";
+import desks from "../../server/collections/regional-education-desks";
+import { deskResourceContent } from "../../server/utils/content/desk-resource";
 import { areaSourceSchema } from "../../server/utils/projections/service-areas";
 import { deskRecord, deskId, areaRecord } from "../fixtures/regional-education-desks";
 import { sectorId } from "../fixtures/faqs-and-sectors";
-import { serveResource, listResources } from "../../server/utils/resources";
+import { serveResource } from "../../server/utils/resources/read";
+import { listResources } from "../../server/utils/resources/catalogue";
 const { read, search } = vi.hoisted(() => ({ read: vi.fn(), search: vi.fn() }));
 vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectusServer: read }));
 vi.mock("../../server/utils/search/algolia-client", () => ({

@@ -1,6 +1,6 @@
 import { cacheDurations } from "../../config/cache";
 import { readCollectionRecords } from "../utils/collections/read-records";
-import { describeResource } from "../utils/resources";
+import { describeResource } from "../utils/resources/descriptors";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { contentNodeSchema } from "../utils/content/types";
 import { readItems } from "@directus/sdk";

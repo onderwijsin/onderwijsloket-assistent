@@ -23,3 +23,14 @@ export function collectionRelationSchema<Key extends string, Target extends z.Zo
     truncated: rows.length > collectionRelationLimit
   }));
 }
+
+/**
+ * Bound parent junctions with a sentinel row and deterministic source junction ordering.
+ * @param names - Parent relation names being expanded.
+ * @returns Deep query options without visibility or publication policy.
+ */
+export function collectionRelationBounds(names: readonly string[]) {
+  return Object.fromEntries(
+    names.map((name) => [name, { _limit: collectionRelationLimit + 1, _sort: ["id"] }])
+  );
+}

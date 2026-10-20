@@ -32,7 +32,8 @@ vi.mock("../../server/utils/search/algolia-client", () => ({
 }));
 
 import articles from "../../server/collections/articles";
-import { listResources, serveResource } from "../../server/utils/resources";
+import { listResources } from "../../server/utils/resources/catalogue";
+import { serveResource } from "../../server/utils/resources/read";
 import { defineCollectionSearch } from "../../server/utils/search/collection-search";
 import { facetsOptionsSchema } from "../../server/utils/search/schemas";
 import { cacheDurations } from "../../config/cache";

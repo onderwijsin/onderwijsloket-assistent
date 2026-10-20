@@ -1,7 +1,5 @@
 import { cacheDurations } from "../../config/cache";
 import { readCollectionRecords } from "../utils/collections/read-records";
-import { resourceContent } from "../utils/content/resource-content";
-import { escapeMarkdownText } from "../utils/content/markdown-formatting";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Schema, Sector } from "#directus";
@@ -393,32 +391,3 @@ export default defineMcpCollection({
   /** @returns Exact-value filter rules for sector lists. */
   filters: filters.filters
 });
-
-/**
- * Render sector plain-text guidance as named Markdown sections; references remain in front matter.
- * @param record - Validated sector detail with separately named content sections.
- * @returns Markdown guidance without synthesizing missing sections.
- */
-export function sectorResourceContent(
-  record: { title: string; description: string } & Record<
-    (typeof sectionNames)[number],
-    string | null
-  >
-) {
-  const headings = {
-    introduction: "Introduction",
-    roles_content: "Roles",
-    routes_content: "Routes",
-    salary_content: "Salary",
-    costs_content: "Costs"
-  };
-  const body = [
-    escapeMarkdownText(record.description),
-    ...sectionNames.flatMap((name) =>
-      record[name]?.trim() ? [`## ${headings[name]}`, escapeMarkdownText(record[name])] : []
-    )
-  ]
-    .filter((part) => part.trim())
-    .join("\n\n");
-  return [`# ${escapeMarkdownText(record.title)}`, resourceContent(body)].join("\n\n");
-}

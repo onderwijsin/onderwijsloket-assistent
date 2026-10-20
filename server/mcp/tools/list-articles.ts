@@ -1,5 +1,5 @@
 import { toolResult } from "../../utils/tool-result";
-import { describeResource } from "../../utils/resources";
+import { describeResource } from "../../utils/resources/descriptors";
 import articles from "../../collections/articles";
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
 

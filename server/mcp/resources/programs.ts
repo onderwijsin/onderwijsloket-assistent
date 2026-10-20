@@ -1,7 +1,10 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
-import programs, { programResourceContent } from "../../collections/programs";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import programs from "../../collections/programs";
+import { programResourceContent } from "../../utils/content/program-resource";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Native programs resource template and complete descriptor catalogue. */
 export default defineMcpResource({

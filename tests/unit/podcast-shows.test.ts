@@ -8,7 +8,8 @@ import {
   mediaId,
   mediaTaxonomyId
 } from "../fixtures/podcasts-and-videos";
-import { listResources, serveResource } from "../../server/utils/resources";
+import { listResources } from "../../server/utils/resources/catalogue";
+import { serveResource } from "../../server/utils/resources/read";
 const { read, search } = vi.hoisted(() => ({ read: vi.fn(), search: vi.fn() }));
 vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectusServer: read }));
 vi.mock("../../server/utils/search/algolia-client", () => ({

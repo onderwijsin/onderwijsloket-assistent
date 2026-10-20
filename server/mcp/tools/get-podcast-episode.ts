@@ -1,7 +1,7 @@
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
 import collection from "../../collections/podcast-episodes";
 import { toolResult } from "../../utils/tool-result";
-import { describeResource } from "../../utils/resources";
+import { describeResource } from "../../utils/resources/descriptors";
 
 /** Collection-specific get with validated output and readable resource links. */
 export default defineMcpTool({

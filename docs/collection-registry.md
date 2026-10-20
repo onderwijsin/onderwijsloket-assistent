@@ -24,7 +24,7 @@ Record tools remain explicit: `list_articles`, `get_article`, `search_articles`,
 | `server/utils/taxonomy/`    | Taxonomy identity/archives, source filter vocabulary and cached choices                                   |
 | `server/utils/search/`      | Search transport, strict facet boundaries, snippets and result pagination                                 |
 | `server/utils/content/`     | Pure content hydration/rendering, resource notices, media Markdown and YAML serialization                 |
-| `server/utils/resources.ts` | Resource descriptors, queued catalogue reads and protocol error translation                               |
+| `server/utils/resources/`   | Pure descriptors, queued catalogue reads and protocol read/error handling                                 |
 
 ```mermaid
 flowchart LR
@@ -46,6 +46,28 @@ Reusable projections remove repeated relationship handling without becoming gene
 
 This organization deliberately retains some explicit repetition: tool declarations, field selections, source-list filters and index mappings are useful review boundaries. Similar names do not imply identical source/index semantics. Introducing a query DSL, one configurable domain factory or automatic collection registration would weaken those boundaries. Splitting large domain modules into adjacent files can be useful when a domain grows independently; creating ten identical subdirectory trees now would add navigation without removing behavior.
 
-The architecture review addressed repeated source readers, the article-only cache, scattered infrastructure helpers and formatting mixed into projections. Remaining deliberate constraints are explicit tool declarations, separate source/search contracts and configuration-owned cache durations. There is no framework migration or dependency change involved.
+## Resource boundaries
+
+Resource infrastructure has three separate entry points. `resources/descriptors.ts` builds URIs and resource-link metadata without importing Directus, Nitro caching or the collection registry. Record tools depend only on this pure module. `resources/catalogue.ts` owns descriptor-only source queries, pagination, serialization and catalogue caching. `resources/read.ts` validates template IDs, calls an injected collection getter and translates failures into MCP errors.
+
+Resource body composition lives in `content/`: program forms, sector guidance, desk consultation sections and media transcripts each have a focused formatter. These formatters accept only the fields they render; they do not import collection definitions or providers. Resource declarations bind a native collection getter to its formatter. The getter determines the document type, and selectors accept that type without narrowing or redefining the native detail contract.
+
+Collection getters still render source body fields into Markdown because Markdown is also part of the JSON detail contract. Presentation-only resource headings, section layouts and missing-body notices are applied outside the record getter and its cache. Collection-owned `resourceMetadata` selectors remain alongside native schemas, where field exclusions can be reviewed when those schemas change.
+
+Generic relation bounds live with `collectionRelationSchema` in `collections/relations.ts`. Shared projections use this infrastructure; navigator and media queries do not need to import editorial attribution just to bound a junction.
+
+## Keeping changes local
+
+Use these boundaries when extending the server:
+
+- Change native schemas, selected source fields and normalization together in the collection module. Reuse a projection when multiple domains share the same relationship semantics.
+- Keep source-list filters separate from index filters. Put provider transport and facet translation in `search/`; keep domain-specific hit mappings beside the collection.
+- Add resource layout behavior to a pure `content/` formatter, then bind it in the resource declaration. A new layout should not require changing source access or cache code.
+- Keep tools explicit and thin. Shared response packaging belongs in `tool-result.ts`; domain descriptions and advertised schemas remain visible in each tool.
+- Keep cache durations in `config/cache.ts` and public visibility rules in Directus. Avoid embedding either policy in a formatter or projection.
+
+The larger collection modules combine closely related schemas, typed queries and domain normalization. Split a module when one of those responsibilities gains an independent lifecycle or becomes difficult to navigate; line count alone is not a reason to create identical directory trees. Search transport, validation and facet behavior already form one adapter boundary; an additional provider abstraction becomes useful only when a second provider is required.
+
+See the [testing guide](../tests/README.md) for the appropriate validation boundary. Pure descriptor tests require no provider/runtime mocks; native contract tests and HTTP tests protect the wiring between the separate layers.
 
 See [collection data](collection-data.md) for relationship semantics, [search](search.md) for index discovery, [resources](collection-resources.md) for representations and [caching](cache.md) for freshness boundaries. Directus visibility remains governed by [data access responsibilities](data-access.md). Geocoding and exact geographic matching are future features, not implied by returning coordinates.

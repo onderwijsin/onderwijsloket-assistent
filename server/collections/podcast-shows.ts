@@ -1,3 +1,8 @@
+import {
+  collectionRelationBounds,
+  collectionRelationSchema,
+  collectionRelationLimit
+} from "../utils/collections/relations";
 import { cacheDurations } from "../../config/cache";
 import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems, type Query } from "@directus/sdk";
@@ -14,12 +19,10 @@ import {
   taxonomyFilters
 } from "../utils/taxonomy/collection-filters";
 import { taxonomySchema, createTaxonomySourceSchema } from "../utils/taxonomy/taxonomy";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
 import {
   assetSchema,
   imageAssetSourceSchema,
-  supportingIdSchema,
-  supportingRelationBounds
+  supportingIdSchema
 } from "../utils/projections/supporting";
 import {
   podcastStatusSchema,
@@ -158,7 +161,7 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
     ],
     filter,
     deep: {
-      ...supportingRelationBounds(relationNames),
+      ...collectionRelationBounds(relationNames),
       ...(id
         ? { seasons: { _limit: collectionRelationLimit + 1, _sort: ["season_number", "id"] } }
         : {})

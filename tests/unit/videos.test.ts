@@ -1,8 +1,10 @@
+import { mediaResourceContent } from "../../server/utils/content/media-resource";
 import { beforeEach, it, expect, vi } from "vitest";
 import { z } from "zod";
-import videos, { resourceBody } from "../../server/collections/videos";
+import videos from "../../server/collections/videos";
 import { videoRecord, videoId, mediaId, mediaTaxonomyId } from "../fixtures/podcasts-and-videos";
-import { listResources, serveResource } from "../../server/utils/resources";
+import { listResources } from "../../server/utils/resources/catalogue";
+import { serveResource } from "../../server/utils/resources/read";
 const { read, search } = vi.hoisted(() => ({ read: vi.fn(), search: vi.fn() }));
 vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectusServer: read }));
 vi.mock("../../server/utils/search/algolia-client", () => ({
@@ -42,7 +44,7 @@ it("retains native attribution, source-returned visibility and safe public media
   expect(record.publication_date).toContain("2999");
   expect(record.chapters?.map((x) => x.time)).toEqual([0, 60]);
   expect(record.transcript_string).toBe(videoRecord.transcript_string);
-  expect(resourceBody(record)).toContain("## Transcript");
+  expect(mediaResourceContent(record)).toContain("## Transcript");
   expect(videos.resourceMetadata!(record)).not.toHaveProperty("transcript_string");
 });
 it("translates source filters, stable pagination and junction targets without fetching bodies or transcripts", async () => {
@@ -75,8 +77,8 @@ it("preserves nullable documents and missing relationships without fabricating c
   const { record } = await videos.get(videoId);
   expect(record.content).toBeNull();
   expect(record.transcript_string).toBeNull();
-  expect(resourceBody(record)).toContain("No transcript is available.");
-  expect(resourceBody(record)).toContain("No body content is available.");
+  expect(mediaResourceContent(record)).toContain("No transcript is available.");
+  expect(mediaResourceContent(record)).toContain("No body content is available.");
 });
 it("reports bounded and unavailable related records independently of body traversal", async () => {
   read.mockResolvedValue([
@@ -131,7 +133,7 @@ it("advertises portable resource contracts and descriptor-only catalogue queries
     name: videos.name,
     id: videos.getInput.shape.id,
     get: videos.get,
-    content: resourceBody,
+    content: mediaResourceContent,
     metadata: videos.resourceMetadata
   });
   const result = await handler(new URL(`onderwijsloket://videos/${videoId}`), { id: videoId });

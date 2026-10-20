@@ -1,4 +1,5 @@
-import programs, { programResourceContent } from "../../server/collections/programs";
+import programs from "../../server/collections/programs";
+import { programResourceContent } from "../../server/utils/content/program-resource";
 import {
   institutionRecord,
   institutionId,

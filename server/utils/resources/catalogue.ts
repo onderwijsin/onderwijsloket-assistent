@@ -1,53 +1,12 @@
-import { resourceContent } from "./content/resource-content";
 import { readItems } from "@directus/sdk";
 import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import type { Schema } from "#directus";
 import { defineCachedFunction } from "nitropack/runtime";
-import { cacheDurations } from "../../config/cache";
-import type { ReadResourceTemplateCallback } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { cacheDurations } from "../../../config/cache";
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
-import { z } from "zod";
-import { withFrontMatter } from "./content/front-matter";
 import type { Resource } from "@modelcontextprotocol/sdk/types.js";
-
-interface ResourceRecord {
-  id: string;
-  title: string;
-  description?: string | null;
-  date_updated?: string | null;
-}
-
-/**
- * Build a project resource identifier for any collection; this is not a browser URL.
- *
- * @param collection - Public collection name.
- * @param id - Record identifier.
- * @returns The collection record URI for MCP resource reads.
- */
-export function resourceUri(collection: string, id: string): string {
-  return `onderwijsloket://${collection}/${id}`;
-}
-
-/**
- * Describe a Markdown record for MCP resource links without fetching its document body.
- *
- * @param collection - Public collection name.
- * @param record - Record whose metadata is being normalized.
- * @returns A Markdown resource descriptor with an optional valid update annotation.
- */
-export function describeResource(collection: string, record: ResourceRecord): Resource {
-  const updated = record.date_updated ? new Date(record.date_updated) : null;
-  return {
-    uri: resourceUri(collection, record.id),
-    name: record.id,
-    title: record.title,
-    ...(typeof record.description === "string" ? { description: record.description } : {}),
-    mimeType: "text/markdown",
-    ...(updated && !Number.isNaN(updated.getTime())
-      ? { annotations: { lastModified: updated.toISOString() } }
-      : {})
-  };
-}
+import { z } from "zod";
+import { describeResource } from "./descriptors";
 
 /** Internal descriptor page size, independent of the public record-tool pagination limit. */
 export const resourceCataloguePageSize = 250;
@@ -161,67 +120,4 @@ export function listResources(collection: {
       getKey: () => collection.name
     }
   );
-}
-
-/**
- * Create a Markdown resource handler using the collection's validated get method and metadata.
- *
- * @param options - Collection name, ID schema, getter, Markdown selector and optional front matter selector.
- * @returns An MCP template read handler accepting a URI and ID variables and returning Markdown with front matter.
- */
-export function serveResource<Document>(options: {
-  id: z.ZodType<string>;
-  /**
-   * Select the collection-specific Markdown representation.
-   * @param record - Validated detail returned by the collection getter.
-   * @returns The readable resource body.
-   */
-  content(record: Document): string | null;
-  name: string;
-  /**
-   * Retrieve one complete collection record.
-   *
-   * @param id - Record identifier.
-   * @returns An envelope containing the retrieved document.
-   */
-  get(id: string): Promise<{ record: Document }>;
-  /**
-   * Select front matter fields from the retrieved document.
-   *
-   * @param record - Record whose metadata is being normalized.
-   * @returns Record metadata to serialize as YAML front matter.
-   */
-  metadata?(record: Document): Record<string, unknown>;
-}) {
-  return (async (uri, variables) => {
-    // Validate with the same collection-specific identity contract as its get tool.
-    const id = options.id.safeParse(variables.id);
-    if (!id.success) throw new McpError(ErrorCode.InvalidParams, "Invalid resource ID.");
-    try {
-      const { record } = await options.get(id.data);
-      return {
-        contents: [
-          {
-            uri: uri.toString(),
-            mimeType: "text/markdown",
-            text: withFrontMatter(
-              resourceContent(options.content(record)),
-              options.metadata?.(record)
-            )
-          }
-        ]
-      };
-    } catch (error) {
-      if (error && typeof error === "object" && "statusCode" in error && error.statusCode === 404) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          `NOT_FOUND: ${options.name} resource not found.`
-        );
-      }
-      throw new McpError(
-        ErrorCode.InternalError,
-        `UPSTREAM_UNAVAILABLE: ${options.name} resource could not be retrieved or validated.`
-      );
-    }
-  }) satisfies ReadResourceTemplateCallback;
 }

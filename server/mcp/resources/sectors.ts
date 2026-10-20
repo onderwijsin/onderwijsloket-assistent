@@ -1,7 +1,10 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
-import sectors, { sectorResourceContent } from "../../collections/sectors";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import sectors from "../../collections/sectors";
+import { sectorResourceContent } from "../../utils/content/sector-resource";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Expose sectors catalogue discovery and Markdown reads through the native URI template. */
 export default defineMcpResource({

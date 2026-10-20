@@ -2,7 +2,6 @@ import { z } from "zod";
 import { joinURL } from "ufo";
 import { nullableOutput } from "../mcp-schema";
 import { useSourceUrl } from "../use-source-url";
-import { collectionRelationLimit } from "../collections/relations";
 
 /** Supporting IDs remain opaque: they identify targets, never junction rows. */
 export const supportingIdSchema = z.string().min(1).max(200);
@@ -157,13 +156,3 @@ export const profileFields = ["id", "first_name", "last_name", "path", "image"] 
 export const sourceFields = ["id", "title", "description", "url"] as const;
 /** Documents fetch only the asset identifier needed for the public delivery URL. */
 export const documentFields = ["id", "title", "description", { asset: ["id", "type"] }] as const;
-/**
- * Bound parent junctions with a sentinel row and deterministic source junction ordering.
- * @param names - Parent relation names being expanded.
- * @returns Deep query options without visibility or publication policy.
- */
-export function supportingRelationBounds(names: readonly string[]) {
-  return Object.fromEntries(
-    names.map((name) => [name, { _limit: collectionRelationLimit + 1, _sort: ["id"] }])
-  );
-}

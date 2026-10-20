@@ -1,7 +1,9 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
 import institutions from "../../collections/educational-institutions";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Native educational_institutions resource template and complete descriptor catalogue. */
 export default defineMcpResource({

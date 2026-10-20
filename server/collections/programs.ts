@@ -1,3 +1,8 @@
+import {
+  collectionRelationBounds,
+  collectionRelationSchema,
+  collectionRelationLimit
+} from "../utils/collections/relations";
 import { cacheDurations } from "../../config/cache";
 import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems } from "@directus/sdk";
@@ -16,8 +21,7 @@ import {
   taxonomyFilters
 } from "../utils/taxonomy/collection-filters";
 import { nullableOutput } from "../utils/mcp-schema";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
-import { supportingRelationBounds } from "../utils/projections/supporting";
+
 import {
   navigatorIdSchema,
   navigatorVendorSchema,
@@ -38,9 +42,7 @@ import {
 } from "../utils/projections/navigator";
 import { createTaxonomySourceSchema, taxonomySchema } from "../utils/taxonomy/taxonomy";
 import { useSourceUrl } from "../utils/use-source-url";
-import { resourceContent } from "../utils/content/resource-content";
 import { renderContentDocument } from "../utils/content/render-content-document";
-import { escapeMarkdownText, renderMarkdownLink } from "../utils/content/markdown-formatting";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { snippetSchema } from "../utils/search/schemas";
 
@@ -220,7 +222,7 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
         : [])
     ],
     deep: {
-      ...supportingRelationBounds(relationNames),
+      ...collectionRelationBounds(relationNames),
       ...(id
         ? { program_forms: { _limit: collectionRelationLimit + 1, _sort: ["sort", "id"] } }
         : {})
@@ -430,45 +432,3 @@ const programs = defineMcpCollection({
   }
 });
 export default programs;
-/**
- * Render a program overview and separate variant documents without inventing a shared program body.
- * @param record - Validated program detail returned by the getter.
- * @returns Markdown with named forms and provider/location context; full metadata remains in front matter.
- */
-export function programResourceContent(record: z.output<typeof programs.getOutput>["record"]) {
-  const parts = [
-    `# ${escapeMarkdownText(record.title)}`,
-    `Type: ${escapeMarkdownText(record.type)}\n\nLevel: ${escapeMarkdownText(record.level)}`
-  ];
-  if (record.degrees?.length)
-    parts.push(`Degrees: ${record.degrees.map(escapeMarkdownText).join(", ")}`);
-  if (record.croho) parts.push(`CROHO: ${escapeMarkdownText(record.croho)}`);
-  if (record.crebo) parts.push(`CREBO: ${escapeMarkdownText(record.crebo)}`);
-  if (record.educational_institutions.length)
-    parts.push(
-      "## Providers",
-      ...record.educational_institutions.map(
-        (provider) => `- ${renderMarkdownLink(provider.title, provider.source_url)}`
-      )
-    );
-  if (record.location)
-    parts.push(
-      "## Location",
-      [
-        record.location.title,
-        record.location.location_address ?? record.location.address,
-        record.location.city
-      ]
-        .filter((value): value is string => Boolean(value))
-        .map(escapeMarkdownText)
-        .join("\n\n")
-    );
-  for (const [index, form] of record.program_forms.entries())
-    parts.push(
-      `## ${escapeMarkdownText(form.track?.title ?? `Program form ${index + 1}`)}`,
-      resourceContent(form.description),
-      ...(form.url ? [renderMarkdownLink("More information", form.url)] : [])
-    );
-  if (!record.program_forms.length) parts.push(resourceContent(null));
-  return parts.join("\n\n");
-}

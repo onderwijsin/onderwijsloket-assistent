@@ -29,8 +29,6 @@ import { areaSchema, areaSourceSchema, areaFields } from "../utils/projections/s
 import { assetSchema, imageAssetSourceSchema } from "../utils/projections/supporting";
 import { useSourceUrl } from "../utils/use-source-url";
 import { renderContentDocument } from "../utils/content/render-content-document";
-import { escapeMarkdownText } from "../utils/content/markdown-formatting";
-import { resourceContent } from "../utils/content/resource-content";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { snippetSchema } from "../utils/search/schemas";
 
@@ -398,15 +396,3 @@ const desks = defineMcpCollection({
   filters: filters.filters
 });
 export default desks;
-/**
- * Preserve named desk/service descriptions and show the shared notice for each absent document.
- * @param record - Validated desk detail.
- * @returns Markdown with public metadata supplied separately as YAML front matter.
- */
-export function deskResourceContent(record: z.output<typeof desks.getOutput>["record"]) {
-  return [
-    record.description ?? `# ${escapeMarkdownText(record.title)}\n\n${resourceContent(null)}`,
-    "## Consultation service",
-    resourceContent(record.consultation_service_description)
-  ].join("\n\n");
-}

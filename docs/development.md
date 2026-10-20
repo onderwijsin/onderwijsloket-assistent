@@ -6,7 +6,7 @@ Use the Node version in `.nvmrc` and the Corepack-managed package manager pinned
 
 Use the existing Varlock environment profiles under `envs/`. Directus and Algolia schemas describe their configuration. Resolve credentials through the existing environment setup; do not put tokens in documentation, fixtures or public runtime configuration.
 
-For a fresh checkout, dependency installation is a human setup step or a separately authorized dependency task. No installation is needed for this scaffold.
+For a fresh checkout, run `corepack pnpm install` after configuring environment access. Installation initializes Nuxt modules and generates types. Existing checkouts do not need dependency installation for ordinary source or documentation changes.
 
 With dependencies and environment access available:
 
@@ -14,7 +14,7 @@ With dependencies and environment access available:
 corepack pnpm dev
 ```
 
-Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools plus `search_articles` and `get_facets`. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
+Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers thirty collection-specific record tools, four shared discovery tools and ten resource templates. Exercise `/mcp` through an MCP client; the website does not call these tools.
 
 ## Checks
 
@@ -51,48 +51,9 @@ first, with their existing opt-out flags; the test gate has no opt-out flag.
 The hook uses the project-pinned package manager through Corepack and requires
 the same build-time environment access as the e2e suite.
 
-Vitest runs two projects, following its [test projects configuration](https://vitest.dev/guide/projects).
-Both use Node; there is no Playwright, browser runner or separate integration suite.
+Vitest runs unit and HTTP integration projects. Use `corepack pnpm test` for both, `corepack pnpm test:unit` for isolated behavior and `corepack pnpm test:e2e` for the built server’s HTTP contracts. Type checking remains a separate step.
 
-```sh
-corepack pnpm test            # unit and e2e tests, single run
-corepack pnpm test:unit       # unit tests only
-corepack pnpm test:watch      # unit tests, watch mode
-corepack pnpm test:coverage   # unit tests with V8 coverage
-```
-
-Put isolated unit tests in `tests/unit/**/*.test.ts`. Import Vitest APIs explicitly.
-Use relative source imports; this lightweight setup does not boot Nuxt, resolve its
-virtual imports or provide a DOM. Mock environment and external service boundaries.
-The environment-mode tests exercise the existing configuration helper without loading secrets.
-
-Run the HTTP e2e suite with one command:
-
-```sh
-corepack pnpm test:e2e
-```
-
-`@nuxt/test-utils/e2e` builds the actual application with the Node server preset,
-starts its own server on an automatically selected free port, waits for readiness,
-and stops it after the suite. Each suite gets a unique build and output directory
-under ignored `.nuxt/test/`, removed during teardown. It does not reuse a running
-dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is disabled.
-
-Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
-`fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all thirty-four
-MCP tools. It does not verify browser hydration.
-
-Server and build isolation does not replace upstream services: the app still loads
-its existing Varlock environment and configured Nuxt modules. Their credentials
-and build-time service access must be available as for a normal build. Runtime article and taxonomy requests use a local HTTP Directus fixture with synthetic
-content and fixture credentials. This exercises the actual SDK, query serialization, collection
-logic, Markdown pipeline and MCP responses. No live content or provider credentials are needed
-for these runtime assertions. Build-time module setup still uses the normal environment.
-
-Coverage reports are written to ignored `coverage/`. No coverage thresholds are imposed.
-Use synthetic or sanitized fixtures and keep checks against live providers opt-in and bounded.
-See [collection architecture](collection-registry.md) for the implemented MCP surface and layer boundaries.
+The [testing guide](../tests/README.md) owns test commands, fixture conventions, server isolation and verification boundaries. Runtime provider requests use synthetic HTTP fixtures; build-time module setup still requires the configured environment.
 
 ## Architecture entry points
 
@@ -107,10 +68,4 @@ MCP handlers, collection methods and their supporting server utilities document 
 See [server-side tool analytics](tool-analytics.md) for Plausible configuration,
 properties, optional query data, delivery behavior and attribution limitations.
 
-See [collection resources](collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
-
-Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](collection-data.md).
-
-Regional desk tests use `tests/unit/regional-education-desks.test.ts` and synthetic `tests/fixtures/regional-education-desks.ts`, plus the HTTP suite, for coverage geometry, schedules, null content and strict search filters.
-
-Media regression tests are collection-based: `podcast-shows.test.ts`, `podcast-episodes.test.ts` and `videos.test.ts`, with shared normalization cases in `media-content.test.ts` and synthetic `podcasts-and-videos.ts` fixtures. HTTP checks cover all nine new record tools and three resources, long transcripts, null text, discovery and sanitized errors.
+See [collection resources](collection-resources.md) for catalogue discovery and resource reads across all ten core collections.

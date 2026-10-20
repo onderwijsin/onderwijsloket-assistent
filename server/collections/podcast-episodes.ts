@@ -1,4 +1,4 @@
-import { mediaResourceContent } from "../utils/content/media-resource";
+import { collectionRelationBounds, collectionRelationSchema } from "../utils/collections/relations";
 import { cacheDurations } from "../../config/cache";
 import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems, type Query } from "@directus/sdk";
@@ -16,14 +16,12 @@ import {
   taxonomyFilters
 } from "../utils/taxonomy/collection-filters";
 import { taxonomySchema, createTaxonomySourceSchema } from "../utils/taxonomy/taxonomy";
-import { collectionRelationSchema } from "../utils/collections/relations";
 import {
   assetSchema,
   profileSchema,
   profileSourceSchema,
   profileFields,
-  supportingIdSchema,
-  supportingRelationBounds
+  supportingIdSchema
 } from "../utils/projections/supporting";
 import {
   hostSchema,
@@ -210,7 +208,7 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
         : [])
     ],
     filter,
-    deep: { ...supportingRelationBounds(relationNames) },
+    deep: { ...collectionRelationBounds(relationNames) },
     sort: [args.sort, "id"],
     limit: id ? 1 : args.page_size + 1,
     offset: id ? 0 : (args.page - 1) * args.page_size
@@ -403,10 +401,3 @@ const collection = defineMcpCollection({
   filters: filters.filters
 });
 export default collection;
-/**
- * @param record - Validated detail.
- * @returns Separate body and transcript sections with shared missing-content notices.
- */
-export function resourceBody(record: z.output<typeof collection.getOutput>["record"]) {
-  return mediaResourceContent(record);
-}

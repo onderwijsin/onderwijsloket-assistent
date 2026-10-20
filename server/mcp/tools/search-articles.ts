@@ -1,7 +1,7 @@
 import { toolResult } from "../../utils/tool-result";
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
 import articles from "../../collections/articles";
-import { describeResource } from "../../utils/resources";
+import { describeResource } from "../../utils/resources/descriptors";
 
 /** Search is collection-scoped discovery; Directus remains the full-record retrieval path. */
 export default defineMcpTool({

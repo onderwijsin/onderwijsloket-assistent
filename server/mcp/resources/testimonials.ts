@@ -1,7 +1,9 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
 import testimonials from "../../collections/testimonials";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Expose testimonial discovery and Markdown reads through the native resource-template callbacks. */
 export default defineMcpResource({

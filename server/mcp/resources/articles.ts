@@ -1,7 +1,9 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
 import articles from "../../collections/articles";
-import { resourceUri, listResources, serveResource } from "../../utils/resources";
+import { resourceUri } from "../../utils/resources/descriptors";
+import { listResources } from "../../utils/resources/catalogue";
+import { serveResource } from "../../utils/resources/read";
 
 /** Expose article discovery and Markdown reads through the native resource-template callbacks. */
 export default defineMcpResource({

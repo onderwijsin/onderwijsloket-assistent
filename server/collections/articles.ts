@@ -1,3 +1,4 @@
+import { collectionRelationBounds, collectionRelationSchema } from "../utils/collections/relations";
 import { readCollectionRecords } from "../utils/collections/read-records";
 import {
   authorSchema,
@@ -8,10 +9,8 @@ import {
   documentSourceSchema,
   authorFields,
   sourceFields,
-  documentFields,
-  supportingRelationBounds
+  documentFields
 } from "../utils/projections/supporting";
-import { collectionRelationSchema } from "../utils/collections/relations";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
@@ -157,7 +156,7 @@ function buildArticleQuery(
           ]
         : [])
     ],
-    ...(id ? { deep: supportingRelationBounds(supportingNames) } : {}),
+    ...(id ? { deep: collectionRelationBounds(supportingNames) } : {}),
     filter,
     // The ID breaks ties so equal titles/dates do not shuffle between pages.
     sort: [args.sort, "id"],

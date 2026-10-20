@@ -1,12 +1,8 @@
 # Onderwijsloket Assistent — initial project specification
 
-Status: rough draft for discussion. Research date: 19 October 2026.
+This is the historical design draft from 19 October 2026. It preserves early product ideas and open questions; its scope, policies and release milestones do not describe the implemented server or authorize future work.
 
-## Current milestone: articles POC
-
-The current implementation exposes articles through `list_collections`, `describe_collection`, `list_articles`, `get_article` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_articles` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria. FAQs and sectors are now enabled with their own list/get/search tools; see [FAQ and sector guidance contracts](docs/collection-inventory/faqs-and-sectors.md).
-
-The remainder describes the broader product roadmap. Its additional domain tools, workflows, workflow resources and chat are deferred beyond this POC.
+For the current product, see [README](README.md). Architecture and contracts are maintained in [collection registry](docs/collection-registry.md), [collection data](docs/collection-data.md), [search](docs/search.md) and [resources](docs/collection-resources.md). [Data access responsibilities](docs/data-access.md) supersede any visibility or publication-policy proposals in this draft.
 
 ## 1. Purpose and positioning
 
@@ -252,11 +248,3 @@ Verification should protect real risks: exposure through nested relations/proxie
 6. What are the desired scope and eligibility semantics for route tools beyond retrieval?
 
 These decisions do not block drafting the architecture. Data rights, deployment controls and a tested model choice must be resolved before public release.
-
-See [collection resources](docs/collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
-
-Article evidence and testimonial support is implemented: article detail gains bounded supporting evidence/attribution, and testimonials expose native list/get/search, shared discovery/facets and a Markdown resource/template. See [article evidence and testimonials contracts](docs/collection-inventory/article-evidence-and-testimonials.md) for the additive API fields and remaining asset/profile limits.
-
-Institutions and programs is implemented: institutions and programs expose native list/get/search, shared filters/facets and Markdown resource templates, with bounded locations/schedules/providers/forms. See [institutions and programs](docs/collection-inventory/institutions-and-programs.md) for source/index distinctions, degree filtering limits and verified schema drift.
-
-Implemented core collections now also include testimonials, institutions, programs, regional desks, podcast shows, podcast episodes and videos, each with list/get/search tools, discovery and Markdown resources/templates. See [the completed collection implementation plan](docs/collection-inventory/implementation-plan.md) and [media contracts](docs/collection-inventory/podcasts-and-videos.md). Broader domain workflows remain deferred.

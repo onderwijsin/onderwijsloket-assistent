@@ -1,3 +1,4 @@
+import { collectionRelationBounds, collectionRelationSchema } from "../utils/collections/relations";
 import { cacheDurations } from "../../config/cache";
 import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems } from "@directus/sdk";
@@ -15,7 +16,6 @@ import {
   relationIdFilter
 } from "../utils/taxonomy/collection-filters";
 import { createTaxonomySourceSchema, taxonomySchema } from "../utils/taxonomy/taxonomy";
-import { collectionRelationSchema } from "../utils/collections/relations";
 import {
   authorSchema,
   profileSchema,
@@ -23,7 +23,6 @@ import {
   profileSourceSchema,
   authorFields,
   profileFields,
-  supportingRelationBounds,
   supportingIdSchema
 } from "../utils/projections/supporting";
 import { renderContentDocument } from "../utils/content/render-content-document";
@@ -135,7 +134,7 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
       { profiles: [{ profiles_id: profileFields }] },
       ...(id ? ["body" as const, { editor_nodes: editorNodeFields }] : [])
     ],
-    deep: supportingRelationBounds(relationNames),
+    deep: collectionRelationBounds(relationNames),
     filter,
     sort: [args.sort, "id"],
     limit: id ? 1 : args.page_size + 1,
