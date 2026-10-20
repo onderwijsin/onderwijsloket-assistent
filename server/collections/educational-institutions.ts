@@ -1,11 +1,12 @@
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Schema, EducationalInstitution } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection, type McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection, type McpListOptions } from "../utils/collections/definition";
 import {
   defineCollectionFilters,
   exactTextFilter,
@@ -13,8 +14,8 @@ import {
   relationIdFilter
 } from "../utils/taxonomy/collection-filters";
 import { nullableOutput } from "../utils/mcp-schema";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collection-relations";
-import { assetSchema, imageAssetSourceSchema } from "../utils/supporting-content";
+import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
+import { assetSchema, imageAssetSourceSchema } from "../utils/projections/supporting";
 import {
   navigatorIdSchema,
   institutionTypeSchema,
@@ -25,7 +26,7 @@ import {
   indexedLocationSchema,
   indexedLocationSourceSchema,
   navigatorUrl
-} from "../utils/navigator-content";
+} from "../utils/projections/navigator";
 import { useSourceUrl } from "../utils/use-source-url";
 import { renderContentDocument } from "../utils/content/render-content-document";
 import { defineCollectionSearch } from "../utils/search/collection-search";
@@ -141,27 +142,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
   } satisfies Query<Schema, EducationalInstitution>;
 }
 /**
- * Validate selected institution projections and sanitize upstream errors.
- * @param query - Summary or detail projection.
- * @param schema - Matching source validator.
- * @returns Normalized source records.
- */
-async function readInstitutions<T extends z.ZodType>(
-  query: ReturnType<typeof buildQuery>,
-  schema: T
-) {
-  try {
-    return z
-      .array(schema)
-      .parse(await useDirectusServer(readItems("educational_institutions", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: Institution data could not be retrieved or validated."
-    });
-  }
-}
-/**
  * Preserve main and additional locations independently, reporting incomplete expansions.
  * @param record - Validated institution source.
  * @returns Public summary and source provenance.
@@ -180,6 +160,7 @@ function summarize(record: z.output<typeof sourceSchema>) {
 /** Institutions describe real providers, distinct from their programs and physical locations. */
 export default defineMcpCollection({
   name: "educational_institutions",
+  cache: cacheDurations.collections.educational_institutions,
   id: idSchema,
   description:
     "The educational_institutions collection describes organizations offering educational programs, including vocational institutions, universities of applied sciences and universities. It helps prospective education professionals and advisers identify providers, understand their institutional context and find public contact information and teaching locations. Institution records retain organizational type, codes, language-tagged websites, descriptions, logos and separate main and additional locations. Source vendor metadata indicates provenance, while update dates indicate record freshness. Use institutions to explore providers and their locations; use programs filtered by an institution ID to discover its educational offerings rather than assuming every program is embedded in the provider record.",
@@ -255,7 +236,11 @@ export default defineMcpCollection({
    * @returns A bounded page with a continuation flag.
    */
   async list(args) {
-    const rows = await readInstitutions(buildQuery(args), sourceSchema);
+    const rows = await readCollectionRecords(
+      "educational_institutions",
+      readItems("educational_institutions", buildQuery(args)),
+      sourceSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -267,8 +252,12 @@ export default defineMcpCollection({
    * @returns Readable detail and independent document/relation completeness fields.
    */
   async get(id) {
-    const [record] = await readInstitutions(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "educational_institutions",
+      readItems(
+        "educational_institutions",
+        buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)
+      ),
       detailSourceSchema
     );
     if (!record)

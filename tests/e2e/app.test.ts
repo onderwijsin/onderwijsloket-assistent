@@ -1,3 +1,4 @@
+import { sourceVariantId } from "../fixtures/directus";
 import {
   episodeRecord,
   videoRecord,
@@ -61,7 +62,7 @@ describe("application", async () => {
   afterAll(() => algolia.close());
   afterAll(() => directus.close());
   await setup({
-    rootDir: fileURLToPath(new URL("../../", import.meta.url)),
+    rootDir: fileURLToPath(new URL("../..", import.meta.url)),
     dev: false,
     build: true,
     server: true,
@@ -894,17 +895,18 @@ describe("application", async () => {
   });
   it("returns nullable JSON content and a metadata-preserving notice for bodyless resources", async () => {
     directus.state.missingInstitutionDescription = true;
+    const id = sourceVariantId(institutionId, "missing-content");
     try {
-      const result = (await call("get_educational_institution", { id: institutionId })).result;
+      const result = (await call("get_educational_institution", { id })).result;
       expect(result.isError).not.toBe(true);
       expect(result.structuredContent.record.description).toBeNull();
       const resource = (
         await rpc("resources/read", {
-          uri: `onderwijsloket://educational_institutions/${institutionId}`
+          uri: `onderwijsloket://educational_institutions/${id}`
         })
       ).result.contents[0];
       expect(resource.text).toContain("> **Notice:** No body content is available.");
-      expect(resource.text).toContain(`id: ${institutionId}`);
+      expect(resource.text).toContain(`id: ${id}`);
       expect(resource.text).toContain("No content document is available.");
       expect(resource.text.split("\n---\n")[1]).not.toContain("# ");
     } finally {
@@ -976,27 +978,36 @@ describe("application", async () => {
     expect(invalid.result?.isError || invalid.error).toBeTruthy();
   });
   it("preserves nullable desk bodies and unavailable coverage, and sanitizes source failures", async () => {
-    const uri = `onderwijsloket://regional_education_desks/${deskId}`;
+    let uri = `onderwijsloket://regional_education_desks/${sourceVariantId(deskId, "missing-content")}`;
     try {
       directus.state.deskResponse = "missing-content";
       expect(
-        (await call("get_regional_education_desk", { id: deskId })).result.structuredContent.record
-          .description
+        (
+          await call("get_regional_education_desk", {
+            id: sourceVariantId(deskId, directus.state.deskResponse)
+          })
+        ).result.structuredContent.record.description
       ).toBeNull();
       expect(
         (await rpc("resources/read", { uri })).result.contents[0].text.match(/\*\*Notice:\*\*/g)
       ).toHaveLength(2);
       directus.state.deskResponse = "missing-area";
-      const record = (await call("get_regional_education_desk", { id: deskId })).result
-        .structuredContent.record;
+      const record = (
+        await call("get_regional_education_desk", {
+          id: sourceVariantId(deskId, directus.state.deskResponse)
+        })
+      ).result.structuredContent.record;
       expect(record.area).toBeNull();
       expect(record.location).toBeNull();
       expect(record.content_warnings.join()).toContain("coverage cannot be determined");
       for (const mode of ["invalid", "unavailable"]) {
         directus.state.deskResponse = mode;
-        const result = await call("get_regional_education_desk", { id: deskId });
+        const result = await call("get_regional_education_desk", {
+          id: sourceVariantId(deskId, directus.state.deskResponse)
+        });
         expect(result.result.isError).toBe(true);
         expect(JSON.stringify(result)).not.toContain("fixture upstream secret");
+        uri = `onderwijsloket://regional_education_desks/${sourceVariantId(deskId, mode)}`;
         const resource = await rpc("resources/read", { uri });
         expect(resource.error.code).toBe(-32603);
       }
@@ -1103,15 +1114,19 @@ describe("application", async () => {
         ["podcast_shows", "podcast_show", showId],
         ["podcast_episodes", "podcast_episode", episodeId],
         ["videos", "video", videoId]
-      ]) {
-        const result = (await call(`get_${singular}`, { id })).result;
+      ] as const) {
+        const result = (
+          await call(`get_${singular}`, { id: sourceVariantId(id, directus.state.mediaResponse) })
+        ).result;
         expect(
           result.structuredContent.record[
             collection === "podcast_shows" ? "description" : "content"
           ]
         ).toBeNull();
         const resource = (
-          await rpc("resources/read", { uri: `onderwijsloket://${collection}/${id}` })
+          await rpc("resources/read", {
+            uri: `onderwijsloket://${collection}/${sourceVariantId(id, directus.state.mediaResponse)}`
+          })
         ).result.contents[0];
         expect(resource.text).toContain("No body content is available.");
         if (collection !== "podcast_shows")
@@ -1123,13 +1138,18 @@ describe("application", async () => {
           ["podcast_shows", "podcast_show", showId],
           ["podcast_episodes", "podcast_episode", episodeId],
           ["videos", "video", videoId]
-        ]) {
-          const result = await call(`get_${singular}`, { id });
+        ] as const) {
+          const result = await call(`get_${singular}`, {
+            id: sourceVariantId(id, directus.state.mediaResponse)
+          });
           expect(result.result.isError).toBe(true);
           expect(JSON.stringify(result)).not.toContain("fixture media secret");
           expect(
-            (await rpc("resources/read", { uri: `onderwijsloket://${collection}/${id}` })).error
-              .code
+            (
+              await rpc("resources/read", {
+                uri: `onderwijsloket://${collection}/${sourceVariantId(id, directus.state.mediaResponse)}`
+              })
+            ).error.code
           ).toBe(-32603);
         }
       }
@@ -1161,4 +1181,25 @@ describe("application", async () => {
     expect(record.topics[0]).not.toHaveProperty("slug");
     expect(record.slug).toBe("alpha");
   });
+  it.each([
+    ["articles", "article", articleId],
+    ["faqs", "faq", faqId],
+    ["sectors", "sector", sectorId],
+    ["testimonials", "testimonial", testimonialId],
+    ["educational_institutions", "educational_institution", institutionId],
+    ["programs", "program", programId],
+    ["regional_education_desks", "regional_education_desk", deskId],
+    ["podcast_shows", "podcast_show", showId],
+    ["podcast_episodes", "podcast_episode", episodeId],
+    ["videos", "video", videoId]
+  ])(
+    "reuses %s detail cache between tool calls and resource reads",
+    async (collection, singular, id) => {
+      await call(`get_${singular}`, { id });
+      const count = directus.requests.length;
+      await call(`get_${singular}`, { id });
+      await rpc("resources/read", { uri: `onderwijsloket://${collection}/${id}` });
+      expect(directus.requests).toHaveLength(count);
+    }
+  );
 });

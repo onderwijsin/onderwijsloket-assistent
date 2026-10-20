@@ -92,11 +92,11 @@ for these runtime assertions. Build-time module setup still uses the normal envi
 
 Coverage reports are written to ignored `coverage/`. No coverage thresholds are imposed.
 Use synthetic or sanitized fixtures and keep checks against live providers opt-in and bounded.
-See [the articles POC](articles-poc.md) for the implemented MCP contracts.
+See [collection architecture](collection-registry.md) for the implemented MCP surface and layer boundaries.
 
-## Current implementation entry point
+## Architecture entry points
 
-Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Shared collection preparation and the rollout plan are documented in [phase 3 preparation](collection-inventory/phase-3.md). FAQs and sectors are enabled by [FAQ and sector guidance](collection-inventory/faqs-and-sectors.md). Chat, prompts and the remaining live collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
+Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. Geocoding, domain workflows, chat and prompts are separate future work.
 
 ## Server JSDoc
 
@@ -109,7 +109,7 @@ properties, optional query data, delivery behavior and attribution limitations.
 
 See [collection resources](collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
 
-Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](collection-inventory/institutions-and-programs.md).
+Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](collection-data.md).
 
 Regional desk tests use `tests/unit/regional-education-desks.test.ts` and synthetic `tests/fixtures/regional-education-desks.ts`, plus the HTTP suite, for coverage geometry, schedules, null content and strict search filters.
 

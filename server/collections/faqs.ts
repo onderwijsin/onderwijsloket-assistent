@@ -1,14 +1,15 @@
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
 import { describeResource } from "../utils/resources";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { contentNodeSchema } from "../utils/content/types";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Faq, Schema } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection } from "../utils/define-mcp-collection";
-import type { McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection } from "../utils/collections/definition";
+import type { McpListOptions } from "../utils/collections/definition";
 import { nullableOutput } from "../utils/mcp-schema";
 import {
   defineCollectionFilters,
@@ -20,7 +21,7 @@ import {
 import { createTaxonomySourceSchema, taxonomySchema } from "../utils/taxonomy/taxonomy";
 import { renderContentDocument } from "../utils/content/render-content-document";
 import { useSourceUrl } from "../utils/use-source-url";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collection-relations";
+import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { snippetSchema } from "../utils/search/schemas";
 
@@ -144,23 +145,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
 }
 
 /**
- * Read and validate source data without exposing provider failure details.
- * @param query - Exact field projection, relation bounds and domain filters.
- * @param schema - Summary or detail source schema.
- * @returns Validated source rows, or a sanitized upstream failure.
- */
-async function readFaqs<T extends z.ZodType>(query: ReturnType<typeof buildQuery>, schema: T) {
-  try {
-    return z.array(schema).parse(await useDirectusServer(readItems("faqs", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: FAQ data could not be retrieved or validated."
-    });
-  }
-}
-
-/**
  * Flatten bounded taxonomy projections into the public FAQ summary.
  * @param record - Validated FAQ source.
  * @returns Summary metadata with explicit relation completeness warnings.
@@ -219,6 +203,7 @@ const search = defineCollectionSearch({
 /** Question/answer guidance; native question/answer record and resource mappings. */
 export default defineMcpCollection({
   name: "faqs",
+  cache: cacheDurations.collections.faqs,
   id: idSchema,
   description:
     "The faqs collection contains short, factual questions and answers about working in education. FAQs help prospective education professionals and advisers find concise explanations of common questions during orientation and career planning. Each record preserves its native question and answer, with education-sector, audience, career-phase and topic context. Related article references connect a quick answer to more detailed guidance. Use FAQs for focused questions and articles for broader explanations; FAQ records do not have their own verified canonical page.",
@@ -246,7 +231,11 @@ export default defineMcpCollection({
    * @returns A page of normalized FAQ summaries.
    */
   async list(args) {
-    const rows = await readFaqs(buildQuery(args), sourceSchema);
+    const rows = await readCollectionRecords(
+      "faqs",
+      readItems("faqs", buildQuery(args)),
+      sourceSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -257,8 +246,9 @@ export default defineMcpCollection({
    * @returns Readable answer and bounded related article references.
    */
   async get(id) {
-    const [record] = await readFaqs(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "faqs",
+      readItems("faqs", buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)),
       detailSourceSchema
     );
     if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: FAQ not found." });

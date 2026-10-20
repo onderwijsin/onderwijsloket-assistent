@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { nullableOutput } from "./mcp-schema";
-import { navigatorIdSchema, geopointSchema } from "./navigator-content";
+import { nullableOutput } from "../mcp-schema";
+import { navigatorIdSchema, geopointSchema } from "./navigator";
 
 const positionSchema = geopointSchema.shape.coordinates;
 const ringSchema = z

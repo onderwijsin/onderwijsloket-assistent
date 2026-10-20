@@ -3,7 +3,7 @@ import {
   locationFields,
   locationSourceSchema,
   indexedLocationSourceSchema
-} from "../../server/utils/navigator-content";
+} from "../../server/utils/projections/navigator";
 import {
   locationRecord,
   locationId,

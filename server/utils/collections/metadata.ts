@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { nullableOutput } from "./mcp-schema";
+import { nullableOutput } from "../mcp-schema";
 
 /** Shared discovery metadata; record schemas remain collection-specific. */
 export const collectionMetadataSchema = z.object({

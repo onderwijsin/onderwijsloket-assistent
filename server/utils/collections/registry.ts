@@ -4,11 +4,11 @@ import {
   collectionMetadataSchema,
   collectionOperationsSchema,
   collectionResourceSchema
-} from "./collection-metadata";
-import { createFiltersOutputSchema } from "./taxonomy/collection-filters";
-import type { CollectionFiltersResult } from "./taxonomy/collection-filters";
-import { facetsOptionsSchema, facetsResultSchema } from "./search/schemas";
-import type { FacetsResult } from "./search/schemas";
+} from "./metadata";
+import { createFiltersOutputSchema } from "../taxonomy/collection-filters";
+import type { CollectionFiltersResult } from "../taxonomy/collection-filters";
+import { facetsOptionsSchema, facetsResultSchema } from "../search/schemas";
+import type { FacetsResult } from "../search/schemas";
 
 /** Shared discovery view; heterogeneous record operations never pass through this type. */
 interface DiscoveryCollection {

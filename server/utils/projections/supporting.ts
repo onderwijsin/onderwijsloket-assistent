@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { joinURL } from "ufo";
-import { nullableOutput } from "./mcp-schema";
-import { useSourceUrl } from "./use-source-url";
-import { collectionRelationLimit } from "./collection-relations";
+import { nullableOutput } from "../mcp-schema";
+import { useSourceUrl } from "../use-source-url";
+import { collectionRelationLimit } from "../collections/relations";
 
 /** Supporting IDs remain opaque: they identify targets, never junction rows. */
 export const supportingIdSchema = z.string().min(1).max(200);

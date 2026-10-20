@@ -1,11 +1,12 @@
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Schema, Testimonial } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection, type McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection, type McpListOptions } from "../utils/collections/definition";
 import { nullableOutput } from "../utils/mcp-schema";
 import {
   defineCollectionFilters,
@@ -14,7 +15,7 @@ import {
   relationIdFilter
 } from "../utils/taxonomy/collection-filters";
 import { createTaxonomySourceSchema, taxonomySchema } from "../utils/taxonomy/taxonomy";
-import { collectionRelationSchema } from "../utils/collection-relations";
+import { collectionRelationSchema } from "../utils/collections/relations";
 import {
   authorSchema,
   profileSchema,
@@ -24,7 +25,7 @@ import {
   profileFields,
   supportingRelationBounds,
   supportingIdSchema
-} from "../utils/supporting-content";
+} from "../utils/projections/supporting";
 import { renderContentDocument } from "../utils/content/render-content-document";
 import { editorNodeFields } from "../utils/content/editor-node-fields";
 import { useSourceUrl } from "../utils/use-source-url";
@@ -142,25 +143,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
   } satisfies Query<Schema, Testimonial>;
 }
 /**
- * Read and validate testimonials while sanitizing source transport and schema failures.
- * @param query - Typed summary/detail query.
- * @param schema - Matching source projection validator.
- * @returns Validated rows with transformed bounded relations.
- */
-async function readTestimonials<T extends z.ZodType>(
-  query: ReturnType<typeof buildQuery>,
-  schema: T
-) {
-  try {
-    return z.array(schema).parse(await useDirectusServer(readItems("testimonials", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: Testimonial data could not be retrieved or validated."
-    });
-  }
-}
-/**
  * Flatten taxonomy, editorial authors and featured participants into separate public arrays.
  * @param record - Validated testimonial source.
  * @returns Summary with explicit relation completeness and source timestamps.
@@ -189,6 +171,7 @@ const searchFilters = z.strictObject({
 /** Personal experiences complement factual guidance; they do not establish general eligibility. */
 export default defineMcpCollection({
   name: "testimonials",
+  cache: cacheDurations.collections.testimonials,
   id: idSchema,
   operations: { list: "list_testimonials", get: "get_testimonial", search: "search_testimonials" },
   resources: [{ uri_template: "onderwijsloket://testimonials/{id}", mime_type: "text/markdown" }],
@@ -246,7 +229,11 @@ export default defineMcpCollection({
    * @returns Summaries and continuation flag.
    */
   async list(args) {
-    const rows = await readTestimonials(buildQuery(args), sourceSchema);
+    const rows = await readCollectionRecords(
+      "testimonials",
+      readItems("testimonials", buildQuery(args)),
+      sourceSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -258,8 +245,9 @@ export default defineMcpCollection({
    * @returns Story Markdown, attribution and independent content/relation completeness metadata.
    */
   async get(id) {
-    const [record] = await readTestimonials(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "testimonials",
+      readItems("testimonials", buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)),
       detailSourceSchema
     );
     if (!record)

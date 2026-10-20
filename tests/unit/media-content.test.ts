@@ -1,12 +1,12 @@
-import { it, expect, vi } from "vitest";
+import { mediaResourceContent } from "../../server/utils/content/media-resource";
+import { it, expect } from "vitest";
 import {
   normalizeMedia,
   normalizePlatforms,
   hostSourceSchema,
   normalizeSeasons,
-  seasonSourceSchema,
-  mediaResourceContent
-} from "../../server/utils/media-content";
+  seasonSourceSchema
+} from "../../server/utils/projections/media";
 import { hostRecord, mediaId, seasonRecord, showId } from "../fixtures/podcasts-and-videos";
 it("normalizes verified source and legacy media identities to the video delivery type", () => {
   for (const key of ["source", "id"])
@@ -77,6 +77,3 @@ it("sanitizes platform URLs and renders separate missing body/transcript notices
     })
   ).toBe("Body\n\n## Transcript\n\nSpeaker: Exact");
 });
-
-vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectusServer: vi.fn() }));
-vi.mock("nitropack/runtime", () => ({ defineCachedFunction: (fn: unknown) => fn }));

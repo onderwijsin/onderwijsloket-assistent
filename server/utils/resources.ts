@@ -1,3 +1,4 @@
+import { resourceContent } from "./content/resource-content";
 import { readItems } from "@directus/sdk";
 import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import type { Schema } from "#directus";
@@ -160,17 +161,6 @@ export function listResources(collection: {
       getKey: () => collection.name
     }
   );
-}
-
-/**
- * Make absent content explicit in every Markdown resource without inventing a source body.
- * @param markdown - Rendered source content, or null when unavailable.
- * @returns Existing Markdown or a visible notice referring readers to the resource metadata.
- */
-export function resourceContent(markdown: string | null | undefined): string {
-  return markdown?.trim()
-    ? markdown
-    : "> **Notice:** No body content is available. Any available record information is provided in the metadata.";
 }
 
 /**

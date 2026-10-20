@@ -1,10 +1,12 @@
+import { mediaResourceContent } from "../utils/content/media-resource";
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems, type Query } from "@directus/sdk";
 import type { Schema, PodcastEpisode } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection, type McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection, type McpListOptions } from "../utils/collections/definition";
 import {
   defineCollectionFilters,
   exactTextFilter,
@@ -14,7 +16,7 @@ import {
   taxonomyFilters
 } from "../utils/taxonomy/collection-filters";
 import { taxonomySchema, createTaxonomySourceSchema } from "../utils/taxonomy/taxonomy";
-import { collectionRelationSchema } from "../utils/collection-relations";
+import { collectionRelationSchema } from "../utils/collections/relations";
 import {
   assetSchema,
   profileSchema,
@@ -22,7 +24,7 @@ import {
   profileFields,
   supportingIdSchema,
   supportingRelationBounds
-} from "../utils/supporting-content";
+} from "../utils/projections/supporting";
 import {
   hostSchema,
   hostSourceSchema,
@@ -38,9 +40,8 @@ import {
   normalizePlatforms,
   normalizeMedia,
   speakerMapSchema,
-  speakerMapSourceSchema,
-  mediaResourceContent
-} from "../utils/media-content";
+  speakerMapSourceSchema
+} from "../utils/projections/media";
 import { nullableOutput } from "../utils/mcp-schema";
 import { renderContentDocument } from "../utils/content/render-content-document";
 import { useSourceUrl } from "../utils/use-source-url";
@@ -216,22 +217,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
   } satisfies Query<Schema, PodcastEpisode>;
 }
 /**
- * Validate selected source records and sanitize provider failures.
- * @param query - Native list or detail projection.
- * @param schema - Matching boundary validator.
- * @returns Typed records without exposing raw source errors.
- */
-async function readRecords<T extends z.ZodType>(query: ReturnType<typeof buildQuery>, schema: T) {
-  try {
-    return z.array(schema).parse(await useDirectusServer(readItems("podcast_episodes", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: podcast_episodes data could not be retrieved or validated."
-    });
-  }
-}
-/**
  * Flatten attribution and taxonomy relationships while preserving source completeness.
  * @param record - Validated source summary.
  * @returns Public summary with independent document/relation reporting.
@@ -264,6 +249,7 @@ function summarize(record: z.output<typeof sourceSchema>) {
 /** Native collection definition; supporting people and seasons remain embedded. */
 const collection = defineMcpCollection({
   name: "podcast_episodes",
+  cache: cacheDurations.collections.podcast_episodes,
   id: idSchema,
   description:
     "The podcast_episodes collection contains individual conversations in podcast series about working in education. It helps listeners and advisers discover episodes by show, season, participants and education taxonomies, then read the accompanying body and any available transcript. Each episode retains separate show and season identity, episode number, source duration, publication metadata, presenters, featured guest profiles, audio reference and platform links. Speaker mappings and transcripts preserve source attribution without inventing speakers or missing text. Hosts and guests remain distinct roles; mismatched season ownership is reported explicitly. Record discovery and media metadata do not guarantee playback availability; cite the canonical source for context and current access.",
@@ -356,7 +342,11 @@ const collection = defineMcpCollection({
    * @returns Bounded summaries and continuation flag.
    */
   async list(args) {
-    const rows = await readRecords(buildQuery(args), sourceSchema);
+    const rows = await readCollectionRecords(
+      "podcast_episodes",
+      readItems("podcast_episodes", buildQuery(args)),
+      sourceSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -367,8 +357,9 @@ const collection = defineMcpCollection({
    * @returns Nullable readable content and native media detail.
    */
   async get(id) {
-    const [record] = await readRecords(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "podcast_episodes",
+      readItems("podcast_episodes", buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)),
       detailSourceSchema
     );
     if (!record)

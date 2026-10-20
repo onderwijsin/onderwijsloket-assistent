@@ -1,10 +1,11 @@
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems, type Query } from "@directus/sdk";
 import type { Schema, RegionalEducationDesk } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection, type McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection, type McpListOptions } from "../utils/collections/definition";
 import {
   defineCollectionFilters,
   exactTextFilter,
@@ -12,7 +13,7 @@ import {
   taxonomyFilter
 } from "../utils/taxonomy/collection-filters";
 import { taxonomySchema, createTaxonomySourceSchema } from "../utils/taxonomy/taxonomy";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collection-relations";
+import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
 import { nullableOutput } from "../utils/mcp-schema";
 import {
   navigatorIdSchema,
@@ -23,13 +24,13 @@ import {
   availabilitySchema,
   availabilitySourceSchema,
   availabilityFields
-} from "../utils/navigator-content";
-import { areaSchema, areaSourceSchema, areaFields } from "../utils/service-areas";
-import { assetSchema, imageAssetSourceSchema } from "../utils/supporting-content";
+} from "../utils/projections/navigator";
+import { areaSchema, areaSourceSchema, areaFields } from "../utils/projections/service-areas";
+import { assetSchema, imageAssetSourceSchema } from "../utils/projections/supporting";
 import { useSourceUrl } from "../utils/use-source-url";
 import { renderContentDocument } from "../utils/content/render-content-document";
 import { escapeMarkdownText } from "../utils/content/markdown-formatting";
-import { resourceContent } from "../utils/resources";
+import { resourceContent } from "../utils/content/resource-content";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { snippetSchema } from "../utils/search/schemas";
 
@@ -197,25 +198,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
   } satisfies Query<Schema, RegionalEducationDesk>;
 }
 /**
- * Validate source records while keeping provider details out of public errors.
- * @param query - Summary or detail projection.
- * @param schema - Matching boundary schema.
- * @returns Validated records, without inventing missing required relations.
- */
-async function readDesks<T extends z.ZodType>(query: ReturnType<typeof buildQuery>, schema: T) {
-  try {
-    return z
-      .array(schema)
-      .parse(await useDirectusServer(readItems("regional_education_desks", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message:
-        "UPSTREAM_UNAVAILABLE: Regional education desk data could not be retrieved or validated."
-    });
-  }
-}
-/**
  * Flatten desk sectors and preserve unavailable service coverage explicitly.
  * @param record - Validated source projection.
  * @returns Desk summary with independent relation warnings.
@@ -249,6 +231,7 @@ function summarize(record: z.output<typeof sourceSchema>) {
 /** Regional guidance services are distinct from training providers and physical teaching locations. */
 const desks = defineMcpCollection({
   name: "regional_education_desks",
+  cache: cacheDurations.collections.regional_education_desks,
   id: idSchema,
   description:
     "The regional_education_desks collection describes regional organizations that guide people interested in working in education. It helps prospective entrants and advisers find local support, consultation services, orientation activities and public contact options. Each desk includes its service area, regional and municipality labels, relevant education sectors and, where available, a physical meeting location. Detail records keep the desk description and consultation-service description separate, with scheduling links, service links, phone availability and email response expectations. Coverage describes a service region rather than a teaching location; sampled interior points are search approximations and do not establish exact eligibility. Use educational_institutions and programs for training providers and study pathways. Inspect warnings when coverage or an advertised location is unavailable, and contact the desk to confirm services or appointments.",
@@ -344,7 +327,11 @@ const desks = defineMcpCollection({
    * @returns Summary page and continuation flag.
    */
   async list(args) {
-    const rows = await readDesks(buildQuery(args), sourceSchema);
+    const rows = await readCollectionRecords(
+      "regional_education_desks",
+      readItems("regional_education_desks", buildQuery(args)),
+      sourceSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -356,8 +343,12 @@ const desks = defineMcpCollection({
    * @returns Full source detail with separate phone and location schedules.
    */
   async get(id) {
-    const [record] = await readDesks(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "regional_education_desks",
+      readItems(
+        "regional_education_desks",
+        buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)
+      ),
       detailSourceSchema
     );
     if (!record)

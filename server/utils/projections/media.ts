@@ -1,16 +1,9 @@
 import { z } from "zod";
-import {
-  asset,
-  assetSchema,
-  imageAssetSourceSchema,
-  supportingIdSchema
-} from "./supporting-content";
-import { nullableOutput } from "./mcp-schema";
-import { navigatorUrl } from "./navigator-content";
-import { useSourceUrl } from "./use-source-url";
-import { collectionRelationLimit } from "./collection-relations";
-import { resourceContent } from "./resources";
-import { escapeMarkdownText } from "./content/markdown-formatting";
+import { asset, assetSchema, imageAssetSourceSchema, supportingIdSchema } from "./supporting";
+import { nullableOutput } from "../mcp-schema";
+import { navigatorUrl } from "./navigator";
+import { useSourceUrl } from "../use-source-url";
+import { collectionRelationLimit } from "../collections/relations";
 
 /** Podcast release state is domain metadata, independent of Directus visibility. */
 export const podcastStatusSchema = z.enum(["ongoing", "ended", "planned"]);
@@ -168,26 +161,4 @@ export function normalizePlatforms(rows: z.output<typeof platformLinksSourceSche
         : [])
     ]
   };
-}
-/**
- * Render body and transcript as distinct sections, preserving metadata-only resources with notices.
- * @param record - Native readable media fields, without binary data.
- * @returns Resource Markdown; source transcript strings remain unchanged in JSON.
- */
-export function mediaResourceContent(record: {
-  title: string;
-  content: string | null;
-  transcript_string: string | null;
-  transcript_string_with_speakers: string | null;
-}) {
-  const transcript = record.transcript_string_with_speakers?.trim()
-    ? record.transcript_string_with_speakers
-    : record.transcript_string;
-  return [
-    record.content ?? `# ${escapeMarkdownText(record.title)}\n\n${resourceContent(null)}`,
-    "## Transcript",
-    transcript?.trim()
-      ? escapeMarkdownText(transcript)
-      : "> **Notice:** No transcript is available."
-  ].join("\n\n");
 }

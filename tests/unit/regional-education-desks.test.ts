@@ -1,7 +1,7 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
 import { z } from "zod";
 import desks, { deskResourceContent } from "../../server/collections/regional-education-desks";
-import { areaSourceSchema } from "../../server/utils/service-areas";
+import { areaSourceSchema } from "../../server/utils/projections/service-areas";
 import { deskRecord, deskId, areaRecord } from "../fixtures/regional-education-desks";
 import { sectorId } from "../fixtures/faqs-and-sectors";
 import { serveResource, listResources } from "../../server/utils/resources";

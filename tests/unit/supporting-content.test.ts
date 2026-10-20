@@ -3,7 +3,7 @@ import {
   authorSourceSchema,
   profileSourceSchema,
   documentSourceSchema
-} from "../../server/utils/supporting-content";
+} from "../../server/utils/projections/supporting";
 import { author, profile, document } from "../fixtures/article-evidence-and-testimonials";
 describe("distinct supporting-person and asset contracts", () => {
   it("keeps author and profile identities separate and does not expose biographies or staff relations", () => {

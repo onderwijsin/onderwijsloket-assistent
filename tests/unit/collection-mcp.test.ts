@@ -4,7 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { z } from "zod";
 import { createFaqCollection } from "../fixtures/faq-collection";
-import { createCollectionRegistry } from "../../server/utils/collection-registry";
+import { createCollectionRegistry } from "../../server/utils/collections/registry";
 import { toolResult } from "../../server/utils/tool-result";
 import articles from "../../server/collections/articles";
 

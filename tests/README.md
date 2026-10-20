@@ -22,7 +22,7 @@ Document tests exercise supported editor relations, nested callouts, repeated re
 
 Resource tests verify URI construction, descriptors, collection metadata selection, reusable list/read callbacks and YAML front matter. Search tests verify client reuse, dynamic facets, literal filter values and nested matched snippets.
 
-Cache tests use Nitro’s actual function cache with isolated storage and controlled time. They verify key isolation, expiry, shared article/tool/resource reads and retries after failures, including incomplete catalogues.
+Cache tests use Nitro’s actual function cache with isolated storage and controlled time for all ten production definitions. They verify key isolation, expiry, shared collection/tool/resource reads and retries after failures, including incomplete catalogues.
 
 ## HTTP integration coverage
 
@@ -51,10 +51,12 @@ Coverage reports are written to ignored `coverage/`. Use them to investigate gap
 
 `fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. This synthetic fixture is separate from the real FAQ collection. FAQ and sector source contracts use synthetic source-returned FAQ/sector fixtures and their own unit/HTTP checks; live evidence is recorded in the collection inventory.
 
-Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](../docs/collection-inventory/institutions-and-programs.md).
+Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](../docs/collection-data.md).
 
-Collection behavior lives in `articles.test.ts`, `faqs.test.ts`, `sectors.test.ts`, `testimonials.test.ts`, `educational-institutions.test.ts` and `programs.test.ts`. Shared projection validators remain in `supporting-content.test.ts` and `locations.test.ts`. Catalogue tests cover more than 1,500 records, lower upstream page caps, serialized reads and failed/incomplete responses.
+Collection behavior lives in `articles.test.ts`, `faqs.test.ts`, `sectors.test.ts`, `testimonials.test.ts`, `educational-institutions.test.ts`, `programs.test.ts`, `regional-education-desks.test.ts`, `podcast-shows.test.ts`, `podcast-episodes.test.ts` and `videos.test.ts`. Shared projection validators remain in `supporting-content.test.ts` and `locations.test.ts`. Catalogue tests cover more than 1,500 records, lower upstream page caps, serialized reads and failed/incomplete responses.
 
 Regional desk tests use `tests/unit/regional-education-desks.test.ts` and synthetic `tests/fixtures/regional-education-desks.ts`, plus the HTTP suite, for coverage geometry, schedules, null content and strict search filters.
 
 Media regression tests are collection-based: `podcast-shows.test.ts`, `podcast-episodes.test.ts` and `videos.test.ts`, with shared normalization cases in `media-content.test.ts` and synthetic `podcasts-and-videos.ts` fixtures. HTTP checks cover all nine new record tools and three resources, long transcripts, null text, discovery and sanitized errors.
+
+HTTP source variants use distinct synthetic IDs for missing-content/error scenarios, so legitimate warm detail caches do not hide source behavior changes. Tool/resource cache reuse is verified for every core collection.

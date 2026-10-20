@@ -6,6 +6,17 @@ import { faqRecord, sectorRecord } from "./faqs-and-sectors";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
+/** Distinct source records keep failure/null scenarios independent of previously cached details. */
+export function sourceVariantId(id: string, variant: string): string {
+  const suffix: Record<string, string> = {
+    "missing-content": "a",
+    "missing-area": "b",
+    invalid: "c",
+    unavailable: "d"
+  };
+  return suffix[variant] ? id.slice(0, -1) + suffix[variant] : id;
+}
+
 export const articleId = "00f81660-a2e4-48af-b8d7-98ce338de447";
 export const topicId = "00000000-0000-0000-0000-000000000001";
 export const longBody = "Article body. ".repeat(2000);
@@ -114,7 +125,8 @@ export async function createDirectusFixture() {
               transcript_string: null,
               transcript_string_with_speakers: null
             }
-          : source;
+          : { ...source };
+      row.id = sourceVariantId(source.id, state.mediaResponse);
       const rows =
         state.mediaResponse === "invalid"
           ? [{ id: "invalid" }]
@@ -167,10 +179,11 @@ export async function createDirectusFixture() {
           : state.deskResponse === "missing-area"
             ? { ...deskRecord, area: null, location: null }
             : deskRecord;
+      const variantSource = { ...source, id: sourceVariantId(source.id, state.deskResponse) };
       const rows =
         state.deskResponse === "invalid"
           ? [{ id: "malformed" }]
-          : [source].filter((row) =>
+          : [variantSource].filter((row) =>
               Object.entries(filter).every(([key, value]) => {
                 const operation = value as { _eq?: unknown };
                 return "_eq" in operation
@@ -218,7 +231,12 @@ export async function createDirectusFixture() {
           ? programRecord
           : {
               ...institutionRecord,
-              ...(state.missingInstitutionDescription ? { description: null } : {})
+              ...(state.missingInstitutionDescription
+                ? {
+                    description: null,
+                    id: sourceVariantId(institutionRecord.id, "missing-content")
+                  }
+                : {})
             };
       const matches = Object.entries(filter).every(([key, value]) => {
         const condition = value as { _eq?: unknown };

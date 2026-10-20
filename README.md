@@ -51,7 +51,7 @@ To find articles about entering education through an alternative route, call `se
 
 Pass a returned ID to `get_article` for the complete article. For filtered search, discover values with `get_facets`. For `list_articles`, use `get_filters`; its taxonomy IDs are a separate filter contract. Pagination starts at page 1, with a maximum of 25 records per page.
 
-FAQs and sectors have independent `list_faqs`/`get_faq`/`search_faqs` and `list_sectors`/`get_sector`/`search_sectors` tools. Shared discovery covers all ten collections; all ten expose resources/templates. Sector facets remain unavailable. See [FAQ and sector guidance contracts](docs/collection-inventory/faqs-and-sectors.md).
+FAQs and sectors have independent `list_faqs`/`get_faq`/`search_faqs` and `list_sectors`/`get_sector`/`search_sectors` tools. Shared discovery covers all ten collections; all ten expose resources/templates. Sector facets remain unavailable. See [FAQ and sector guidance contracts](docs/collection-data.md).
 
 ### Collection resources
 
@@ -94,13 +94,13 @@ pnpm start
 
 ## Documentation
 
-- [Article API](docs/articles-poc.md) — fields, filtering, pagination and response contracts.
-- [Search](docs/search.md) — queries, snippets and facet semantics.
-- [Article resources](docs/article-resources.md) — discovery, resource reads and document metadata.
+- [Collection registry](docs/collection-registry.md) — architecture, boundaries and rationale.
+- [Search](docs/search.md) — source filters, index projections, snippets and facets.
+- [Collection data](docs/collection-data.md) — domain relationships and public projections.
+- [Resources](docs/collection-resources.md) — catalogue discovery, readable documents and missing content.
+- [Caching](docs/cache.md) — per-collection detail settings and shared discovery caches.
 - [Content documents](docs/content-documents.md) — hydration and Markdown rendering.
-- [Caching](docs/cache.md) — centralized cache configuration.
-- [Development](docs/development.md) — local setup and verification commands.
-- [Tests](tests/README.md) — unit and HTTP integration coverage.
+- [Development](docs/development.md) and [tests](tests/README.md) — setup and verification.
 
 ## Repository layout
 
@@ -113,12 +113,4 @@ pnpm start
 | `config/cache.ts`       | Server cache durations in seconds.                       |
 | `tests/`                | Unit tests, HTTP integration tests and service fixtures. |
 
-See [collection resources](docs/collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
-
-Article evidence and testimonial support adds article source/document/author references and testimonial stories with featured profiles, search and Markdown resources. See [article evidence and testimonials contracts](docs/collection-inventory/article-evidence-and-testimonials.md).
-
-Institutions and programs enable institution and program list/get/search tools, source filters, verified facets and resources. Programs retain providers, locations and ordered form descriptions; institutions expose contacts and locations. See [institutions and programs](docs/collection-inventory/institutions-and-programs.md) for supported filters and source schema differences.
-
-Regional desks expose `list_regional_education_desks`, `get_regional_education_desk` and `search_regional_education_desks`, with coverage, consultation services and contacts. See [desk contracts and verification](docs/collection-inventory/regional-education-desks.md).
-
-Podcast shows, episodes and videos each provide collection-specific list/get/search tools and Markdown resources. Details retain native attribution, safe media links and any available transcripts. See [media contracts](docs/collection-inventory/podcasts-and-videos.md).
+The shared infrastructure is grouped under `server/utils/collections/`, domain projections under `server/utils/projections/`, and pure rendering under `server/utils/content/`. Geocoding and exact geographic matching remain future features.

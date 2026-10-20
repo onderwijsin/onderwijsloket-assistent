@@ -11,6 +11,6 @@ version 6 when updating dependencies.
 
 ## MCP resources
 
-`@modelcontextprotocol/sdk` is a direct dependency pinned to 1.32.1, matching the version already used by MCP Toolkit. It supplies the public resource-template, protocol-schema and error APIs. See [article resources](article-resources.md).
+`@modelcontextprotocol/sdk` is a direct dependency pinned to 1.32.1, matching the version already used by MCP Toolkit. It supplies the public resource-template, protocol-schema and error APIs. See [article resources](collection-resources.md).
 
 `yaml` 2.9.1 is a direct dependency for front matter serialization, reusing the version already installed in the dependency tree.

@@ -1,15 +1,16 @@
+import { cacheCollectionDetail } from "./cache-detail";
 import {
   collectionMetadataSchema,
   collectionOperationsSchema,
   collectionResourceSchema
-} from "./collection-metadata";
+} from "./metadata";
 import {
   searchOptionsSchema,
   searchResultSchema,
   facetsOptionsSchema,
   facetsResultSchema
-} from "./search/schemas";
-import type { FacetsOptions, FacetsResult } from "./search/schemas";
+} from "../search/schemas";
+import type { FacetsOptions, FacetsResult } from "../search/schemas";
 import { createError } from "h3";
 import type { Schema } from "#directus";
 import { z } from "zod";
@@ -47,6 +48,8 @@ export function defineMcpCollection<
   name: Name;
   description: string;
   id: Id;
+  /** Detail caching is opt-in for definitions; production collections use config/cache.ts. */
+  cache?: { detail: number | false };
   operations: { list: string; get: string; search?: string };
   resources?: z.output<typeof collectionResourceSchema>[];
   searchOptions?: SearchInput;
@@ -103,6 +106,12 @@ export function defineMcpCollection<
   if (collection.search && !collection.operations.search) {
     throw new Error("Search-capable collections require a concrete search tool name.");
   }
+  const getRecord = cacheCollectionDetail(
+    collection.name,
+    collection.detail,
+    (id) => collection.get(id),
+    collection.cache?.detail
+  );
   const collectionInput = {
     collection: z.literal(collection.name).describe("Collection name returned by list_collections.")
   };
@@ -259,7 +268,7 @@ export function defineMcpCollection<
     async get(id: string) {
       const recordId = collection.id.parse(id);
       return getOutput.parse({
-        record: await collection.get(recordId),
+        record: await getRecord(recordId),
         retrieved_at: new Date().toISOString()
       });
     },

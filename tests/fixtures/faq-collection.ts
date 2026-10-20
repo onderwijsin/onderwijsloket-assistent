@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import { z } from "zod";
-import { defineMcpCollection } from "../../server/utils/define-mcp-collection";
+import { defineMcpCollection } from "../../server/utils/collections/definition";
 import {
   defineCollectionFilters,
   exactTextFilter,

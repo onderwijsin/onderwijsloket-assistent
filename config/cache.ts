@@ -1,7 +1,18 @@
 /** MCP cache lifetimes in seconds. Expired entries are refreshed before returning. */
 export const cacheDurations = {
-  /** Article metadata and rendered Markdown, shared by tools and resource reads. */
-  article: 5 * 60,
+  /** Per-collection detail TTLs; tools/resources share records. Set detail to false to disable. */
+  collections: {
+    articles: { detail: 5 * 60 },
+    faqs: { detail: 5 * 60 },
+    sectors: { detail: 5 * 60 },
+    testimonials: { detail: 5 * 60 },
+    educational_institutions: { detail: 5 * 60 },
+    programs: { detail: 5 * 60 },
+    regional_education_desks: { detail: 5 * 60 },
+    podcast_shows: { detail: 5 * 60 },
+    podcast_episodes: { detail: 5 * 60 },
+    videos: { detail: 5 * 60 }
+  },
   /** Search facet values and counts for each collection and request. */
   facets: 5 * 60,
   /** Root-only resource descriptors for each collection; concurrent cold reads are coalesced. */

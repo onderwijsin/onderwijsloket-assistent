@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createCollectionRegistry } from "../../server/utils/collection-registry";
+import { createCollectionRegistry } from "../../server/utils/collections/registry";
 import { toolResult } from "../../server/utils/tool-result";
 import { createFaqCollection } from "../fixtures/faq-collection";
 import articles from "../../server/collections/articles";

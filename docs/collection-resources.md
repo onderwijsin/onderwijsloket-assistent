@@ -1,57 +1,44 @@
 # Collection resources
 
-Every core collection must ship a resource URI template, catalogue entries and readable resource documents alongside its record tools. Each template uses `onderwijsloket://{collection}/{id}` and MIME type `text/markdown`. Supporting collections remain embedded in parent documents; this requirement does not create standalone supporting tools or resources.
+Every core collection has a Markdown resource at `onderwijsloket://{collection}/{id}` and a URI template for discovery. Tools provide structured data for decisions and filtering; resources provide readable documents with attribution and completeness metadata. Supporting people, files and other embedded projections do not acquire standalone resources.
 
-| Collection               | Representation                                                                   | State       |
-| ------------------------ | -------------------------------------------------------------------------------- | ----------- |
-| articles                 | Existing article Markdown and attribution metadata                               | Implemented |
-| faqs                     | Rendered answer; native question as descriptor title                             | Implemented |
-| sectors                  | Named guidance sections under Markdown headings                                  | Implemented |
-| testimonials             | Story Markdown with author/profile attribution                                   | Implemented |
-| educational_institutions | Institution description, contacts and locations                                  | Implemented |
-| programs                 | Program overview and separately named form descriptions, providers and locations | Implemented |
-| regional_education_desks | Desk description, consultation services, coverage and contacts                   | Implemented |
-| podcast_shows            | Series description, hosts and platform links                                     | Implemented |
-| podcast_episodes         | Episode metadata and available transcript; explicit null when absent             | Implemented |
-| videos                   | Video metadata, body, available transcript and chapter/speaker metadata          | Implemented |
+| Collection               | Body representation                                                       |
+| ------------------------ | ------------------------------------------------------------------------- |
+| articles                 | Rendered body with supporting evidence/attribution metadata               |
+| faqs                     | Rendered answer; question supplies the descriptor title                   |
+| sectors                  | Named guidance sections, with actions and featured references in metadata |
+| testimonials             | Personal story with distinct authors and featured people                  |
+| educational_institutions | Description with contacts and main/additional locations                   |
+| programs                 | Overview and separately named form descriptions                           |
+| regional_education_desks | Separate desk/consultation descriptions with coverage and contacts        |
+| podcast_shows            | Series description with hosts, seasons and platform links                 |
+| podcast_episodes         | Body and available transcript with audio/speaker metadata                 |
+| videos                   | Body and available transcript with video/speaker/chapter metadata         |
 
-The representation for each future collection must be verified against its native detail schema. A missing transcript does not prevent an episode resource: return its metadata and available content without inventing transcript text. Media links are metadata; audio binaries are not Markdown.
+## Discovery without full records
 
-## Discovery and reads
+`resources/templates/list` describes templates. `resources/list` asks each template for a complete descriptor catalogue, and the SDK combines those catalogues. The source query selects only `id`, native `title` or FAQ `question`, and `date_updated`. It never calls the public list/get methods, expands nested relationships or loads bodies/transcripts.
 
-- `resources/templates/list` advertises one template per enabled core collection. `resources/list` lists all accessible record descriptors through each template's native list callback.
-- List, get and search tools return `resource_link` blocks; structured records and their JSON fallback retain their existing shapes. `list_collections` and `describe_collection` advertise the actual registered templates.
-- Resource descriptors use native fields. FAQ questions supply titles without fabricating a description or website URL. Sector resources retain their canonical `source_url`.
-- Reads validate IDs with the collection's get-input schema and call its existing getter. Body mappings and front matter selectors are explicit; records need no artificial `content` field.
-- Front matter retains identity, attribution, related references, source timestamps and completeness metadata. FAQs retain `truncated`, `content_warnings` and `relations_truncated`; sectors retain relation warnings, actions, cards and featured references. Sector body sections are Introduction, Roles, Routes, Salary and Costs; null sections are omitted. Source fields retain their original names in structured tool results.
-- Source visibility follows [data access responsibilities](data-access.md). Resources add no status filters, publication guards or date gates.
+Descriptor pages request 250 records and advance by the actual returned count until an empty page. This tolerates a lower upstream page cap without silently truncating discovery. Repeated IDs fail the refresh rather than caching a non-advancing or incomplete catalogue. Reads are sequential, with a shared per-runtime queue across concurrent catalogue builds. Identical cold requests are coalesced by Nitro and complete catalogues are cached. The queue is not a distributed limit across replicas.
 
-`server/utils/resources.ts` handles descriptors, batched catalogue listing, ID validation, YAML packaging and sanitized protocol errors. Collection callbacks supply descriptor/body/metadata mappings. Catalogue lists are cached per collection for five minutes and fetch only root identity, native title/question and update timestamps in pages of 250. No protocol cursor or subscriptions are implemented; use record tools for filtered pagination. FAQ, sector and testimonial reads use their existing getters without adding a separate resource cache. [Article resources](article-resources.md) retain their existing format and getter cache.
+The native callback returns one complete MCP catalogue, without protocol cursors or subscriptions. Use record tools for filtered pagination. Per-record empty descriptions suppress repeating a long template description for every descriptor; rich collection descriptions remain on templates and discovery tools.
 
-## Rollout checks
+## Reading and attribution
 
-A core collection is complete only when template discovery, catalogue listing, valid reads, collection-specific IDs, tool resource links, front matter completeness and sanitized invalid/missing/upstream failures are verified. Preserve article URI, body and metadata behavior. Test missing optional content without inventing empty complete documents. Node and Cloudflare Workers runtime compatibility remains required.
+A resource read validates the collection-specific ID and calls the same getter as its detail tool. The shared detail cache contains validated normalized records, not protocol responses. Collection bindings select the native body and metadata; Markdown/YAML packaging stays outside the cache. See [cache controls](cache.md).
 
-Institution/program resource contracts and exact variant rendering are documented in [institutions and programs](collection-inventory/institutions-and-programs.md).
-
-Catalogue discovery uses dedicated descriptor queries with exactly `id`, the native `title` or FAQ `question`, and `date_updated`. It never calls collection list/get methods or expands relations. Pages request 250 records, advance by the actual number returned, and continue until an empty page so a lower Directus page cap cannot truncate discovery. Repeated IDs fail the whole refresh rather than caching incomplete discovery.
-
-Pages are awaited sequentially. A shared in-process queue also serializes page reads across concurrent catalogue rebuilds; Nitro coalesces identical cold requests and caches complete catalogues for five minutes. This queue is per Node process or Workers isolate, not a distributed limit across replicas. The MCP SDK visits templates sequentially and returns the complete catalogue in one protocol response. Empty per-record descriptions prevent repeating the full template description for every record; rich collection descriptions remain on templates and discovery tools.
-
-Previously catalogue discovery called public list methods with pages of 25, which included nested summary relations for programs and institutions. Those requests were sequential, but unnecessarily heavy. Full content and related data are fetched when a record tool or resource read requests them.
+Front matter retains identity, source URLs/dates, attribution, related references and completeness metadata. Media records retain public asset links rather than binary data. `source_url` is the canonical page to cite, while `onderwijsloket://` identifies an MCP resource rather than a browser destination. Invalid IDs, missing records and source failures become sanitized protocol errors.
 
 ## Missing body content
 
-This is a shared contract for every collection. A missing source document or one that renders to empty/whitespace-only Markdown yields an explicit `null` in its JSON content field (`content`, `answer` or `description`, including program-form descriptions). Record titles, summaries and other metadata must not manufacture a body. Existing nonempty source documents still use the normal Markdown renderer and heading normalization. Structural errors, unsupported content and truncation retain their existing validation and warning behavior.
-
-The shared resource handler renders absent content as:
+Missing documents, or documents rendering to empty/whitespace-only Markdown, yield null JSON content before generated headings are considered. Titles, summaries and snippets cannot substitute for source bodies. The shared pure formatter in `content/resource-content.ts` renders:
 
 ```markdown
 > **Notice:** No body content is available. Any available record information is provided in the metadata.
 ```
 
-YAML front matter remains available and completeness warnings are preserved. Notices belong only to the Markdown representation; they are never stored in JSON content fields. Composite resources use the same formatter for missing component documents; programs without forms also include the notice alongside their generated overview. Sector resources render their native description and named text sections rather than requiring a rich-text body.
+The notice belongs only to the resource representation, never a JSON content field. Composite resources use it for missing component documents. Podcast/video resources keep body and transcript sections distinct and add a separate notice when transcript text is absent. YAML and completeness warnings remain available on metadata-only records.
 
-Desk resources keep desk and consultation descriptions separate, with expanded coverage, contacts and independent schedules in front matter. See [regional education desks](collection-inventory/regional-education-desks.md).
+Document `truncated` and relation `relations_truncated` have separate meanings. Structural errors, unsupported content and unresolved relationships retain explicit warnings; a readable resource is not a guarantee that the source record is complete or media can be played. Publication/visibility policy remains upstream at every depth.
 
-Podcast and video resource contracts, nullable transcript behavior and season/host identity are documented in [podcasts and videos](collection-inventory/podcasts-and-videos.md).
+See [collection data and projections](collection-data.md), [content documents](content-documents.md) and [data access responsibilities](data-access.md). Unit/HTTP tests cover every template, catalogue, native body mapping, resource link, metadata-only document and sanitized error path.

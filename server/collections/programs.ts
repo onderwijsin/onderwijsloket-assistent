@@ -1,11 +1,12 @@
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Schema, Program } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { useRuntimeConfig } from "nitropack/runtime";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection, type McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection, type McpListOptions } from "../utils/collections/definition";
 import {
   defineCollectionFilters,
   exactTextFilter,
@@ -15,8 +16,8 @@ import {
   taxonomyFilters
 } from "../utils/taxonomy/collection-filters";
 import { nullableOutput } from "../utils/mcp-schema";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collection-relations";
-import { supportingRelationBounds } from "../utils/supporting-content";
+import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
+import { supportingRelationBounds } from "../utils/projections/supporting";
 import {
   navigatorIdSchema,
   navigatorVendorSchema,
@@ -34,10 +35,10 @@ import {
   indexedInstitutionSchema,
   indexedInstitutionSourceSchema,
   navigatorUrl
-} from "../utils/navigator-content";
+} from "../utils/projections/navigator";
 import { createTaxonomySourceSchema, taxonomySchema } from "../utils/taxonomy/taxonomy";
 import { useSourceUrl } from "../utils/use-source-url";
-import { resourceContent } from "../utils/resources";
+import { resourceContent } from "../utils/content/resource-content";
 import { renderContentDocument } from "../utils/content/render-content-document";
 import { escapeMarkdownText, renderMarkdownLink } from "../utils/content/markdown-formatting";
 import { defineCollectionSearch } from "../utils/search/collection-search";
@@ -231,22 +232,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
   } satisfies Query<Schema, Program>;
 }
 /**
- * Read and structurally validate source programs with sanitized transport/schema failures.
- * @param query - Summary or detail projection.
- * @param schema - Source schema matching selected fields.
- * @returns Bounded normalized source records.
- */
-async function readPrograms<T extends z.ZodType>(query: ReturnType<typeof buildQuery>, schema: T) {
-  try {
-    return z.array(schema).parse(await useDirectusServer(readItems("programs", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: Program data could not be retrieved or validated."
-    });
-  }
-}
-/**
  * Normalize source metadata, provider identity and four taxonomy dimensions.
  * @param record - Validated source program.
  * @returns Public summary, keeping registry codes as strings and provenance per target.
@@ -271,6 +256,7 @@ const facetValue = z.array(z.string().min(1).max(300)).min(1).max(50).optional()
 /** Programs describe concrete pathways and provider variants, not one synthesized article body. */
 const programs = defineMcpCollection({
   name: "programs",
+  cache: cacheDurations.collections.programs,
   id: idSchema,
   description:
     "The programs collection describes educational programs and pathways that prepare people for qualifications and roles in the Dutch education sector. It helps prospective students, career switchers and advisers compare program classifications, levels, degree labels, funding, registry codes and providers. Records link to the institutions offering a program, its teaching location, relevant qualifications, professional roles, school subjects and education sectors. Individual program forms retain their own pathway, external information link and readable description rather than merging different variants into one account. Vendor metadata identifies the origin of programs and their related providers. Use programs to explore concrete study options and use institution records for provider contacts and additional locations; no exact geographic matching or personalized eligibility determination is implied.",
@@ -366,7 +352,11 @@ const programs = defineMcpCollection({
    * @returns Bounded program summaries and continuation flag.
    */
   async list(args) {
-    const rows = await readPrograms(buildQuery(args), sourceSchema);
+    const rows = await readCollectionRecords(
+      "programs",
+      readItems("programs", buildQuery(args)),
+      sourceSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -378,8 +368,9 @@ const programs = defineMcpCollection({
    * @returns Structured program detail with ordered forms and explicit completeness.
    */
   async get(id) {
-    const [record] = await readPrograms(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "programs",
+      readItems("programs", buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)),
       detailSourceSchema
     );
     if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Program not found." });

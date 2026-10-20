@@ -1,17 +1,18 @@
-import { resourceContent } from "../utils/resources";
+import { cacheDurations } from "../../config/cache";
+import { readCollectionRecords } from "../utils/collections/read-records";
+import { resourceContent } from "../utils/content/resource-content";
 import { escapeMarkdownText } from "../utils/content/markdown-formatting";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Schema, Sector } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { createError } from "h3";
 import { z } from "zod";
-import { defineMcpCollection } from "../utils/define-mcp-collection";
-import type { McpListOptions } from "../utils/define-mcp-collection";
+import { defineMcpCollection } from "../utils/collections/definition";
+import type { McpListOptions } from "../utils/collections/definition";
 import { defineCollectionFilters, exactTextFilter } from "../utils/taxonomy/collection-filters";
 import { nullableOutput } from "../utils/mcp-schema";
 import { useSourceUrl } from "../utils/use-source-url";
-import { collectionRelationSchema, collectionRelationLimit } from "../utils/collection-relations";
+import { collectionRelationSchema, collectionRelationLimit } from "../utils/collections/relations";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { snippetSchema } from "../utils/search/schemas";
 
@@ -173,23 +174,6 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
 }
 
 /**
- * Read source records while keeping permission and validation errors private.
- * @param query - Exact field projection and relation bounds.
- * @param schema - Summary or detail source validator.
- * @returns Validated source rows, or a sanitized provider error.
- */
-async function readSectors<T extends z.ZodType>(query: ReturnType<typeof buildQuery>, schema: T) {
-  try {
-    return z.array(schema).parse(await useDirectusServer(readItems("sectors", query)));
-  } catch {
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: Sector data could not be retrieved or validated."
-    });
-  }
-}
-
-/**
  * Normalize sector metadata and its verified root-level canonical page route.
  * @param record - Validated sector.
  * @returns Public summary retaining its shared taxonomy identity.
@@ -252,6 +236,7 @@ const searchAdapter = defineCollectionSearch({
 /** Sector reference pages coexist with the same sector IDs in taxonomy filters. */
 export default defineMcpCollection({
   name: "sectors",
+  cache: cacheDurations.collections.sectors,
   id: idSchema,
   description:
     "The sectors collection describes the sectors of the Dutch education system, from primary through higher education, and helps people explore what working in each sector involves. Unlike other shared taxonomies, sectors also contain their own guidance: introductions, professional roles, routes into education, salary information and training costs, supported by actions and featured articles, FAQs and media references. These records underpin the website’s “Working in …” pages. Use sector details for an overview of a working environment and its entry routes; the same sector IDs also categorize and filter content across collections.",
@@ -328,7 +313,11 @@ export default defineMcpCollection({
    * @returns A page of sector summaries.
    */
   async list(args) {
-    const rows = await readSectors(buildQuery(args), scalarSchema);
+    const rows = await readCollectionRecords(
+      "sectors",
+      readItems("sectors", buildQuery(args)),
+      scalarSchema
+    );
     return {
       records: rows.slice(0, args.page_size).map(summarize),
       has_more: rows.length > args.page_size
@@ -339,8 +328,9 @@ export default defineMcpCollection({
    * @returns Named text sections and ordered bounded featured references.
    */
   async get(id) {
-    const [record] = await readSectors(
-      buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+    const [record] = await readCollectionRecords(
+      "sectors",
+      readItems("sectors", buildQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)),
       detailSourceSchema
     );
     if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Sector not found." });

@@ -2,9 +2,9 @@ import { z } from "zod";
 import type { Availability, EducationalInstitution, Location, Program } from "#directus";
 import type { QueryFields } from "@directus/sdk";
 import type { Schema } from "#directus";
-import { nullableOutput } from "./mcp-schema";
-import { useSourceUrl } from "./use-source-url";
-import { assetSchema, imageAssetSourceSchema } from "./supporting-content";
+import { nullableOutput } from "../mcp-schema";
+import { useSourceUrl } from "../use-source-url";
+import { assetSchema, imageAssetSourceSchema } from "./supporting";
 
 /** Source provenance is metadata; visibility is configured upstream. */
 export const navigatorVendorSchema = z.enum([
