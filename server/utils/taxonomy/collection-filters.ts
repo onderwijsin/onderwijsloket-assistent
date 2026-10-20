@@ -46,7 +46,7 @@ function createFilterDescriptor(operation: z.ZodType<string>) {
       }),
       minItems: z.literal(1),
       maxItems: z.literal(50),
-      lookup: z.object({ collection: z.string(), tool: z.string() })
+      lookup: z.object({ collection: z.string(), tool: z.string(), path: z.string().optional() })
     })
   ]);
 }
@@ -167,13 +167,19 @@ export function taxonomyFilter(collection: TaxonomyCollection) {
 
 /**
  * Describe bounded related-record ID selection without enumerating every target record.
- * @param collection - Related public collection.
+ * @param collection - Public collection whose list result supplies the target IDs.
  * @param tool - Concrete list tool providing accepted target IDs.
  * @param id - Validator for target identities, independent of taxonomy GUIDs.
+ * @param path - Optional nested target-ID path in each list record (for embedded supporting records).
  * @returns Matching input and relation-lookup discovery metadata.
  */
-export function relationIdFilter(collection: string, tool: string, id: z.ZodType<string>) {
-  const description = `Match any of 1–50 ${collection} IDs returned by ${tool}; use IDs, not labels.`;
+export function relationIdFilter(
+  collection: string,
+  tool: string,
+  id: z.ZodType<string>,
+  path?: string
+) {
+  const description = `Match any of 1–50 IDs from ${path ?? collection} returned by ${tool}; use target IDs, not labels or parent record IDs.`;
   return {
     schema: z.array(id).min(1).max(50).optional().describe(description),
     /**
@@ -196,7 +202,7 @@ export function relationIdFilter(collection: string, tool: string, id: z.ZodType
         },
         minItems: 1,
         maxItems: 50,
-        lookup: { collection, tool }
+        lookup: { collection, tool, ...(path ? { path } : {}) }
       };
     }
   } satisfies FilterDefinition;

@@ -6,12 +6,12 @@ All nine collections are intended public collections by the supplied scope. Arti
 
 - **Purpose / audience:** Factual guidance for prospective education professionals and advisers.
 - **Source / exposure:** Directus `articles` (`Article`); documented Algolia `articles` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Implemented list/get/search/filter discovery/facets and Markdown resources. Proposed addition: supporting references in detail; preserve existing required fields and behavior.
+- **Operations / resources:** Implemented list/get/search/filter discovery/facets and Markdown resources. Implemented supporting source/document/author references in detail; existing fields and behavior retained.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug (exact); english (boolean); sectors, qualifications, audiences, phases, roles, topics, tracks (GUID arrays). Sort allowlist: `title, -title, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, description:string, summary:string, english:boolean|null; sectors, qualifications, roles, topics, tracks:Taxonomy[].
 - **Detail:** summary plus content:Markdown, content_warnings:string[], truncated:boolean (implemented). Proposed additive authors:Author[], documents:Document[], sources:Source[], faqs:FaqRef[].
 - **Relationships / transformations:** articles.authors.authors_id → authors; documents.documents_id → documents; sources.sources_id → sources; faqs.faqs_id → faqs. Taxonomies unwrap <name>_id. Render body with ArticlesEditorNode expansions. Audiences/phases are filters but are not current summary fields.
-- **Distinct behavior / unresolved evidence:** Strict UUID implemented. Resources: onderwijsloket://articles/{id}, text/markdown with YAML front matter. No character cap; traversal limits apply. Optional missing date_updated/english become null. Supporting expansion is proposed, not current behavior.
+- **Distinct behavior / unresolved evidence:** Strict UUID implemented. Resources: onderwijsloket://articles/{id}, text/markdown with YAML front matter. No character cap; traversal limits apply. Optional missing date_updated/english become null. Supporting detail expansion is implemented; see [group 2](group-2.md).
 - **Evidence / status:** local `Article` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
 
 ## sectors
@@ -82,13 +82,13 @@ Implemented in group 1; see [the implementation contract](group-1.md). The propo
 
 - **Purpose / audience:** Personal experience for prospective entrants; not a source of general eligibility rules.
 - **Source / exposure:** Directus `testimonials` (`Testimonial`); documented Algolia `testimonials` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with story and attribution.
+- **Operations / resources:** Implemented list/get/search/filter discovery/facets and Markdown resource/template with story and attribution.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug (exact); sectors, audiences, phases, roles, topics, tracks (GUID arrays); authors, profiles (ID arrays). Sort allowlist: `title, -title, publication_date, -publication_date`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
-- **Summary:** common keys plus title:string, slug:string, description:string, summary:string, publication_date:string|null; sectors, audiences, phases, roles, topics, tracks:Taxonomy[]; profiles:ProfileRef[], authors:Author[].
-- **Detail:** summary plus content:Markdown, content_warnings:string[], truncated:boolean.
+- **Summary:** common keys plus title:string, slug:string, description:string, summary:string, publication_date:string|null; sectors, audiences, phases, roles, topics, tracks:Taxonomy[]; profiles:ProfileRef[], authors:Author[], content_warnings:string[], relations_truncated:string[].
+- **Detail:** summary plus content:Markdown and truncated:boolean; summaries already include content_warnings and relations_truncated.
 - **Relationships / transformations:** body plus TestimonialsEditorNode[]; authors.authors_id; profiles.profiles_id; taxonomy junctions. Keep featured people separate from authors.
 - **Distinct behavior / unresolved evidence:** Represent source availability explicitly; do not replace missing body with an apparently complete empty document. Directus owns publication visibility; no local date/status gates. No english flag exists.
-- **Evidence / status:** local `Testimonial` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
+- **Evidence / status:** local `Testimonial` interface and related junctions; API family/index documentation. Live read-only SDK/index checks and synthetic regressions verified; see [group 2](group-2.md).
 
 ## podcast_episodes
 

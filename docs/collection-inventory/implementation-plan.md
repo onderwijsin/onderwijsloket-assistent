@@ -1,6 +1,6 @@
 # Collection implementation plan
 
-Phase 3 prepared the infrastructure. Group 1 is implemented and enables FAQs and sectors alongside articles; see [group 1 contracts and evidence](group-1.md). This plan groups work by shared data relationships and verified rendering behavior. Each group may be delivered in smaller changes, with only completed collection/tool pairs added to the production allowlist. Tool names and record contracts follow [architecture](architecture.md) and [core contracts](core.md).
+Phase 3 prepared the infrastructure. Groups 1 and 2 are implemented: FAQs, sectors and testimonials are enabled alongside enriched articles. See [group 1](group-1.md) and [group 2 contracts and evidence](group-2.md). This plan groups work by shared data relationships and verified rendering behavior. Each group may be delivered in smaller changes, with only completed collection/tool pairs added to the production allowlist. Tool names and record contracts follow [architecture](architecture.md) and [core contracts](core.md).
 
 ## Prepared in phase 3
 
@@ -40,7 +40,7 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 
 **Release gates:** actual FAQ answer semantics, sector string markup/route, stable sector ordering, relevant index fields and permissions. **Regression focus:** FAQ ID handling and lack of slug/title; sector document ID equals its filter ID; no recursive reverse-content expansion; no unsupported sector facets.
 
-## Group 2 — Article supporting evidence and testimonials
+## Group 2 — Article supporting evidence and testimonials (implemented)
 
 **Collections:** existing `articles` enrichment and new `testimonials`. **Supporting collections:** `sources`, `documents`, `authors`, `profiles`. **Dependencies:** permitted file assets, existing taxonomy and content-document pipeline.
 
@@ -53,7 +53,7 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 3. Add article supporting arrays as a documented additive contract change. Preserve every existing summary/detail field and resource representation. Define per-relation caps and additive completeness reporting before adding arrays; do not reinterpret the current document `truncated` flag.
 4. Implement testimonial list/get/search and its required resource/template with story Markdown, publication metadata, authors/profiles and resolved body nodes. Keep personal experience distinguishable from factual guidance in tool descriptions.
 
-**Release gates:** source date nullability, body/asset shapes, upstream source/file authorization and relation bounds. **Regression focus:** citations resolve beyond Algolia's partial references; authors versus profiles remain distinct; source-returned records remain independent of status/date metadata; no article API regression.
+**Resolved:** source date nullability, body/editor-node shape, minimal person projections, source URLs, PDF/image asset delivery and relation bounds; see [group 2](group-2.md). Unknown non-image document delivery remains explicit null, and profile biographies remain outside minimal attribution. **Regression focus:** citations resolve beyond Algolia's partial references; authors versus profiles remain distinct; source-returned records remain independent of status/date metadata; no article API regression.
 
 ## Group 3 — Institutions and programs
 

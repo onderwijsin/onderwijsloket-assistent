@@ -36,8 +36,12 @@ See [article contracts](../../docs/articles-poc.md), [search](../../docs/search.
 
 The explicit production allowlist lives in `index.ts`. Shared discovery consumes its narrow metadata/filter/facet view; collection-specific record tools retain their own schemas. Definitions require an ID schema and concrete list/get/search operation names. Search schemas and resource representations use independent native mappings. Every production core collection requires a resource/template; synthetic fixtures may omit them.
 
-See [phase 3 preparation](../../docs/collection-inventory/phase-3.md) for the extension steps and [the grouped plan](../../docs/collection-inventory/implementation-plan.md) for the collection rollout order and evidence gates. Articles, FAQs and sectors are enabled. The separate FAQ-shaped infrastructure fixture remains synthetic.
+See [phase 3 preparation](../../docs/collection-inventory/phase-3.md) for the extension steps and [the grouped plan](../../docs/collection-inventory/implementation-plan.md) for the collection rollout order and evidence gates. Articles, FAQs, sectors and testimonials are enabled. The separate FAQ-shaped infrastructure fixture remains synthetic.
 
 ## FAQs and sectors
 
 `faqs.ts` and `sectors.ts` provide independent list/get/search schemas and source reads governed by Directus permissions (see [data access responsibilities](../../docs/data-access.md)). FAQs render native answers and expand related article references; sectors retain named plain-text sections and bounded featured content. Sector identity is shared with taxonomy filters, with resources/templates enabled and facets disabled. See [group 1 contracts](../../docs/collection-inventory/group-1.md).
+
+## Article supporting evidence and testimonials
+
+Article details add bounded sources, documents and authors with independent relation completeness; summaries/search remain unchanged. `testimonials.ts` keeps personal stories, editorial authors and featured profiles distinct, using shared supporting projections from `supporting-content.ts` and the existing document renderer. It provides list/get/search/facets and a Markdown resource/template. See [group 2 contracts](../../docs/collection-inventory/group-2.md).

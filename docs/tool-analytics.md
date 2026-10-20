@@ -29,13 +29,13 @@ Enable the custom properties below in Plausible to inspect their breakdowns.
 
 ## Properties
 
-| Property     | Meaning                                                                                                                                                     |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tool`       | Executed tool name.                                                                                                                                         |
-| `collection` | Static collection from the registered tool metadata, or a request collection validated against its collection schema; otherwise `unknown`.                  |
-| `status`     | `error` when the MCP result has `isError`, otherwise `success`, independently of HTTP status.                                                               |
-| `client`     | SDK initialization client name when available; otherwise `unknown`. Client names are self-reported, not authenticated identities.                           |
-| `data`       | Optional tool-specific context. Currently only the query of `search_articles`, `search_faqs`, `search_sectors` and `get_facets`, limited to 500 characters. |
+| Property     | Meaning                                                                                                                                                                            |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tool`       | Executed tool name.                                                                                                                                                                |
+| `collection` | Static collection from the registered tool metadata, or a request collection validated against its collection schema; otherwise `unknown`.                                         |
+| `status`     | `error` when the MCP result has `isError`, otherwise `success`, independently of HTTP status.                                                                                      |
+| `client`     | SDK initialization client name when available; otherwise `unknown`. Client names are self-reported, not authenticated identities.                                                  |
+| `data`       | Optional tool-specific context. Currently only the query of `search_articles`, `search_faqs`, `search_sectors`, `search_testimonials` and `get_facets`, limited to 500 characters. |
 
 `data` is an explicit allowlist, not an arbitrary argument dump. Query capture is
 opt-in because queries can contain personal information and create high-cardinality

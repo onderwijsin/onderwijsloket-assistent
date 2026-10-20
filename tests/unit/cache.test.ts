@@ -40,6 +40,9 @@ import { cacheDurations } from "../../config/cache";
 const id = "00f81660-a2e4-48af-b8d7-98ce338de447";
 const article = {
   id,
+  sources: [],
+  documents: [],
+  authors: [],
   title: "Title",
   slug: "title",
   path: "/article",

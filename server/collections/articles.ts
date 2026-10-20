@@ -1,3 +1,16 @@
+import {
+  authorSchema,
+  sourceSchema as evidenceSchema,
+  documentSchema,
+  authorSourceSchema,
+  evidenceSourceSchema,
+  documentSourceSchema,
+  authorFields,
+  sourceFields,
+  documentFields,
+  supportingRelationBounds
+} from "../utils/supporting-content";
+import { collectionRelationSchema } from "../utils/collection-relations";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
@@ -87,6 +100,13 @@ const sourceSchema = articleSchema.extend({
   tracks: createTaxonomyRelationSchema("tracks")
 });
 
+const detailSourceSchema = sourceSchema.extend({
+  sources: collectionRelationSchema("sources_id", evidenceSourceSchema),
+  documents: collectionRelationSchema("documents_id", documentSourceSchema),
+  authors: collectionRelationSchema("authors_id", authorSourceSchema)
+});
+const supportingNames = ["sources", "documents", "authors"] as const;
+
 const sorts = ["title", "-title", "date_updated", "-date_updated"] as const;
 
 /**
@@ -127,8 +147,17 @@ function buildArticleQuery(
       { topics: [{ topics_id: ["id", "name", "slug", "description"] }] },
       { tracks: [{ tracks_id: ["id", "name", "slug", "description"] }] },
       // List responses need metadata only; fetch documents and embedded blocks for detail reads.
-      ...(id ? ["body" as const, { editor_nodes: editorNodeFields }] : [])
+      ...(id
+        ? [
+            "body" as const,
+            { editor_nodes: editorNodeFields },
+            { sources: [{ sources_id: sourceFields }] },
+            { documents: [{ documents_id: documentFields }] },
+            { authors: [{ authors_id: authorFields }] }
+          ]
+        : [])
     ],
+    ...(id ? { deep: supportingRelationBounds(supportingNames) } : {}),
     filter,
     // The ID breaks ties so equal titles/dates do not shuffle between pages.
     sort: [args.sort, "id"],
@@ -142,11 +171,15 @@ function buildArticleQuery(
  * Fetch the article projection and validate the upstream response.
  *
  * @param query - Field projection, filters and pagination sent to the content API.
+ * @param schema - Summary or enriched detail validator matching the selected projection.
  * @returns Validated article source records; rejects unavailable or malformed responses.
  */
-async function readArticles(query: ReturnType<typeof buildArticleQuery>) {
+async function readArticles<T extends z.ZodType>(
+  query: ReturnType<typeof buildArticleQuery>,
+  schema: T
+) {
   try {
-    return z.array(sourceSchema).parse(await useDirectusServer(readItems("articles", query)));
+    return z.array(schema).parse(await useDirectusServer(readItems("articles", query)));
   } catch {
     // Treat transport failures and invalid upstream data as the same public error contract.
     throw createError({
@@ -182,6 +215,20 @@ export default defineMcpCollection({
     "The articles collection contains long-form informational content about working in education. Articles explain topics such as qualifications, career paths, legislation, and practical considerations for entering the education sector. They combine detailed explanations with summaries and taxonomy metadata, helping advisers and prospective education professionals understand their options and next steps.",
   summary: summarySchema,
   detail: summarySchema.extend({
+    sources: z
+      .array(evidenceSchema)
+      .describe("Bounded factual citations with original external publication URLs."),
+    documents: z
+      .array(documentSchema)
+      .describe("Bounded download references; no document text is inferred."),
+    authors: z
+      .array(authorSchema)
+      .describe("Editorial attribution, distinct from featured people."),
+    relations_truncated: z
+      .array(z.string())
+      .describe(
+        "Supporting relation names limited to the first 100 records; independent of document truncated."
+      ),
     content: z.string().describe("Article body as Markdown, including resolved editor blocks."),
     content_warnings: z
       .array(z.string())
@@ -222,7 +269,7 @@ export default defineMcpCollection({
    * @returns Record summaries and whether another page is available.
    */
   async list(options) {
-    const records = await readArticles(buildArticleQuery(options));
+    const records = await readArticles(buildArticleQuery(options), sourceSchema);
     return {
       records: records.slice(0, options.page_size).map(summarize),
       has_more: records.length > options.page_size
@@ -238,7 +285,8 @@ export default defineMcpCollection({
   get: defineCachedFunction(
     async (id: string) => {
       const [record] = await readArticles(
-        buildArticleQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)
+        buildArticleQuery({ page: 1, page_size: 1, sort: sorts[0] }, id),
+        detailSourceSchema
       );
       if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Article not found." });
       const rendered = renderContentDocument(record.body, record.editor_nodes, {
@@ -249,12 +297,26 @@ export default defineMcpCollection({
       return {
         ...summarize(record),
         content: rendered.markdown,
-        content_warnings: rendered.warnings,
+        sources: record.sources.records,
+        documents: record.documents.records,
+        authors: record.authors.records,
+        relations_truncated: supportingNames.filter((name) => record[name].truncated),
+        content_warnings: [
+          ...rendered.warnings,
+          ...supportingNames.flatMap((name) => record[name].warnings),
+          ...(record.sources.records.some((source) => source.url === null)
+            ? ["Unavailable or invalid source URL."]
+            : []),
+          ...(record.documents.records.some((document) => document.asset?.url == null)
+            ? ["Unavailable document asset."]
+            : [])
+        ],
         truncated: rendered.truncated
       };
     },
     {
-      name: "articles-get",
+      // Separate enriched cached records from pre-group-2 detail payloads.
+      name: "articles-get-supporting",
       maxAge: cacheDurations.article,
       swr: false /**
        * Isolate cached data by its configured identifier.

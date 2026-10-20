@@ -273,11 +273,11 @@ it("retains schema-based collection attribution for shared discovery", async () 
   });
 });
 
-it.each(["search_faqs", "search_sectors"])(
+it.each(["search_faqs", "search_sectors", "search_testimonials"])(
   "captures query context for %s without a collection argument",
   async (name) => {
     const { readToolCallDetails } = await import("../../server/utils/tool-analytics");
-    const collection = name === "search_faqs" ? "faqs" : "sectors";
+    const collection = name.replace("search_", "");
     mocks.body = { method: "tools/call", params: { name, arguments: { query: "teaching" } } };
     const tools = [{ name, _meta: { "onderwijsloket.com/collection": collection } }];
     expect(await readToolCallDetails(event, tools, true)).toEqual({

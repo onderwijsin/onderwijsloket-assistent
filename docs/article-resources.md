@@ -23,7 +23,7 @@ The definition uses group `content` and tags `articles`, `education`, `readonly`
 
 ## Document format and implementation
 
-The resource definition wires `listResources(articles, describe)` into the template and uses `serveResource({ name, id, get, content, metadata })` for reads. Both helpers are collection-independent. The read helper calls the configured collection get method and returns its existing Markdown body with YAML front matter. Article-specific metadata selection lives in `resourceMetadata()` within `server/collections/articles.ts`. It includes public record fields, taxonomy labels, `truncated` and `content_warnings`, excluding the body itself. Source timestamps remain source timestamps; no volatile retrieval timestamp is added.
+The resource definition wires `listResources(articles, describe)` into the template and uses `serveResource({ name, id, get, content, metadata })` for reads. Both helpers are collection-independent. The read helper calls the configured collection get method and returns its existing Markdown body with YAML front matter. Article-specific metadata selection lives in `resourceMetadata()` within `server/collections/articles.ts`. It includes public record fields, taxonomy labels, sources/documents/authors, `relations_truncated`, `truncated` and `content_warnings`, excluding the body itself. Source timestamps remain source timestamps; no volatile retrieval timestamp is added.
 
 `server/utils/content/front-matter.ts` uses the `yaml` library to serialize metadata. `server/utils/resources.ts` handles URI/descriptor formatting, complete catalogue listing, ID validation and safe resource responses for any collection. Neither utility imports an article collection. The resource file only declares the template, organization metadata and collection callbacks through MCP Toolkit.
 
@@ -35,4 +35,4 @@ Unit tests cover YAML round trips, body preservation, collection-specific metada
 
 The native callback returns a complete catalogue in one response. This keeps inspector discovery simple and lets the SDK combine different collection templates automatically. The complete catalogue is cached for five minutes per collection; protocol-level pagination remains deferred. Article tools and resource reads share the five-minute `articles.get()` cache, including rendered Markdown. Resource serialization itself is cheap and is not cached separately. See [cache configuration](./cache.md).
 
-FAQs and sectors also expose resources/templates; every core collection must do so when implemented. See [collection resources](collection-resources.md) for native mappings and rollout requirements.
+FAQs, sectors and testimonials also expose resources/templates; every core collection must do so when implemented. See [collection resources](collection-resources.md) for native mappings and rollout requirements.

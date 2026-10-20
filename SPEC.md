@@ -254,3 +254,5 @@ Verification should protect real risks: exposure through nested relations/proxie
 These decisions do not block drafting the architecture. Data rights, deployment controls and a tested model choice must be resolved before public release.
 
 See [collection resources](docs/collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
+
+Group 2 is implemented: article detail gains bounded supporting evidence/attribution, and testimonials expose native list/get/search, shared discovery/facets and a Markdown resource/template. See [group 2 contracts](docs/collection-inventory/group-2.md) for the additive API fields and remaining asset/profile limits.

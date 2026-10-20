@@ -221,7 +221,7 @@ export default defineMcpCollection({
   name: "faqs",
   id: idSchema,
   description:
-    "Concise factual questions and answers about working in education, with taxonomy context and related articles.",
+    "The faqs collection contains short, factual questions and answers about working in education. FAQs help prospective education professionals and advisers find concise explanations of common questions during orientation and career planning. Each record preserves its native question and answer, with education-sector, audience, career-phase and topic context. Related article references connect a quick answer to more detailed guidance. Use FAQs for focused questions and articles for broader explanations; FAQ records do not have their own verified canonical page.",
   operations: { list: "list_faqs", get: "get_faq", search: "search_faqs" },
   resources: [{ uri_template: "onderwijsloket://faqs/{id}", mime_type: "text/markdown" }],
   /**

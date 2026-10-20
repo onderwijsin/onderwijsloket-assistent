@@ -1,3 +1,4 @@
+import { testimonialRecord, supportingRelations } from "./group-two";
 import { faqRecord, sectorRecord } from "./group-one";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -14,6 +15,7 @@ const taxonomy = {
 };
 const baseArticle = {
   id: articleId,
+  ...supportingRelations,
   title: "Alpha",
   slug: "alpha",
   path: "/kennisbank/artikelen/alpha",
@@ -80,16 +82,26 @@ export async function createDirectusFixture() {
       return;
     }
     if (
+      collection === "testimonials" ||
       collection === "faqs" ||
       (collection === "sectors" && url.searchParams.get("fields")?.includes("code"))
     ) {
-      const source = collection === "faqs" ? faqRecord : sectorRecord;
+      const source =
+        collection === "testimonials"
+          ? testimonialRecord
+          : collection === "faqs"
+            ? faqRecord
+            : sectorRecord;
       const catalogue = [source];
       const rows = catalogue.filter((row) => {
         const scalar = row as Record<string, unknown>;
         return Object.entries(filter).every(([key, condition]) => {
           const operation = condition as { _eq?: unknown; [key: string]: unknown };
           if ("_eq" in operation) return scalar[key] === operation._eq;
+          if (collection === "testimonials" && key === "authors")
+            return JSON.stringify(operation).includes("author-1");
+          if (collection === "testimonials" && key === "profiles")
+            return JSON.stringify(operation).includes("profile-1");
           if (key === "articles") return JSON.stringify(operation).includes(articleId);
           return (
             ["sectors", "topics", "phases", "audiences"].includes(key) &&

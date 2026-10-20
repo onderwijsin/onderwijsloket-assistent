@@ -1,9 +1,10 @@
 # Collection inventory and MCP architecture
 
-Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; group 1 now enables articles, FAQs and sectors.
+Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; groups 1 and 2 enable articles, FAQs, sectors and testimonials.
 
 - [Group 1 implementation](group-1.md): live FAQ/sector contracts, evidence, relation bounds and validation.
 - [Phase 3 preparation](phase-3.md): implemented boundaries, extension steps and verification limits.
+- [Group 2 implementation](group-2.md): article evidence, authors, documents, featured profiles and testimonial resources.
 - [Grouped implementation plan](implementation-plan.md): five collection groups, prerequisites and release gates.
 - [Phase 2 architecture](architecture.md): contract comparison, hybrid tool surface, static schemas and the minimum phase 3 scope.
 - [Core contracts](core.md): nine intended public collections, including the existing articles contract.
@@ -43,11 +44,11 @@ These shared proposals are notation for comparing contracts, not a decision to u
 
 ## Resource contract
 
-Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs and sectors are implemented; the remaining six ship resources with their collection groups. Supporting collections remain embedded.
+Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs, sectors and testimonials are implemented; the remaining five ship resources with their collection groups. Supporting collections remain embedded.
 
 ## Exposure and access
 
-Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs and sectors are implemented; the remaining cores are still planned.
+Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs, sectors and testimonials are implemented; the remaining cores are still planned.
 
 Directus owns record visibility for every collection and nested relation; see [data access responsibilities](../data-access.md). The MCP layer does not implement publication filters or guards. Documentation says Navigator datasets depend on vendor-specific policies; the current service account's grants are TBD. Retain `vendor` and `last_sync` where present so callers can distinguish origin and freshness. The desk type has no vendor field: do not invent one.
 
@@ -62,3 +63,9 @@ Do not expose staff/review metadata, Directus users, internal notes, sync identi
 5. Choose relation caps and source availability representation before advertising new schemas. Resource representations and templates are required for each core collection.
 
 The [phase 2 decision](architecture.md) selects shared discovery and collection-specific record operations, preserving current article contracts. Phase 3 preparation is documented in [phase-3.md](phase-3.md); unresolved upstream details still gate live collection rollout.
+
+## Collection descriptions
+
+Collection definitions describe the collection’s purpose, audience, typical questions and information, and its relationships to other collections. Keep comparable detail to the article description. FAQs explain focused factual answers and links to articles; sectors explain their dual role as content and taxonomy; testimonials distinguish personal experience, editorial authors and featured participants. Resources reuse each definition’s description, then add representation and read guidance. Shared catalogue/description tools already consume that same description, so no separate catalogue copy is maintained.
+
+For future collections, Navigator descriptions should distinguish concrete programs, institutions and regional services from explanatory knowledge-base content. Media descriptions should distinguish series, episodes and personal narratives. Use the upstream [Knowledge Base](https://docs.onderwijsloket.com/data-model/families/knowledge-base), [Filters](https://docs.onderwijsloket.com/data-model/families/filters), [Navigator](https://docs.onderwijsloket.com/data-model/families/navigator) and [Media](https://docs.onderwijsloket.com/data-model/families/media) family guides for meaning, while describing only the projections and operations actually implemented. Visibility policy remains upstream as documented in [data access responsibilities](../data-access.md).

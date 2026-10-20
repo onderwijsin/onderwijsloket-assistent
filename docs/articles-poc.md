@@ -64,13 +64,13 @@ The ID above is illustrative. Retrieve actual current IDs using `get_filters`. I
 
 Both summary and detail include flattened metadata for sectors, qualifications, roles, topics and tracks. Each metadata entry uses the shared `{ id, title, slug, description }` contract; unavailable slug/description values are null. The same shape is used by filter choices and `readTaxonomy()`. Null junction targets are skipped. Audiences and phases are available as filters but are not included in record metadata.
 
-Records also contain ID, title, slug, description, summary, update date, language flag and source URL. The shared `server/utils/use-source-url.ts` helper constructs source URLs with `ufo`. Detail adds content, content warnings and truncation. Tool results include structured content and a JSON text fallback; all seven tools advertise output schemas and validate their successful structured responses.
+Records also contain ID, title, slug, description, summary, update date, language flag and source URL. The shared `server/utils/use-source-url.ts` helper constructs source URLs with `ufo`. Detail adds content, content warnings and truncation, plus bounded sources/documents/authors and `relations_truncated`; see [group 2](collection-inventory/group-2.md). Tool results include structured content and a JSON text fallback; all seven tools advertise output schemas and validate their successful structured responses.
 
 Pagination is one-based with a default page size of 10 and maximum of 25. Supported sorts are `title`, `-title`, `date_updated` and `-date_updated`, with ID as a tie-breaker. Listing fetches one extra record for `has_more` without promising an exact count.
 
 ## Current limitations
 
-Detail content uses the shared [content-document pipeline](content-documents.md) to resolve editor nodes and render Markdown without a character cap. Document traversal limits still report truncation. FAQ, author and source expansion outside content documents is deferred. Taxonomy metadata is resolved separately from editor nodes.
+Detail content uses the shared [content-document pipeline](content-documents.md) to resolve editor nodes and render Markdown without a character cap. Document traversal limits still report truncation. Author, source and document references are included through bounded detail projections. FAQ expansion outside content documents remains deferred. Taxonomy metadata is resolved separately from editor nodes.
 
 Missing records return `NOT_FOUND`; provider and response-validation failures return a sanitized `UPSTREAM_UNAVAILABLE` error.
 

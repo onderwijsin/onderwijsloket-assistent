@@ -253,7 +253,7 @@ export default defineMcpCollection({
   name: "sectors",
   id: idSchema,
   description:
-    "Education-sector guidance, covering roles, routes, salary and training costs, with featured content references. Sector IDs also serve as content filters.",
+    "The sectors collection describes the sectors of the Dutch education system, from primary through higher education, and helps people explore what working in each sector involves. Unlike other shared taxonomies, sectors also contain their own guidance: introductions, professional roles, routes into education, salary information and training costs, supported by actions and featured articles, FAQs and media references. These records underpin the website’s “Working in …” pages. Use sector details for an overview of a working environment and its entry routes; the same sector IDs also categorize and filter content across collections.",
   operations: { list: "list_sectors", get: "get_sector", search: "search_sectors" },
   resources: [{ uri_template: "onderwijsloket://sectors/{id}", mime_type: "text/markdown" }],
   /**

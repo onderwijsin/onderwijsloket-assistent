@@ -7,8 +7,7 @@ import { resourceUri, listResources, serveResource, describeResource } from "../
 export default defineMcpResource({
   name: "sectors",
   title: "Onderwijsloket sectors",
-  description:
-    "Read sectors as Markdown with YAML metadata. Follow tool resource links or browse resources/list. Check content_warnings and relations_truncated before treating content as complete.",
+  description: `${sectors.description} Read the named guidance sections as Markdown with actions and featured references in YAML front matter. Browse resources/list or follow tool resource links. Cite source_url; check content_warnings and relations_truncated before treating the guidance as complete.`,
   group: "content",
   tags: ["sectors", "education", "readonly"],
   uri: new ResourceTemplate(resourceUri(sectors.name, "{id}"), {

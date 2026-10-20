@@ -56,3 +56,5 @@ Facet input (implemented articles; proposed where applicable): `{query?:string,f
 - Existing search disables analytics. A search key is not proof that every hit can be read or its media played; visibility belongs upstream; follow [data access responsibilities](../data-access.md) without local publication filters or guards.
 
 Evidence: current `server/utils/search/schemas.ts`, `collection-search.ts`, `docs/search.md` and the API documentation above. Live index existence, current settings, optional fields, publication policy and permissions remain TBD for the new collections.
+
+Testimonials now implement the seven documented plural-relation facet keys, with UUID identity and publication-date metadata. Read-only index/adapter checks and the precise public hit contract are recorded in [group 2](group-2.md). No english filter or singular `topic.name` facet is exposed.

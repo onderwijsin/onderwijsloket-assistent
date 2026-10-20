@@ -35,3 +35,5 @@ See [article contracts](../../../docs/articles-poc.md), [search](../../../docs/s
 Discovery metadata includes concrete operation names and optional resource representations. `toolResult` supplies the structured/text response envelope without assuming that every record has a Markdown resource. Keep new list/get/search tools collection-specific and omit their redundant collection input; the article record tools use this pattern too. See [phase 3 preparation](../../../docs/collection-inventory/phase-3.md).
 
 Article record entrypoints are `list-articles.ts`, `get-article.ts` and `search-articles.ts`; their public names are `list_articles`, `get_article` and `search_articles`. They take no collection selector. Old names are not registered.
+
+Testimonials add `list_testimonials`, `get_testimonial`, `search_testimonials` and resource links. Shared filters/facets include testimonials. Person-ID list filters use explicit nested lookup paths, separate from search facet labels. See [group 2](../../../docs/collection-inventory/group-2.md).

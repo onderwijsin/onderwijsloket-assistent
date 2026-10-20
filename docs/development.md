@@ -80,7 +80,7 @@ dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is di
 
 Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
 `fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all thirteen
+build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all sixteen
 MCP tools. It does not verify browser hydration.
 
 Server and build isolation does not replace upstream services: the app still loads

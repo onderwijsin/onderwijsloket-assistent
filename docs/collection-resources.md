@@ -7,7 +7,7 @@ Every core collection must ship a resource URI template, catalogue entries and r
 | articles                 | Existing article Markdown and attribution metadata                               | Implemented         |
 | faqs                     | Rendered answer; native question as descriptor title                             | Implemented         |
 | sectors                  | Named guidance sections under Markdown headings                                  | Implemented         |
-| testimonials             | Story Markdown with author/profile attribution                                   | Required in group 2 |
+| testimonials             | Story Markdown with author/profile attribution                                   | Implemented         |
 | educational_institutions | Institution description, contacts and locations                                  | Required in group 3 |
 | programs                 | Program overview and separately named form descriptions, providers and locations | Required in group 3 |
 | regional_education_desks | Desk description, consultation services, coverage and contacts                   | Required in group 4 |
@@ -25,7 +25,7 @@ The representation for each future collection must be verified against its nativ
 - Front matter retains identity, attribution, related references, source timestamps and completeness metadata. FAQs retain `truncated`, `content_warnings` and `relations_truncated`; sectors retain relation warnings, actions, cards and featured references. Sector body sections are Introduction, Roles, Routes, Salary and Costs; null sections are omitted. Source fields retain their original names in structured tool results.
 - Source visibility follows [data access responsibilities](data-access.md). Resources add no status filters, publication guards or date gates.
 
-`server/utils/resources.ts` handles descriptors, batched catalogue listing, ID validation, YAML packaging and sanitized protocol errors. Collection callbacks supply descriptor/body/metadata mappings. Catalogue lists are cached per collection for five minutes and fetch summaries in batches of 25. No protocol cursor or subscriptions are implemented; use record tools for filtered pagination. FAQ and sector reads use their existing getters without adding a separate resource cache. [Article resources](article-resources.md) retain their existing format and getter cache.
+`server/utils/resources.ts` handles descriptors, batched catalogue listing, ID validation, YAML packaging and sanitized protocol errors. Collection callbacks supply descriptor/body/metadata mappings. Catalogue lists are cached per collection for five minutes and fetch summaries in batches of 25. No protocol cursor or subscriptions are implemented; use record tools for filtered pagination. FAQ, sector and testimonial reads use their existing getters without adding a separate resource cache. [Article resources](article-resources.md) retain their existing format and getter cache.
 
 ## Rollout checks
 

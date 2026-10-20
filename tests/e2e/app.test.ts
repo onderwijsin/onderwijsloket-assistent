@@ -1,3 +1,4 @@
+import { testimonialId } from "../fixtures/group-two";
 import { faqId, sectorId } from "../fixtures/group-one";
 import { createAlgoliaFixture } from "../fixtures/algolia";
 import { parse } from "yaml";
@@ -124,13 +125,16 @@ describe("application", async () => {
       "get_faq",
       "get_filters",
       "get_sector",
+      "get_testimonial",
       "list_articles",
       "list_collections",
       "list_faqs",
       "list_sectors",
+      "list_testimonials",
       "search_articles",
       "search_faqs",
-      "search_sectors"
+      "search_sectors",
+      "search_testimonials"
     ]);
   });
 
@@ -153,7 +157,7 @@ describe("application", async () => {
     const catalogue = await call("list_collections", {});
     expect(
       catalogue.result.structuredContent.collections.map((item: { name: string }) => item.name)
-    ).toEqual(["articles", "faqs", "sectors"]);
+    ).toEqual(["articles", "faqs", "sectors", "testimonials"]);
     expect(catalogue.result.structuredContent.collections[0].capabilities).toMatchObject({
       list: true,
       get: true,
@@ -291,8 +295,8 @@ describe("application", async () => {
     });
     expect(initialized.result.capabilities.resources).toBeDefined();
     const templates = await rpc("resources/templates/list");
-    expect(templates.result.resourceTemplates).toHaveLength(3);
-    for (const name of ["articles", "faqs", "sectors"]) {
+    expect(templates.result.resourceTemplates).toHaveLength(4);
+    for (const name of ["articles", "faqs", "sectors", "testimonials"]) {
       expect(templates.result.resourceTemplates).toContainEqual(
         expect.objectContaining({
           name,
@@ -336,8 +340,8 @@ describe("application", async () => {
     try {
       const count = directus.requests.length;
       const result = (await rpc("resources/list")).result;
-      expect(result.resources).toHaveLength(29);
-      expect(new Set(result.resources.map((item: { uri: string }) => item.uri)).size).toBe(29);
+      expect(result.resources).toHaveLength(30);
+      expect(new Set(result.resources.map((item: { uri: string }) => item.uri)).size).toBe(30);
       expect(result.resources[0]).toMatchObject({
         uri: `onderwijsloket://articles/${articleId}`,
         title: "Alpha",
@@ -651,5 +655,83 @@ describe("application", async () => {
     });
     const invalid = await call("get_facets", { collection: "sectors" });
     expect(invalid.result?.isError || invalid.error).toBeTruthy();
+  });
+  it("retrieves testimonial stories, attribution, discovery and resources through HTTP", async () => {
+    for (const operation of ["list", "get", "search"]) {
+      const name = operation === "get" ? "get_testimonial" : `${operation}_testimonials`;
+      const args =
+        operation === "get"
+          ? { id: testimonialId }
+          : operation === "list"
+            ? { filters: { authors: ["author-1"], profiles: ["profile-1"] } }
+            : { query: "teaching", filters: { "authors.name": ["Leraar"] } };
+      const result = (await call(name, args)).result;
+      expect(result.isError).not.toBe(true);
+      const record =
+        operation === "get" ? result.structuredContent.record : result.structuredContent.records[0];
+      expect(record).toMatchObject({
+        id: testimonialId,
+        collection: "testimonials",
+        publication_date: "2999-01-01T00:00:00"
+      });
+      expect(result.content).toContainEqual(
+        expect.objectContaining({
+          type: "resource_link",
+          uri: `onderwijsloket://testimonials/${testimonialId}`
+        })
+      );
+      if (operation === "get") {
+        expect(record.content).toContain("My personal story.");
+        expect(record.content).toContain("[Advice](<https://onderwijsloket.com/advies>)");
+        expect(record.authors[0].name).toBe("Editorial Author");
+        expect(record.profiles[0].first_name).toBe("Featured");
+        expect(record.content_warnings).toEqual([]);
+        expect(record).not.toHaveProperty("english");
+        expect(JSON.stringify(record)).not.toContain("private@example.test");
+      }
+    }
+    const filters = (await call("get_filters", { collection: "testimonials" })).result;
+    expect(
+      filters.structuredContent.filters.find((field: { name: string }) => field.name === "profiles")
+        .lookup
+    ).toEqual({ collection: "testimonials", tool: "list_testimonials", path: "profiles[].id" });
+    const facets = (await call("get_facets", { collection: "testimonials" })).result;
+    expect(facets.structuredContent.facets).toHaveLength(7);
+    const uri = `onderwijsloket://testimonials/${testimonialId}`;
+    const resource = (await rpc("resources/read", { uri })).result.contents[0];
+    expect(resource.text).toContain("My personal story.");
+    const end = resource.text.indexOf("\n---\n", 4);
+    expect(parse(resource.text.slice(4, end))).toMatchObject({
+      id: testimonialId,
+      truncated: false,
+      relations_truncated: [],
+      authors: [expect.objectContaining({ id: "author-1" })]
+    });
+    const article = (await call("get_article", { id: articleId })).result.structuredContent.record;
+    expect(article.sources[0].url).toBe("https://example.test/evidence");
+    expect(article.documents[0].asset.url).toContain("/image/upload/");
+    expect(article.authors[0].id).toBe("author-1");
+    expect(article.relations_truncated).toEqual([]);
+    for (const query of directus.requests) expect(query.search).not.toContain("status");
+    for (const tool of ["get_testimonial", "list_testimonials", "search_testimonials"]) {
+      const args =
+        tool === "get_testimonial"
+          ? { id: "invalid" }
+          : tool === "list_testimonials"
+            ? { filters: { english: true } }
+            : { filters: { "topic.name": ["x"] } };
+      const invalid = await call(tool, args);
+      expect(invalid.result?.isError || invalid.error).toBeTruthy();
+    }
+    expect(
+      (await rpc("resources/read", { uri: "onderwijsloket://testimonials/invalid" })).error.code
+    ).toBe(-32602);
+    expect(
+      (
+        await rpc("resources/read", {
+          uri: "onderwijsloket://testimonials/00f81660-a2e4-48af-b8d7-98ce338de999"
+        })
+      ).error.message
+    ).toContain("NOT_FOUND");
   });
 });

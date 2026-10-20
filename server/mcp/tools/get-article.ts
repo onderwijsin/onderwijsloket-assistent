@@ -7,7 +7,7 @@ export default defineMcpTool({
   _meta: { "onderwijsloket.com/collection": articles.name },
   name: "get_article",
   description:
-    "Read one complete article by an ID returned by list_articles. Returns taxonomy metadata, a canonical source URL and Markdown content. Check content_warnings and truncated for omitted content; cite source_url when using the article. Returns NOT_FOUND for an unknown ID.",
+    "Read one complete article by an ID returned by list_articles. Returns taxonomy metadata, sources with external citation URLs, downloadable document references, editorial authors, a canonical source URL and Markdown content. Check relations_truncated for incomplete supporting arrays, plus content_warnings and truncated for omitted content; cite source_url when using the article. Returns NOT_FOUND for an unknown ID.",
   annotations: {
     readOnlyHint: true,
     destructiveHint: false,

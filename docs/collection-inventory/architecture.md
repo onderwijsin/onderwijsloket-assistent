@@ -197,3 +197,5 @@ Evidence: [core contracts](core.md), [dependencies](dependencies.md), [search ev
 Record visibility at every relation depth follows [data access responsibilities](../data-access.md); publication/access policy belongs upstream in Directus, not collection definitions or search adapters.
 
 The current resource decision supersedes the original deferrals: every core collection ships its resource and template with its record tools. See [collection resources](../collection-resources.md) and the updated [implementation plan](implementation-plan.md). FAQs and sectors now implement this contract.
+
+Group 2 now enables testimonial operations/resources alongside articles, FAQs and sectors. Article supporting fields are additive detail/front-matter fields; see [group 2 implementation](group-2.md).

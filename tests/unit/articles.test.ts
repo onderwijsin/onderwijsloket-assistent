@@ -17,6 +17,9 @@ vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectus
 const article = {
   id: "00f81660-a2e4-48af-b8d7-98ce338de447",
   status: "published",
+  sources: [],
+  documents: [],
+  authors: [],
   title: "Title",
   slug: "title",
   path: "/kennisbank/artikelen/title",

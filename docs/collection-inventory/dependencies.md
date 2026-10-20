@@ -66,3 +66,5 @@ Content dependencies `articles_editor_nodes`, `testimonials_editor_nodes`, `call
 | Directus users, policies, permissions, sessions, flows and other system tables                                                               | Explicitly excluded; no operations. `directus_files` has only the narrow asset dependency described above.                                               | Generated types are not a public exposure allowlist. Staff reviewers/user_created/user_updated are not content attribution.                |
 
 This inventories the requested nine core and five supporting collections, seven additional taxonomy collections (sectors counted once), six embedded dependencies including files, and the deferred/excluded families. Counts are explanatory; there is no goal to publish 25–30 standalone collections.
+
+Group 2 implements sources/documents/authors through article detail and authors/minimal profiles through testimonials. See [implemented contracts and evidence](group-2.md) for nullable URLs, bounded relations, verified PDF delivery and profile-biography deferral; these supersede the original TBDs above for those projections.

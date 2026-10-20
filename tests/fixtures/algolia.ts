@@ -1,3 +1,4 @@
+import { testimonialRecord } from "./group-two";
 import { faqId, sectorId } from "./group-one";
 import { createServer } from "node:http";
 import { once } from "node:events";
@@ -51,7 +52,7 @@ export async function createAlgoliaFixture() {
     const index = request.url?.split("/")[3];
     if (
       request.method !== "POST" ||
-      !["articles", "faqs", "sectors"].includes(index ?? "") ||
+      !["articles", "faqs", "sectors", "testimonials"].includes(index ?? "") ||
       !request.url?.split("?")[0]?.endsWith("/query")
     ) {
       response.statusCode = 404;
@@ -61,22 +62,31 @@ export async function createAlgoliaFixture() {
       return;
     }
     const hits =
-      index === "articles"
-        ? articleHits
-        : [
+      index === "testimonials"
+        ? [
             {
-              id: index === "faqs" ? faqId : sectorId,
-              objectID: index === "faqs" ? faqId : sectorId,
-              question: "Can I teach?",
-              title: "Primary education",
-              description: "Primary education guidance",
-              slug: "primary",
-              path: "/primary",
-              status: "published",
-              english: false,
-              topics: ["Teaching"]
+              ...testimonialRecord,
+              objectID: testimonialRecord.id,
+              topics: ["Teaching"],
+              english: false
             }
-          ];
+          ]
+        : index === "articles"
+          ? articleHits
+          : [
+              {
+                id: index === "faqs" ? faqId : sectorId,
+                objectID: index === "faqs" ? faqId : sectorId,
+                question: "Can I teach?",
+                title: "Primary education",
+                description: "Primary education guidance",
+                slug: "primary",
+                path: "/primary",
+                status: "published",
+                english: false,
+                topics: ["Teaching"]
+              }
+            ];
     let body = "";
     for await (const chunk of request) body += chunk;
     const params = JSON.parse(body);
@@ -107,11 +117,21 @@ export async function createAlgoliaFixture() {
         )
     );
     const names = params.facets?.includes("*")
-      ? index === "sectors"
-        ? []
-        : index === "faqs"
-          ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
-          : ["english", "topics.name", "roles.name"]
+      ? index === "testimonials"
+        ? [
+            "audiences.title",
+            "authors.name",
+            "phases.title",
+            "roles.name",
+            "sectors.title",
+            "topics.name",
+            "tracks.name"
+          ]
+        : index === "sectors"
+          ? []
+          : index === "faqs"
+            ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
+            : ["english", "topics.name", "roles.name"]
       : (params.facets ?? []);
     const facets = Object.fromEntries(
       names.map((name: string) => {
