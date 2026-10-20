@@ -179,6 +179,12 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     apiToken: ENV.API_TOKEN,
+    toolAnalytics: {
+      enabled: ENV.DISABLE_TRACKING !== true,
+      domain: ENV.PLAUSIBLE_DOMAIN || "",
+      endpoint: "https://plausible.io/api/event",
+      includeData: false
+    },
     algolia: {
       applicationId: ENV.ALGOLIA_APPLICATION_ID,
       token: ENV.ALGOLIA_TOKEN,

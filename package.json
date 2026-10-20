@@ -2,7 +2,7 @@
   "name": "@onderwijsin/onderwijsloket-assistent",
   "version": "0.0.1",
   "private": true,
-  "description": "An experimental MCP server for Assistent UI for Onderwijsloket",
+  "description": "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education.",
   "type": "module",
   "scripts": {
     "build": "nuxt cleanup && NODE_OPTIONS=\"--max-old-space-size=8192\" nuxt build --profile=verbose",

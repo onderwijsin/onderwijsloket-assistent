@@ -95,3 +95,8 @@ Follow [the articles POC](articles-poc.md). Article resources are described in [
 ## Server JSDoc
 
 MCP handlers, collection methods and their supporting server utilities document behavior, each declared parameter with `@param`, and the return value with `@returns`. Functions without parameters omit `@param`; void and throwing functions explain their effects under `@returns`. Schema, configuration and type comments describe their purpose without function tags. Keep client-facing MCP descriptions independent of infrastructure details.
+
+## Tool analytics
+
+See [server-side tool analytics](tool-analytics.md) for Plausible configuration,
+properties, optional query data, delivery behavior and attribution limitations.
