@@ -30,6 +30,7 @@
   "dependencies": {
     "@ai-sdk/mcp": "catalog:",
     "@ai-sdk/mistral": "catalog:",
+    "@ai-sdk/openai": "catalog:",
     "@ai-sdk/vue": "catalog:",
     "@comark/nuxt": "catalog:",
     "@iconify-json/lucide": "catalog:",

@@ -1,3 +1,10 @@
+/** Shared identity for the MCP endpoint and its public server card. */
+export const MCP_SERVER = {
+  name: "Onderwijsloket Assistent (experimental)",
+  description:
+    "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education."
+};
+
 export const INSTRUCTIONS = `
 Use Onderwijsloket's read-only knowledge to help people explore working in Dutch education and make informed next steps. Respond in the user's language. Ask for background, desired role or sector, and location only when needed to give a useful answer.
 

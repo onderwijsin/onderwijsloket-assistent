@@ -5,8 +5,7 @@ import { version as packageVersion } from "./package.json";
 
 import { app } from "./config/head";
 import identity, { siteDescription, siteTitle } from "./config/identity";
-import { INSTRUCTIONS } from "./config/mcp";
-import { MCP_SERVER } from "./config/mcp-server";
+import { INSTRUCTIONS, MCP_SERVER } from "./config/mcp";
 
 import { resolveEnvironment } from "./config/helpers";
 const { environment, isDebug, isProd, isPreview, isDev, isTest } = resolveEnvironment(ENV.MODE);
@@ -17,7 +16,12 @@ export default defineNuxtConfig({
     enabled: true
   },
 
-  nitro: { experimental: { asyncContext: true } },
+  nitro: {
+    experimental: { asyncContext: true },
+    storage: {
+      "simple-rate-limiter:%2Fapi%2Fchat": { driver: "memory" }
+    }
+  },
 
   mcp: {
     ...MCP_SERVER,
@@ -47,11 +51,11 @@ export default defineNuxtConfig({
     "@onderwijsin/nuxt-healthcheck",
     "@onderwijsin/nuxt-directus-config",
     "@onderwijsin/nuxt-directus-client",
-    "@onderwijsin/nuxt-newsletter-signup"
+    "@onderwijsin/nuxt-newsletter-signup",
+    "@onderwijsin/nuxt-simple-rate-limiter"
   ],
 
   routeRules: {
-    "/": { prerender: true },
     "/_nuxt/**": {
       cache: { maxAge: 31_536_000, swr: true },
       headers: { "cache-control": "public, max-age=31_536_000, s-maxage=31_536_000, immutable" }
@@ -179,6 +183,10 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    chat: {
+      mistralApiKey: ENV.MISTRAL_API_KEY,
+      openaiApiKey: ENV.OPENAI_API_KEY
+    },
     apiToken: ENV.API_TOKEN,
     toolAnalytics: {
       enabled: ENV.DISABLE_TRACKING !== true,

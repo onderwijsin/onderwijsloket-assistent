@@ -1,5 +1,5 @@
 import { listMcpDefinitions } from "@nuxtjs/mcp-toolkit/server";
-import { MCP_SERVER } from "../../../../config/mcp-server";
+import { MCP_SERVER } from "../../../../config/mcp";
 
 /**
  * Describe the server and its request-visible MCP definitions.

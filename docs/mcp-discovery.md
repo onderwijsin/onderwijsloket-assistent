@@ -15,7 +15,7 @@ so per-definition `enabled()` guards apply. Responses are not cached across
 requests. The catalog reflects discovered definitions; it does not apply custom
 MCP handler middleware, dynamic resolvers or `mcp:config:resolved` hooks.
 
-The server card and `/mcp` share their identity through `config/mcp-server.ts`.
+The server card and `/mcp` share their identity through `config/mcp.ts`.
 Existing MCP protocol routes and tool contracts are unchanged.
 
 See the toolkit's [listing definitions guide](https://mcp-toolkit.nuxt.dev/advanced/listing-definitions).

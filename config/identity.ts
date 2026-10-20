@@ -5,7 +5,7 @@ import { defineOrganization } from "nuxt-schema-org/schema";
  */
 export const APP_IDENTITY = {
   /** Main application title shown in browser/page metadata. */
-  siteTitle: "Onderwijsloket Assitent",
+  siteTitle: "Onderwijsloket Assistent",
   /** Primary SEO description used in page metadata. */
   siteDescription: "Een experimentele MCP server voor het Onderwijsloket met Assistent UI."
 } as const;
