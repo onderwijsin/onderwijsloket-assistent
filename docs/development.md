@@ -45,6 +45,12 @@ For documentation-only edits, formatting can target the changed Markdown files. 
 
 ## Testing
 
+The pre-push hook runs `corepack pnpm test`, covering both unit and HTTP e2e
+projects. Test failures block the push. Existing typecheck and lint gates run
+first, with their existing opt-out flags; the test gate has no opt-out flag.
+The hook uses the project-pinned package manager through Corepack and requires
+the same build-time environment access as the e2e suite.
+
 Vitest runs two projects, following its [test projects configuration](https://vitest.dev/guide/projects).
 Both use Node; there is no Playwright, browser runner or separate integration suite.
 
