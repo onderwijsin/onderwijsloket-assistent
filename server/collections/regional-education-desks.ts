@@ -232,7 +232,7 @@ const desks = defineMcpCollection({
   cache: cacheDurations.collections.regional_education_desks,
   id: idSchema,
   description:
-    "The regional_education_desks collection describes regional organizations that guide people interested in working in education. It helps prospective entrants and advisers find local support, consultation services, orientation activities and public contact options. Each desk includes its service area, regional and municipality labels, relevant education sectors and, where available, a physical meeting location. Detail records keep the desk description and consultation-service description separate, with scheduling links, service links, phone availability and email response expectations. Coverage describes a service region rather than a teaching location; sampled interior points are search approximations and do not establish exact eligibility. Use educational_institutions and programs for training providers and study pathways. Inspect warnings when coverage or an advertised location is unavailable, and contact the desk to confirm services or appointments.",
+    "The regional_education_desks collection describes regional organizations that guide people interested in working in education. For local advice services, call search_regional_education_desks with location set to a city, postcode or address and optional radius in metres (default 50000). Geo-search sorts nearest service areas first and returns the resolved location, full address, effective radius and per-hit distances in geo metadata. Distances are approximate distances to service-area grid points, not offices or exact polygon boundaries. Keep topic or desk-name terms in query; omit query to browse nearby service areas. It helps prospective entrants and advisers find local support, consultation services, orientation activities and public contact options. Each desk includes its service area, regional and municipality labels, relevant education sectors and, where available, a physical meeting location. Detail records keep the desk description and consultation-service description separate, with scheduling links, service links, phone availability and email response expectations. Coverage describes a service region rather than a teaching location; sampled interior points do not establish exact eligibility. Use educational_institutions and programs for training providers and study pathways. Inspect warnings when coverage or an advertised location is unavailable, and contact the desk to confirm services or appointments.",
   operations: {
     list: "list_regional_education_desks",
     get: "get_regional_education_desk",
@@ -262,6 +262,7 @@ const desks = defineMcpCollection({
   ...defineCollectionSearch({
     name: "regional_education_desks",
     indexName: "regional_education_desks",
+    geoSearch: "service_area_grid",
     filterSchema: z.strictObject({
       "sectors.title": z.array(z.string().min(1).max(300)).min(1).max(50).optional(),
       has_consultation_service: z.array(z.boolean()).min(1).max(2).optional(),

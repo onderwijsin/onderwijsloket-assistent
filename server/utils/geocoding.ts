@@ -4,7 +4,8 @@ import { defineCachedFunction } from "nitropack/runtime";
 import { z } from "zod";
 import { cacheDurations } from "../../config/cache";
 
-const querySchema = z
+/** Mapbox free-text query limits, shared with location-aware search inputs. */
+export const geocodingQuerySchema = z
   .string()
   .trim()
   .min(1)
@@ -15,7 +16,8 @@ const querySchema = z
     "Geocoding queries cannot exceed 20 words."
   );
 
-const locationSchema = z.object({
+/** Validated location metadata returned by Mapbox forward geocoding. */
+export const geocodingLocationSchema = z.object({
   mapboxId: z.string(),
   name: z.string(),
   fullAddress: z.string(),
@@ -24,7 +26,7 @@ const locationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional()
 });
-const locationsSchema = z.array(locationSchema);
+const locationsSchema = z.array(geocodingLocationSchema);
 const responseSchema = z.object({
   type: z.literal("FeatureCollection"),
   features: z.array(
@@ -40,13 +42,13 @@ const responseSchema = z.object({
         full_address: z.string(),
         feature_type: z.string()
       }),
-      bbox: locationSchema.shape.bbox
+      bbox: geocodingLocationSchema.shape.bbox
     })
   )
 });
 
 /** A ranked Mapbox location; coordinates are explicitly longitude/latitude. */
-export type GeocodingLocation = z.output<typeof locationSchema>;
+export type GeocodingLocation = z.output<typeof geocodingLocationSchema>;
 
 /** Stable error codes without provider URLs, query text or API credentials. */
 export class GeocodingError extends Error {
@@ -81,7 +83,9 @@ async function requestLocations(query: string, temporary: boolean): Promise<Geoc
         access_token: ENV.MAPBOX_API_TOKEN,
         permanent: !temporary,
         autocomplete: false,
-        language: "nl"
+        language: "nl",
+        // Bias ambiguous place names toward central Netherlands without restricting the country.
+        proximity: "5.3,52.2"
       },
       timeout: 10_000,
       retry: 0
@@ -103,7 +107,7 @@ async function requestLocations(query: string, temporary: boolean): Promise<Geoc
 }
 
 const cachedLocations = defineCachedFunction(requestLocations, {
-  name: "mapbox-geocoding-nl-v1",
+  name: "mapbox-geocoding-nl-proximity-v1",
   maxAge: cacheDurations.geocoding,
   swr: false,
   validate: (entry) => locationsSchema.safeParse(entry.value).success
@@ -116,7 +120,7 @@ const cachedLocations = defineCachedFunction(requestLocations, {
  * @throws GeocodingError for invalid input, missing token, provider or response failures.
  */
 export async function geocode(value: string): Promise<GeocodingLocation[]> {
-  const query = querySchema.safeParse(value);
+  const query = geocodingQuerySchema.safeParse(value);
   if (!query.success) throw new GeocodingError("INVALID_QUERY");
   if (!ENV.MAPBOX_API_TOKEN?.trim()) throw new GeocodingError("NOT_CONFIGURED");
   const temporary = ENV.MAPBOX_ENABLE_TEMPORARY_GEOCODING;

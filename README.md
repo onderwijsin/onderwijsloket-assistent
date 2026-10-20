@@ -9,6 +9,7 @@ Onderwijsloket Assistent lets AI assistants find guidance, compare education pro
 ## What the server provides
 
 - **Ten core content collections** with dedicated tools for browsing, searching and reading individual records.
+- **Geo-search** for programs, educational institutions and regional education desks: resolve a city, postcode or address, search within a configurable radius and return nearest-first results with location and distance metadata.
 - **Filter discovery** for education sectors, qualifications, audiences, career phases, roles, topics and tracks, with collection-specific search facets and counts.
 - **Structured detail records** with relevant relationships, including program forms, institution locations, regional service areas, authors, sources and podcast participants.
 - **Readable resources** for every core collection, with YAML metadata, Markdown content and transcripts where available.
@@ -68,6 +69,26 @@ For example, call `search_articles` to find guidance about an alternative route 
 
 Search results contain lightweight records and matched snippets. Pass a returned ID to `get_article` for the full record, or follow its resource link for a Markdown document. The same search-to-detail workflow applies to the other collections.
 
+### Find nearby programs, institutions or advice services
+
+Call `search_programs`, `search_educational_institutions` or `search_regional_education_desks`
+with `location` to search geographically. For example, search programs near Utrecht:
+
+```json
+{
+  "location": "Utrecht",
+  "radius": 25000,
+  "query": "leraar"
+}
+```
+
+`radius` is optional and defaults to 50,000 metres. Keep `query` for the subject or
+program name; use `location` for the geographic centre. Results sort nearest first
+and include `geo` metadata with the matched coordinates, full address, applied radius
+and each hit's distance in metres. Regional desk distances approximate service-area
+coverage using indexed grid points. See [geographic search](docs/search.md#geographic-search)
+for the contract and [geocoding](docs/geocoding.md) for Mapbox environment configuration.
+
 ## Resources and data quality
 
 Every collection exposes a resource catalogue and a URI template:
@@ -115,17 +136,17 @@ See the [testing guide](tests/README.md) for focused commands, fixture conventio
 
 ## Documentation
 
-| Guide                                              | Covers                                                         |
-| -------------------------------------------------- | -------------------------------------------------------------- |
-| [Collection registry](docs/collection-registry.md) | Architecture, public contracts and responsibilities by layer.  |
-| [Collection data](docs/collection-data.md)         | Domain relationships, native records and reusable projections. |
-| [Search](docs/search.md)                           | Source filters, search indexes, snippets and facets.           |
-| [Resources](docs/collection-resources.md)          | Catalogues, URI templates and readable documents.              |
-| [Content documents](docs/content-documents.md)     | Editor content hydration and Markdown rendering.               |
-| [Taxonomies](docs/taxonomies.md)                   | Filter identities, archive links and normalization.            |
-| [Caching](docs/cache.md)                           | Cache configuration, freshness and failure behavior.           |
-| [Data access](docs/data-access.md)                 | Visibility and source-system responsibilities.                 |
-| [Development](docs/development.md)                 | Environment setup, checks and contributor conventions.         |
-| [Tool analytics](docs/tool-analytics.md)           | Optional server-side analytics and query-data controls.        |
+| Guide                                              | Covers                                                           |
+| -------------------------------------------------- | ---------------------------------------------------------------- |
+| [Collection registry](docs/collection-registry.md) | Architecture, public contracts and responsibilities by layer.    |
+| [Collection data](docs/collection-data.md)         | Domain relationships, native records and reusable projections.   |
+| [Search](docs/search.md)                           | Source filters, geo-search, search indexes, snippets and facets. |
+| [Resources](docs/collection-resources.md)          | Catalogues, URI templates and readable documents.                |
+| [Content documents](docs/content-documents.md)     | Editor content hydration and Markdown rendering.                 |
+| [Taxonomies](docs/taxonomies.md)                   | Filter identities, archive links and normalization.              |
+| [Caching](docs/cache.md)                           | Cache configuration, freshness and failure behavior.             |
+| [Data access](docs/data-access.md)                 | Visibility and source-system responsibilities.                   |
+| [Development](docs/development.md)                 | Environment setup, checks and contributor conventions.           |
+| [Tool analytics](docs/tool-analytics.md)           | Optional server-side analytics and query-data controls.          |
 
 Maintained by [Stichting Onderwijs in](https://onderwijsin.nl) for [Onderwijsloket](https://onderwijsloket.com). Report bugs and request features through [GitHub issues](https://github.com/onderwijsin/onderwijsloket-assistent/issues).

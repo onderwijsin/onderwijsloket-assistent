@@ -6,6 +6,14 @@ import { useAlgoliaClient } from "./algolia-client";
 import { findSearchSnippet } from "./snippets";
 import { useSourceUrl } from "../use-source-url";
 import {
+  geoSearchFields,
+  geoSearchMetadataSchema,
+  geoHitSchema,
+  resolveGeoSearch,
+  geoSearchParams,
+  geoHitMetadata
+} from "./geo";
+import {
   searchRecordSchema,
   searchFiltersSchema,
   searchOptionsSchema,
@@ -95,13 +103,16 @@ async function buildFacetFilters(
  */
 export function defineCollectionSearch<
   RecordSchema extends z.ZodObject = typeof searchRecordSchema,
-  Filters extends z.ZodObject | typeof searchFiltersSchema = typeof searchFiltersSchema
+  Filters extends z.ZodObject | typeof searchFiltersSchema = typeof searchFiltersSchema,
+  Geo extends "indexed_location" | "service_area_grid" | undefined = undefined
 >(options: {
   name: string;
   indexName: string;
   recordSchema?: RecordSchema;
   filterSchema?: Filters;
   attributes?: readonly string[];
+  /** Enable location/radius inputs and describe the meaning of indexed point distances. */
+  geoSearch?: Geo;
   /**
    * Map untrusted provider hits into the collection's public output.
    * @param hit - Untrusted provider attributes from the explicit projection.
@@ -127,8 +138,39 @@ export function defineCollectionSearch<
   };
   const recordSchema = (options.recordSchema ?? searchRecordSchema) as RecordSchema;
   const filterSchema = (options.filterSchema ?? searchFiltersSchema) as Filters;
-  const searchOptions = searchOptionsSchema.extend({ filters: filterSchema.optional() });
-  const searchResult = createSearchResultSchema(recordSchema);
+  const geoOptions = searchOptionsSchema.extend(geoSearchFields);
+  const filtersField = filterSchema.optional();
+  // Preserve the opt-in fields in each collection's inferred input contract.
+  const geoFields = (options.geoSearch ? geoSearchFields : {}) as Geo extends undefined
+    ? {}
+    : typeof geoSearchFields;
+  const searchOptions = z.strictObject({
+    ...searchOptionsSchema.shape,
+    ...geoFields,
+    filters: filtersField
+  });
+  const geoField = geoHitSchema
+    .optional()
+    .describe("Distance metadata, present only for location search.");
+  const geoRecordSchema = z.object({
+    ...recordSchema.shape,
+    geo: geoField
+  } as RecordSchema["shape"] & { geo: typeof geoField });
+  const ordinaryResult = createSearchResultSchema(recordSchema);
+  const geographicResult = createSearchResultSchema(geoRecordSchema).extend({
+    records: z
+      .array(geoRecordSchema)
+      .max(25)
+      .describe(
+        "Lightweight hits, sorted by distance when location is supplied and by index relevance otherwise. Use the detail tool for complete records."
+      ),
+    geo: geoSearchMetadataSchema
+      .optional()
+      .describe("Resolved location and applied radius, present only for location search.")
+  });
+  const searchResult = (
+    options.geoSearch ? geographicResult : ordinaryResult
+  ) as Geo extends undefined ? typeof ordinaryResult : typeof geographicResult;
   const facetNames =
     options.filterSchema instanceof z.ZodObject
       ? Object.keys(options.filterSchema.shape)
@@ -168,7 +210,11 @@ export function defineCollectionSearch<
      * @returns Validated lightweight search results with query context and pagination.
      */
     async search(input: z.output<typeof searchOptions>) {
-      const args = searchOptionsSchema.parse(searchOptions.parse(input));
+      const parsed = searchOptions.parse(input);
+      const args = searchOptionsSchema.strip().parse(parsed);
+      const geo = options.geoSearch
+        ? await resolveGeoSearch(geoOptions.parse(parsed), options.geoSearch)
+        : undefined;
       try {
         validateFacets(args);
         const response = await useAlgoliaClient().searchSingleIndex<Record<string, unknown>>({
@@ -185,29 +231,32 @@ export function defineCollectionSearch<
             attributesToHighlight: [],
             highlightPreTag: "**",
             highlightPostTag: "**",
-            analytics: false
+            analytics: false,
+            ...(geo ? geoSearchParams(geo) : {})
           }
         });
         const pagination = paginationSchema.parse(response);
         const records = response.hits.map((hit) => {
           const path = hit[fields.path];
           const snippet = args.query ? findSearchSnippet(hit._snippetResult) : null;
-          if (options.mapHit)
-            return recordSchema.parse(options.mapHit(hit, { collection: options.name, snippet }));
-          return recordSchema.parse({
-            id: hit[fields.id] ?? hit.objectID,
-            collection: options.name,
-            title: hit[fields.title],
-            slug: hit[fields.slug] ?? "",
-            description: hit[fields.description] ?? "",
-            source_url: typeof path === "string" ? useSourceUrl(path) : null,
-            snippet
-          });
+          const record = options.mapHit
+            ? recordSchema.parse(options.mapHit(hit, { collection: options.name, snippet }))
+            : recordSchema.parse({
+                id: hit[fields.id] ?? hit.objectID,
+                collection: options.name,
+                title: hit[fields.title],
+                slug: hit[fields.slug] ?? "",
+                description: hit[fields.description] ?? "",
+                source_url: typeof path === "string" ? useSourceUrl(path) : null,
+                snippet
+              });
+          return geo ? { ...record, geo: geoHitMetadata(hit._rankingInfo) } : record;
         });
         return searchResult.parse({
           collection: options.name,
           query: args.query,
           records,
+          ...(geo ? { geo } : {}),
           page: args.page,
           page_size: args.page_size,
           total: pagination.nbHits,

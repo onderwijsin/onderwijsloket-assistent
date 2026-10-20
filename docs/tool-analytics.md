@@ -14,7 +14,9 @@ No dependency or API key is required. The integration uses ofetch to post JSON t
 ## Configuration
 
 `PLAUSIBLE_DOMAIN` supplies the site identifier. Missing domains disable delivery.
-The default enables events only in production when `DISABLE_TRACKING` is not true.
+The default enables events whenever `DISABLE_TRACKING` is not true, including
+development when a domain is configured. This is independent of browser tracking.
+Set `NUXT_TOOL_ANALYTICS_ENABLED=false` to disable MCP analytics locally.
 Server-only runtime config overrides are available at deployment:
 
 | Environment variable               | Purpose                                                                           |
@@ -64,3 +66,12 @@ Plausible may discard bot clients, missing attribution or hosting IPs even with 
 `x-plausible-dropped: 1` produces a warning. SDK clients often identify as bots, so
 Plausible totals can undercount actual executions. Use event totals, not unique visitors,
 for usage reporting; this integration does not guarantee exhaustive operational counts.
+
+The dropped-event warning confirms rejection by Plausible's bot filtering; it does
+not identify the specific triggering header and does not indicate an MCP tool failure.
+Server-hosted MCP clients may legitimately originate from hosting-provider IPs.
+Behind a non-Cloudflare proxy, the direct peer fallback may instead be the proxy IP.
+Do not replace these with fabricated visitor IPs or browser User-Agents to bypass filtering.
+For targeted diagnostics, the [Events API](https://plausible.io/docs/events-api#debugging)
+supports `X-Debug-Request: true`, returning the IP Plausible would use. This integration
+does not send that header or log client attribution data by default.

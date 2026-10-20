@@ -12,6 +12,14 @@ The shared registry receives a narrower discovery view: identity, descriptions, 
 
 Record tools remain explicit: `list_articles`, `get_article`, `search_articles`, and their equivalents for other collections. Their names select the collection, so they do not accept redundant collection selectors. Shared discovery tools do. Concrete tool files preserve individually advertised input/output schemas and domain guidance; a generic runtime router would obscure those contracts for little maintenance benefit.
 
+Programs, educational institutions and regional education desks highlight geographic
+search in their collection descriptions and search tool descriptions. Collection
+descriptions flow through `list_collections`, `describe_collection` and resource
+descriptions, so discovery includes instructions for `location`, optional `radius`,
+nearest-first ranking and geographic response metadata. Tool descriptions distinguish
+location text from the subject query and explain approximate service-area distances
+for desks. See [geographic search](search.md#geographic-search) for the full contract.
+
 ## Responsibilities by layer
 
 | Location                    | Responsibility                                                                                            |
@@ -70,4 +78,4 @@ The larger collection modules combine closely related schemas, typed queries and
 
 See the [testing guide](../tests/README.md) for the appropriate validation boundary. Pure descriptor tests require no provider/runtime mocks; native contract tests and HTTP tests protect the wiring between the separate layers.
 
-See [collection data](collection-data.md) for relationship semantics, [search](search.md) for index discovery, [resources](collection-resources.md) for representations and [caching](cache.md) for freshness boundaries. Directus visibility remains governed by [data access responsibilities](data-access.md). Geocoding and exact geographic matching are future features, not implied by returning coordinates.
+See [collection data](collection-data.md) for relationship semantics, [search](search.md) for index discovery and geographic search, [resources](collection-resources.md) for representations and [caching](cache.md) for freshness boundaries. Directus visibility remains governed by [data access responsibilities](data-access.md). Regional desk geographic searches approximate coverage using indexed grid points; exact polygon matching remains unavailable.

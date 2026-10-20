@@ -163,7 +163,7 @@ export default defineMcpCollection({
   cache: cacheDurations.collections.educational_institutions,
   id: idSchema,
   description:
-    "The educational_institutions collection describes organizations offering educational programs, including vocational institutions, universities of applied sciences and universities. It helps prospective education professionals and advisers identify providers, understand their institutional context and find public contact information and teaching locations. Institution records retain organizational type, codes, language-tagged websites, descriptions, logos and separate main and additional locations. Source vendor metadata indicates provenance, while update dates indicate record freshness. Use institutions to explore providers and their locations; use programs filtered by an institution ID to discover its educational offerings rather than assuming every program is embedded in the provider record.",
+    "The educational_institutions collection describes organizations offering educational programs, including vocational institutions, universities of applied sciences and universities. For nearby providers, call search_educational_institutions with location set to a city, postcode or address and optional radius in metres (default 50000). Geo-search sorts nearest first and returns the resolved location, full address, effective radius and per-hit distances in geo metadata. Keep institution names or other text in query; omit query to browse nearby institutions. It helps prospective education professionals and advisers identify providers, understand their institutional context and find public contact information and teaching locations. Institution records retain organizational type, codes, language-tagged websites, descriptions, logos and separate main and additional locations. Source vendor metadata indicates provenance, while update dates indicate record freshness. Use programs filtered by an institution ID to discover its educational offerings rather than assuming every program is embedded in the provider record.",
   operations: {
     list: "list_educational_institutions",
     get: "get_educational_institution",
@@ -188,6 +188,7 @@ export default defineMcpCollection({
   ...defineCollectionSearch({
     name: "educational_institutions",
     indexName: "educational_institutions",
+    geoSearch: "indexed_location",
     filterSchema: z.strictObject({
       type: z.array(z.string().min(1).max(300)).min(1).max(50).optional()
     }),

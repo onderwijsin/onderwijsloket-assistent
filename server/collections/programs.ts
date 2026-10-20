@@ -261,7 +261,7 @@ const programs = defineMcpCollection({
   cache: cacheDurations.collections.programs,
   id: idSchema,
   description:
-    "The programs collection describes educational programs and pathways that prepare people for qualifications and roles in the Dutch education sector. It helps prospective students, career switchers and advisers compare program classifications, levels, degree labels, funding, registry codes and providers. Records link to the institutions offering a program, its teaching location, relevant qualifications, professional roles, school subjects and education sectors. Individual program forms retain their own pathway, external information link and readable description rather than merging different variants into one account. Vendor metadata identifies the origin of programs and their related providers. Use programs to explore concrete study options and use institution records for provider contacts and additional locations; no exact geographic matching or personalized eligibility determination is implied.",
+    "The programs collection describes educational programs and pathways that prepare people for qualifications and roles in the Dutch education sector. For nearby study options, call search_programs with location set to a city, postcode or address and optional radius in metres (default 50000). Geo-search sorts nearest first and returns the resolved location, full address, effective radius and per-hit distances in geo metadata. Keep subject or program terms in query; omit query to browse nearby programs. It helps prospective students, career switchers and advisers compare program classifications, levels, degree labels, funding, registry codes and providers. Records link to the institutions offering a program, its teaching location, relevant qualifications, professional roles, school subjects and education sectors. Individual program forms retain their own pathway, external information link and readable description rather than merging different variants into one account. Vendor metadata identifies the origin of programs and their related providers. Use institution records for provider contacts and additional locations. Program records do not determine personalized eligibility.",
   operations: { list: "list_programs", get: "get_program", search: "search_programs" },
   resources: [{ uri_template: "onderwijsloket://programs/{id}", mime_type: "text/markdown" }],
   summary: summarySchema,
@@ -277,6 +277,7 @@ const programs = defineMcpCollection({
   ...defineCollectionSearch({
     name: "programs",
     indexName: "programs",
+    geoSearch: "indexed_location",
     attributes: [
       "id",
       "title",

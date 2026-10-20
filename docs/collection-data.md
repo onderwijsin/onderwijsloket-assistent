@@ -39,7 +39,7 @@ Locations preserve structured addresses, their own source vendor and optional op
 
 Desk coverage is independent of a physical location. Areas retain identity/title and nullable Point center, Polygon bounds and MultiPoint samples. Rings are closed and coordinates range-validated; geometry is not silently truncated. An unavailable area relation is null with a coverage warning, never an empty service region. A missing advertised physical location gets a separate warning without erasing coverage. Desk phone availability is distinct from location opening hours. No desk vendor is invented.
 
-Grid samples used by the search index are approximations, not addresses or proof of exact eligibility. Geocoding, radius matching and exact coverage tools remain separate future features. Desk array membership filtering is limited by source support; search has its own supported facets.
+Grid samples used by the search index are approximations, not addresses or proof of exact eligibility. [Geographic search](search.md#geographic-search) geocodes location text and applies a radius to indexed grid points; exact polygon coverage tools remain unavailable. Desk array membership filtering is limited by source support; search has its own supported facets.
 
 ## Podcast and video content
 

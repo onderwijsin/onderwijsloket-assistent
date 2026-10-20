@@ -1,7 +1,8 @@
 # Geocoding
 
 `server/utils/geocoding.ts` exports `geocode(value: string): Promise<GeocodingLocation[]>`
-for server-side Mapbox v6 forward geocoding. No HTTP route or MCP tool is exposed yet.
+for server-side Mapbox v6 forward geocoding. Location-aware [search tools](search.md#geographic-search)
+use this utility; there is no standalone geocoding HTTP route or MCP tool.
 
 ```ts
 import { geocode } from "./geocoding"; // Adjust the import for the calling server utility.
@@ -14,10 +15,13 @@ const best = locations[0];
 Results follow Mapbox relevance order (up to its default five matches). Each contains
 `mapboxId`, `name`, `fullAddress`, `featureType`, `longitude`, `latitude` and an optional
 `bbox` in west/south/east/north order. No match returns `[]`; ambiguous queries can
-return several candidates. There is no country restriction or IP-based proximity bias.
+return several candidates. Requests use `proximity=5.3,52.2` (longitude,latitude), a
+fixed point in central Netherlands, to bias ambiguous names such as Soest toward
+nearby Dutch matches. This is a preference, not a country restriction or guarantee;
+explicit foreign locations can still match. The server's IP does not determine the bias.
 Autocomplete is disabled because this utility resolves submitted queries.
 Requests use `language=nl` for Dutch result text and relevance. The cache namespace
-isolates these results from earlier requests without an explicit language.
+isolates these results from earlier requests without this language and proximity bias.
 
 ## Environment and storage
 

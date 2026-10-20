@@ -125,6 +125,21 @@ describe("application", async () => {
     );
     expect(listTool.inputSchema.properties.filters.properties.title.description).toContain("Exact");
     expect(listTool.inputSchema.properties.page.default).toBe(1);
+    for (const name of [
+      "search_programs",
+      "search_educational_institutions",
+      "search_regional_education_desks"
+    ]) {
+      const tool = result.result.tools.find((entry: { name: string }) => entry.name === name);
+      expect(tool.inputSchema.properties.location.type).toBe("string");
+      expect(tool.inputSchema.properties.radius.type).toBe("integer");
+      expect(
+        tool.outputSchema.properties.geo.properties.matched_location.properties
+      ).toHaveProperty("fullAddress");
+      expect(tool.outputSchema.properties.records.items.properties.geo.properties).toHaveProperty(
+        "distance_meters"
+      );
+    }
     for (const name of ["list_articles", "get_article", "search_articles"]) {
       const tool = result.result.tools.find((entry: { name: string }) => entry.name === name);
       expect(tool.inputSchema.properties).not.toHaveProperty("collection");

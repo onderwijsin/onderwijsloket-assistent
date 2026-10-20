@@ -67,6 +67,8 @@ describe("Mapbox geocoding", () => {
     await geocode("Utrecht");
     expect(request).toHaveBeenCalledTimes(3);
     expect(request.mock.lastCall?.[1].query.permanent).toBe(!temporary);
+    expect(request.mock.lastCall?.[1].query.proximity).toBe("5.3,52.2");
+    expect(request.mock.lastCall?.[1].query).not.toHaveProperty("country");
     expect(entries).toEqual(stored);
   });
   it("normalizes results, coalesces requests and expires permanent results after 90 days", async () => {
@@ -89,7 +91,8 @@ describe("Mapbox geocoding", () => {
         access_token: "secret",
         permanent: true,
         autocomplete: false,
-        language: "nl"
+        language: "nl",
+        proximity: "5.3,52.2"
       },
       timeout: 10_000,
       retry: 0
