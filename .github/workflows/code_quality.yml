@@ -81,3 +81,20 @@ jobs:
 
       - name: Typecheck
         run: ${{ inputs.typecheck-command }}
+
+  test:
+    name: Unit and e2e tests
+    runs-on: ${{ inputs.runner }}
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    env:
+      PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node.js, pnpm and install dependencies
+        uses: ./.github/actions/setup
+        with:
+          proton-pass-personal-access-token: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
+
+      - name: Run unit and HTTP e2e tests
+        run: corepack pnpm test

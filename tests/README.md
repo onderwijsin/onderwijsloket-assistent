@@ -17,6 +17,11 @@ corepack pnpm typecheck       # Application and test TypeScript checks
 
 HTTP tests build the application, so the configured Varlock environment, secrets-provider access and build-time services must be available. Runtime Directus and Algolia requests use local fixtures with synthetic credentials. See [development](../docs/development.md) for environment setup.
 
+The reusable Code Quality workflow runs the complete suite in its **Unit and e2e
+tests** job for pull requests to `main`, alongside lint and typecheck. It uses the
+same setup and build-time credentials as the other quality jobs and skips
+Dependabot runs.
+
 ## Where tests belong
 
 | Location        | Responsibility                                                                         |

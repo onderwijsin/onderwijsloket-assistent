@@ -45,6 +45,14 @@ For documentation-only edits, formatting can target the changed Markdown files. 
 
 ## Testing
 
+The reusable Code Quality workflow runs `corepack pnpm test` in a separate job
+alongside lint and typecheck for pull requests targeting `main`. This includes unit
+and HTTP e2e tests; the e2e suite builds and starts its own Node server, so no
+separate build step is needed. The job uses the configured runner and Proton Pass
+secret for build-time environment access. Like the other quality jobs, it skips
+Dependabot runs. Configure the test job as a required check in branch rules to
+block merges when tests fail.
+
 The pre-push hook runs `corepack pnpm test`, covering both unit and HTTP e2e
 projects. Test failures block the push. Existing typecheck and lint gates run
 first, with their existing opt-out flags; the test gate has no opt-out flag.

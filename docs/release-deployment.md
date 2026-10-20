@@ -35,7 +35,7 @@ still proceeds when selected, using the commit analyzed by that run.
 
 The release job does not rerun lint, type checks or tests. Verify the intended
 changes before dispatch and configure branch protections to enforce required
-checks. The pull-request workflow runs lint and type checks; see
+checks. The pull-request workflow runs lint, type checks, and unit and HTTP e2e tests; see
 [development](development.md) and the [testing guide](../tests/README.md) for local checks.
 
 ## Coolify deployment
