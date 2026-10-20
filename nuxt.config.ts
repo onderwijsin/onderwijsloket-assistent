@@ -123,6 +123,8 @@ export default defineNuxtConfig({
 
   aiReady: false,
 
+  skewProtection: false,
+
   schemaOrg: {
     identity: isTest ? undefined : identity
   },
