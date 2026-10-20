@@ -57,7 +57,7 @@ The [testing guide](../tests/README.md) owns test commands, fixture conventions,
 
 ## Architecture entry points
 
-Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. Geocoding, domain workflows, chat and prompts are separate future work.
+Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. The [geocoding utility](geocoding.md) supports server-side location lookup; integration into geo search is future work, alongside domain workflows, chat and prompts.
 
 ## Server JSDoc
 

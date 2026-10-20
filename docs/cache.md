@@ -2,6 +2,10 @@
 
 `config/cache.ts` controls server cache lifetimes in seconds. Every production collection explicitly supplies its detail settings to `defineMcpCollection`; test-only definitions are uncached unless they opt in.
 
+[Mapbox geocoding](geocoding.md) uses a separate 90-day result cache controlled
+by `geocoding`. `MAPBOX_ENABLE_GEOCODING_CACHE` controls reads and writes independently
+of the selected geocoding mode.
+
 | Setting                     | Default | Boundary/key                                                                                 |
 | --------------------------- | ------- | -------------------------------------------------------------------------------------------- |
 | `collections.<name>.detail` | 300     | Validated normalized detail record, isolated by collection and record ID                     |

@@ -1,5 +1,7 @@
 /** MCP cache lifetimes in seconds. Expired entries are refreshed before returning. */
 export const cacheDurations = {
+  /** Mapbox geocoding TTL when caching is enabled. */
+  geocoding: 90 * 24 * 60 * 60,
   /** Per-collection detail TTLs; tools/resources share records. Set detail to false to disable. */
   collections: {
     articles: { detail: 5 * 60 },
