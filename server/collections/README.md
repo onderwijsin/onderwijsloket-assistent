@@ -15,7 +15,7 @@ Collection definitions are the source of truth for the MCP server’s data contr
 | `facets(options)`          | Search filter values and counts for the supplied context.        |
 | `resourceMetadata(record)` | Metadata selected for resource front matter.                     |
 
-List filters cover title, slug, language, sectors, qualifications, audiences, phases, roles, topics and tracks. Summaries and details include normalized sectors, qualifications, roles, topics and tracks. Taxonomy entries share the `{ id, title, slug, description }` shape.
+List filters cover title, slug, language, sectors, qualifications, audiences, phases, roles, topics and tracks. Summaries and details include normalized sectors, qualifications, roles, topics and tracks. Taxonomy entries share the `{ id, title, source_url, description }` shape.
 
 ## Shared contracts
 

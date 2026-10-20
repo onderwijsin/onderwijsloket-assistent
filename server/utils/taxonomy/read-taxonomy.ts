@@ -42,7 +42,7 @@ const readCachedTaxonomy = cachedFunction(
         records = await useDirectusServer(
           readItems<Schema, typeof collection, Query<Schema, Schema[typeof collection][number]>>(
             collection,
-            { ...query, fields: ["id", "name", "slug", "description"] }
+            { ...query, fields: ["id", "name", "path", "description"] }
           )
         );
     }
@@ -50,7 +50,7 @@ const readCachedTaxonomy = cachedFunction(
     return z.array(createTaxonomySourceSchema(collection)).parse(records);
   },
   {
-    name: "read-taxonomy",
+    name: "read-taxonomy-archive-urls",
     maxAge: cacheDurations.taxonomy,
     // Refresh expired values before returning; filter discovery must not serve stale choices.
     swr: false,

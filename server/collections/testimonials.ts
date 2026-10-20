@@ -127,9 +127,9 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
       { sectors: [{ sectors_id: ["id", "title", "slug", "description"] }] },
       { audiences: [{ audiences_id: ["id", "title"] }] },
       { phases: [{ phases_id: ["id", "title", "description"] }] },
-      { roles: [{ roles_id: ["id", "name", "slug", "description"] }] },
-      { topics: [{ topics_id: ["id", "name", "slug", "description"] }] },
-      { tracks: [{ tracks_id: ["id", "name", "slug", "description"] }] },
+      { roles: [{ roles_id: ["id", "name", "path", "description"] }] },
+      { topics: [{ topics_id: ["id", "name", "path", "description"] }] },
+      { tracks: [{ tracks_id: ["id", "name", "path", "description"] }] },
       { authors: [{ authors_id: authorFields }] },
       { profiles: [{ profiles_id: profileFields }] },
       ...(id ? ["body" as const, { editor_nodes: editorNodeFields }] : [])

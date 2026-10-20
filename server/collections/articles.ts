@@ -142,10 +142,10 @@ function buildArticleQuery(
       "date_updated",
       "english",
       { sectors: [{ sectors_id: ["id", "title", "slug", "description"] }] },
-      { qualifications: [{ qualifications_id: ["id", "name", "slug", "description"] }] },
-      { roles: [{ roles_id: ["id", "name", "slug", "description"] }] },
-      { topics: [{ topics_id: ["id", "name", "slug", "description"] }] },
-      { tracks: [{ tracks_id: ["id", "name", "slug", "description"] }] },
+      { qualifications: [{ qualifications_id: ["id", "name", "path", "description"] }] },
+      { roles: [{ roles_id: ["id", "name", "path", "description"] }] },
+      { topics: [{ topics_id: ["id", "name", "path", "description"] }] },
+      { tracks: [{ tracks_id: ["id", "name", "path", "description"] }] },
       // List responses need metadata only; fetch documents and embedded blocks for detail reads.
       ...(id
         ? [
@@ -318,7 +318,7 @@ export default defineMcpCollection({
     },
     {
       // Exclude older cached payloads that fabricated a body from record metadata.
-      name: "articles-get-nullable-content",
+      name: "articles-get-taxonomy-archive-urls",
       maxAge: cacheDurations.article,
       swr: false /**
        * Isolate cached data by its configured identifier.

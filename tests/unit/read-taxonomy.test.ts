@@ -35,7 +35,11 @@ beforeEach(() => {
       {
         id,
         [label]: name,
-        ...(!["phases", "audiences"].includes(name) ? { slug: name } : {}),
+        ...(name === "sectors"
+          ? { slug: "sectors" }
+          : !["phases", "audiences"].includes(name)
+            ? { path: `/archive/${name}` }
+            : {}),
         ...(name !== "audiences" ? { description: "Description" } : {})
       }
     ];
@@ -50,18 +54,35 @@ describe("readTaxonomy", () => {
     expect(result.find((value) => value.title === "school_subjects")).toEqual({
       id,
       title: "school_subjects",
-      slug: "school_subjects",
+      source_url: "https://onderwijsloket.com/archive/school_subjects",
       description: "Description"
     });
     expect(result.find((value) => value.title === "audiences")).toEqual({
       id,
       title: "audiences",
-      slug: null,
+      source_url: null,
       description: null
     });
+    expect(result.every((value) => !("slug" in value))).toBe(true);
+    expect(result.find((value) => value.title === "phases")?.source_url).toBeNull();
+    expect(result.find((value) => value.title === "sectors")?.source_url).toBe(
+      "https://onderwijsloket.com/sectors"
+    );
     for (const [command] of read.mock.calls) {
       expect(command().params.limit).toBe(-1);
       expect(command().params).not.toHaveProperty("offset");
+      const name = command().path.split("/").pop();
+      const fields = command().params.fields;
+      if (name === "sectors") {
+        expect(fields).toContain("slug");
+        expect(fields).not.toContain("path");
+      } else if (["audiences", "phases"].includes(name)) {
+        expect(fields).not.toContain("slug");
+        expect(fields).not.toContain("path");
+      } else {
+        expect(fields).toContain("path");
+        expect(fields).not.toContain("slug");
+      }
     }
   });
   it("reuses Nitro cache per collection across overlapping selections and expires after one minute", async () => {
@@ -75,10 +96,15 @@ describe("readTaxonomy", () => {
     expect(read).toHaveBeenCalledTimes(2);
     vi.advanceTimersByTime(2000);
     read.mockResolvedValue([
-      { id, name: "Updated topic", slug: "updated", description: "Updated" }
+      { id, name: "Updated topic", path: "/archive/updated", description: "Updated" }
     ]);
     expect(await readTaxonomy(["topics"])).toEqual([
-      { id, title: "Updated topic", slug: "updated", description: "Updated" }
+      {
+        id,
+        title: "Updated topic",
+        source_url: "https://onderwijsloket.com/archive/updated",
+        description: "Updated"
+      }
     ]);
     expect(read).toHaveBeenCalledTimes(3);
   });

@@ -44,7 +44,7 @@ describe("FAQ contracts", () => {
       {
         id: sectorId,
         title: "Primary education",
-        slug: "primary",
+        source_url: "https://onderwijsloket.com/primary",
         description: "Primary education"
       }
     ]);

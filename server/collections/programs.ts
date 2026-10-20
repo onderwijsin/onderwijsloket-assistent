@@ -196,9 +196,9 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
       { location: locationFields },
       { educational_institutions: [{ educational_institutions_id: institutionReferenceFields }] },
       { sectors: [{ sectors_id: ["id", "title", "slug", "description"] }] },
-      { qualifications: [{ qualifications_id: ["id", "name", "slug", "description"] }] },
-      { roles: [{ roles_id: ["id", "name", "slug", "description"] }] },
-      { school_subjects: [{ school_subjects_id: ["id", "name", "slug", "description"] }] },
+      { qualifications: [{ qualifications_id: ["id", "name", "path", "description"] }] },
+      { roles: [{ roles_id: ["id", "name", "path", "description"] }] },
+      { school_subjects: [{ school_subjects_id: ["id", "name", "path", "description"] }] },
       ...(id
         ? [
             "croho_name" as const,
@@ -212,7 +212,7 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
                 "url",
                 "description",
                 "vendor",
-                { track: ["id", "name", "slug", "description"] }
+                { track: ["id", "name", "path", "description"] }
               ] as const
             }
           ]

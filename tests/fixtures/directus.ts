@@ -14,6 +14,7 @@ const taxonomy = {
   id: topicId,
   name: "Career paths",
   slug: "career-paths",
+  path: "/archive/career-paths",
   description: "Routes into education"
 };
 const baseArticle = {
@@ -312,7 +313,11 @@ export async function createDirectusFixture() {
           {
             id: topicId,
             [titleBased ? "title" : "name"]: "Career paths",
-            ...(!["audiences", "phases"].includes(collection!) ? { slug: "career-paths" } : {}),
+            ...(collection === "sectors"
+              ? { slug: "career-paths" }
+              : !["audiences", "phases"].includes(collection!)
+                ? { path: "/archive/career-paths" }
+                : {}),
             ...(collection !== "audiences" ? { description: "Routes into education" } : {})
           }
         ]

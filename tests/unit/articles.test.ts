@@ -179,6 +179,7 @@ describe("article boundaries", () => {
             id: article.id,
             name: "Zij-instroom",
             slug: "zij-instroom",
+            path: "/onderwerpen/zij-instroom",
             description: "Topic description"
           }
         }
@@ -190,10 +191,13 @@ describe("article boundaries", () => {
     expect(list.records[0]!.sectors[0]).toEqual({
       id: article.id,
       title: "Primair onderwijs",
-      slug: "po",
+      source_url: "https://onderwijsloket.com/po",
       description: "Sector description"
     });
     expect(detail.record.topics).toEqual(list.records[0]!.topics);
+    expect(detail.record.topics[0]?.source_url).toBe(
+      "https://onderwijsloket.com/onderwerpen/zij-instroom"
+    );
     const metadata = articles.resourceMetadata?.(detail.record);
     expect(metadata).toMatchObject({
       collection: "articles",

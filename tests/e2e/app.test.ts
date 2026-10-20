@@ -1143,4 +1143,22 @@ describe("application", async () => {
     ))
       expect(request.search).not.toMatch(/transcript_raw|last_sync|editor_nodes|status.*published/);
   });
+  it("returns archive URLs instead of taxonomy slugs in filters and embedded metadata", async () => {
+    const result = (await call("get_filters", { collection: "articles" })).result.structuredContent;
+    const values = (name: string) =>
+      result.filters.find((field: { name: string }) => field.name === name).values;
+    expect(values("topics")[0]).toMatchObject({
+      source_url: "https://onderwijsloket.com/archive/career-paths"
+    });
+    expect(values("sectors")[0]).toMatchObject({
+      source_url: "https://onderwijsloket.com/career-paths"
+    });
+    for (const name of ["audiences", "phases"]) expect(values(name)[0].source_url).toBeNull();
+    for (const field of result.filters)
+      if (field.values) for (const value of field.values) expect(value).not.toHaveProperty("slug");
+    const record = (await call("get_article", { id: articleId })).result.structuredContent.record;
+    expect(record.topics[0].source_url).toBe("https://onderwijsloket.com/archive/career-paths");
+    expect(record.topics[0]).not.toHaveProperty("slug");
+    expect(record.slug).toBe("alpha");
+  });
 });

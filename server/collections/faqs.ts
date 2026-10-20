@@ -112,7 +112,7 @@ function buildQuery(args: McpListOptions<typeof filters.filterSchema, typeof sor
       { sectors: [{ sectors_id: ["id", "title", "slug", "description"] }] },
       { audiences: [{ audiences_id: ["id", "title"] }] },
       { phases: [{ phases_id: ["id", "title", "description"] }] },
-      { topics: [{ topics_id: ["id", "name", "slug", "description"] }] },
+      { topics: [{ topics_id: ["id", "name", "path", "description"] }] },
       ...(id
         ? ["answer" as const, { articles: [{ articles_id: ["id", "title", "path"] as const }] }]
         : [])
