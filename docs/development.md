@@ -69,3 +69,18 @@ See [server-side tool analytics](tool-analytics.md) for Plausible configuration,
 properties, optional query data, delivery behavior and attribution limitations.
 
 See [collection resources](collection-resources.md) for catalogue discovery and resource reads across all ten core collections.
+
+## Website shell
+
+The light-mode page background uses Onderwijs in’s `sand-main` token
+(`oklch(96% 0.011 76.6)`). Dark mode retains the Nuxt UI background.
+
+The header uses Nuxt UI’s icon-only color mode button and a small, subtle primary
+“Onderwijs in” button with a trailing external-link icon linking to `https://onderwijsin.nl`. The pre-footer newsletter
+banner uses the Onderwijs in theme with a fixed heading, `GradientText` emphasis
+on “maandelijkse deep dives”, and an email → first name
+signup flow. `MailchimpSignup.vue` retains its copied component name but submits
+through `useNewsletterSignup()` to the configured Loops provider. Zod validates
+the form; the module owns server validation, rate limiting and provider errors.
+Credentials remain server-only in the existing Varlock configuration. The privacy
+link points to the Onderwijs in website.
