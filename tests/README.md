@@ -35,11 +35,13 @@ Local HTTP fixtures supply synthetic content and search responses:
 
 Runtime requests use these fixtures and synthetic credentials. The installed SDKs and application handlers run against real HTTP boundaries. Build-time module initialization still uses the normal configured environment.
 
-Assertions cover all sixteen tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
+Assertions cover all twenty-two tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
 
 These tests cover the Node server’s HTTP contracts. They do not verify browser hydration, live service permissions or a deployed Cloudflare Workers instance.
 
 ## Adding tests
+
+Name tests, fixtures and contract documents after the collections or behavior they cover, so names remain meaningful after delivery. Keep imports and documentation links aligned when files move.
 
 Place isolated behavior tests in `unit/**/*.test.ts` and HTTP contract tests in `e2e/**/*.test.ts`. Import Vitest APIs explicitly. Use synthetic or sanitized fixtures and add cases that protect observable behavior or known regressions.
 
@@ -47,4 +49,8 @@ Coverage reports are written to ignored `coverage/`. Use them to investigate gap
 
 ## Collection architecture fixtures
 
-`fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. This synthetic fixture is separate from the real FAQ collection. Group-one source contracts use synthetic source-returned FAQ/sector fixtures and their own unit/HTTP checks; live evidence is recorded in the collection inventory.
+`fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. This synthetic fixture is separate from the real FAQ collection. FAQ and sector source contracts use synthetic source-returned FAQ/sector fixtures and their own unit/HTTP checks; live evidence is recorded in the collection inventory.
+
+Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](../docs/collection-inventory/institutions-and-programs.md).
+
+Collection behavior lives in `articles.test.ts`, `faqs.test.ts`, `sectors.test.ts`, `testimonials.test.ts`, `educational-institutions.test.ts` and `programs.test.ts`. Shared projection validators remain in `supporting-content.test.ts` and `locations.test.ts`. Catalogue tests cover more than 1,500 records, lower upstream page caps, serialized reads and failed/incomplete responses.

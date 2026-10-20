@@ -1,5 +1,6 @@
-import { testimonialRecord, supportingRelations } from "./group-two";
-import { faqRecord, sectorRecord } from "./group-one";
+import { institutionRecord, programRecord } from "./institutions-and-programs";
+import { testimonialRecord, supportingRelations } from "./article-evidence-and-testimonials";
+import { faqRecord, sectorRecord } from "./faqs-and-sectors";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
@@ -52,7 +53,13 @@ const articles = [
 /** Real HTTP boundary for the Directus SDK; intentionally implements only the queries under test. */
 export async function createDirectusFixture() {
   const requests: URL[] = [];
-  const state = { failingTaxonomy: "", articleResponse: "", extraArticles: 0 };
+  const state = {
+    failingTaxonomy: "",
+    articleResponse: "",
+    extraArticles: 0,
+    extraPrograms: 0,
+    missingInstitutionDescription: false
+  };
   const server = createServer((request, response) => {
     const url = new URL(request.url!, "http://fixture.local");
     requests.push(url);
@@ -81,10 +88,45 @@ export async function createDirectusFixture() {
       response.end(JSON.stringify({ data: [{ id: "malformed" }] }));
       return;
     }
+    if (collection === "programs" && url.searchParams.get("fields") === "id,title,date_updated") {
+      const rows = [
+        programRecord,
+        ...Array.from({ length: state.extraPrograms }, (_, i) => ({
+          id: `10000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+          title: `Program ${i}`,
+          date_updated: null
+        }))
+      ]
+        .map(({ id, title, date_updated }) => ({ id, title, date_updated }))
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? 10);
+      response.end(JSON.stringify({ data: rows.slice(offset, offset + limit) }));
+      return;
+    }
+    if (collection === "programs" || collection === "educational_institutions") {
+      const row =
+        collection === "programs"
+          ? programRecord
+          : {
+              ...institutionRecord,
+              ...(state.missingInstitutionDescription ? { description: null } : {})
+            };
+      const matches = Object.entries(filter).every(([key, value]) => {
+        const condition = value as { _eq?: unknown };
+        if ("_eq" in condition) return (row as Record<string, unknown>)[key] === condition._eq;
+        return key === "educational_institutions" || key === "location" || key === "locations";
+      });
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      response.end(JSON.stringify({ data: matches && offset === 0 ? [row] : [] }));
+      return;
+    }
     if (
       collection === "testimonials" ||
       collection === "faqs" ||
-      (collection === "sectors" && url.searchParams.get("fields")?.includes("code"))
+      (collection === "sectors" &&
+        (url.searchParams.get("fields")?.includes("code") ||
+          url.searchParams.get("fields") === "id,title,date_updated"))
     ) {
       const source =
         collection === "testimonials"

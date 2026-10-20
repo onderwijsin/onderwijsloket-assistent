@@ -1,4 +1,4 @@
-/** Synthetic source records shared by the group-one unit and HTTP contract tests. */
+/** Synthetic source records for FAQ and sector unit and HTTP contract tests. */
 export const faqId = "550e8400-e29b-41d4-a716-446655440010";
 export const sectorId = "00000000-0000-0000-0000-000000000001";
 export const relatedArticle = {

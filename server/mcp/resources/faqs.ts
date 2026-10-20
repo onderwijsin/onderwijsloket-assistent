@@ -1,6 +1,6 @@
 import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { defineMcpResource } from "@nuxtjs/mcp-toolkit/server";
-import faqs, { describeFaqResource } from "../../collections/faqs";
+import faqs from "../../collections/faqs";
 import { resourceUri, listResources, serveResource } from "../../utils/resources";
 
 /** Expose faqs catalogue discovery and Markdown reads through the native URI template. */
@@ -11,7 +11,7 @@ export default defineMcpResource({
   group: "content",
   tags: ["faqs", "education", "readonly"],
   uri: new ResourceTemplate(resourceUri(faqs.name, "{id}"), {
-    list: listResources(faqs, describeFaqResource)
+    list: listResources(faqs)
   }),
   metadata: { mimeType: "text/markdown", annotations: { audience: ["user", "assistant"] } },
   handler: serveResource({

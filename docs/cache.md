@@ -6,7 +6,7 @@
 | ------------------- | ------- | ---------------------------------------------------------------------- |
 | `article`           | 300     | Validated article detail and rendered Markdown, keyed by ID            |
 | `facets`            | 300     | Facet response, keyed by collection/index and complete request options |
-| `resourceCatalogue` | 300     | Complete summary descriptor list, keyed by collection                  |
+| `resourceCatalogue` | 300     | Complete root-only descriptor list, keyed by collection                |
 | `facetNames`        | 60      | Algolia facet-name discovery, keyed by index                           |
 | `taxonomy`          | 60      | Directus taxonomy lookup, keyed by collection                          |
 

@@ -4,7 +4,7 @@ Status: rough draft for discussion. Research date: 19 October 2026.
 
 ## Current milestone: articles POC
 
-The current implementation exposes articles through `list_collections`, `describe_collection`, `list_articles`, `get_article` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_articles` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria. FAQs and sectors are now enabled with their own list/get/search tools; see [group 1 contracts](docs/collection-inventory/group-1.md).
+The current implementation exposes articles through `list_collections`, `describe_collection`, `list_articles`, `get_article` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_articles` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria. FAQs and sectors are now enabled with their own list/get/search tools; see [FAQ and sector guidance contracts](docs/collection-inventory/faqs-and-sectors.md).
 
 The remainder describes the broader product roadmap. Its additional domain tools, workflows, workflow resources and chat are deferred beyond this POC.
 
@@ -255,4 +255,6 @@ These decisions do not block drafting the architecture. Data rights, deployment 
 
 See [collection resources](docs/collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
 
-Group 2 is implemented: article detail gains bounded supporting evidence/attribution, and testimonials expose native list/get/search, shared discovery/facets and a Markdown resource/template. See [group 2 contracts](docs/collection-inventory/group-2.md) for the additive API fields and remaining asset/profile limits.
+Article evidence and testimonial support is implemented: article detail gains bounded supporting evidence/attribution, and testimonials expose native list/get/search, shared discovery/facets and a Markdown resource/template. See [article evidence and testimonials contracts](docs/collection-inventory/article-evidence-and-testimonials.md) for the additive API fields and remaining asset/profile limits.
+
+Institutions and programs is implemented: institutions and programs expose native list/get/search, shared filters/facets and Markdown resource templates, with bounded locations/schedules/providers/forms. See [institutions and programs](docs/collection-inventory/institutions-and-programs.md) for source/index distinctions, degree filtering limits and verified schema drift.

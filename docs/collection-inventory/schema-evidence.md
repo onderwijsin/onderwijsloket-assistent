@@ -204,7 +204,6 @@ interface Program {
   hovi_id?: string | null;
   id: string;
   kiesmbo_id?: string | null;
-  last_sync?: string | null;
   level: "mbo" | "bachelor" | "master" | "phd" | `post-graduate` | "preparatory";
   location?: Location | string | null;
   path: string;
@@ -315,7 +314,6 @@ interface EducationalInstitution {
   hovi_id?: string | null;
   id: string;
   kiesmbo_id?: string | null;
-  last_sync?: string | null;
   logo?: DirectusFile | string | null;
   main_location?: Location | string | null;
   path: string;
@@ -591,7 +589,6 @@ interface Location {
   vestiging_SK123_id?: string | null;
   zip?: string | null;
   has_pending_changes?: boolean | null;
-  last_sync?: string | null;
   educational_institutions?: EducationalInstitutionsLocation[] | string[];
   programs?: Program[] | string[];
   regional_education_desks?: RegionalEducationDesk[] | string[];
@@ -639,7 +636,6 @@ interface ProgramForm {
   date_updated?: string | null;
   description?: JSON | null;
   id: string;
-  last_sync?: string | null;
   program_id?: Program | string | null;
   sort?: number | null;
   url?: string | null;

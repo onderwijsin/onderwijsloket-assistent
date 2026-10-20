@@ -4,7 +4,7 @@
 
 This is the phase 2 design for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), based on the [phase 1 inventory](README.md), inspected 2026-10-20. No implementation or public contract changes are made by this document. Phase 3 should implement the minimum infrastructure and a contrasting test fixture; subsequent collection rollouts are separate work. Unverified upstream details remain release gates, not assumed capabilities.
 
-Implementation status: the shared preparation is now recorded in [phase 3](phase-3.md). [Group 1](group-1.md) now enables live FAQs and sectors; the [grouped plan](implementation-plan.md) covers subsequent collection work. This document remains the boundary decision; its phase 3 checklist is the implementation brief.
+Implementation status: the shared preparation is now recorded in [phase 3](phase-3.md). [FAQ and sector guidance](faqs-and-sectors.md) now enables live FAQs and sectors; the [collection plan](implementation-plan.md) covers subsequent collection work. This document remains the boundary decision; its phase 3 checklist is the implementation brief.
 
 ## Contract comparison
 
@@ -59,7 +59,7 @@ Article record tools use `list_articles`, `get_article` and `search_articles`, i
 | New `get_<singular>` tools from matrix            | `{id: CollectionId}`                                                                                       | `{record: CollectionDetail,retrieved_at:ISO-UTC}`                                                                                           |
 | New `search_<plural>` tools from matrix           | `{query?:string,filters?: CollectionSearchFilters,page?:integer,page_size?:integer}`; sectors omit filters | Collection-specific hits in the existing search-style envelope with count exactness and snippets                                            |
 
-`EnabledCollection`, `FilterCollection` and `FacetCollection` are deployment-time enums derived from explicit enabled definitions and actual capabilities, not strings accepted as arbitrary upstream collection names. The full intended name set is the nine cores above. At the phase 3 milestone only articles was enabled; group 1 now also enables FAQs and sectors. Capability metadata must describe what works now; an upstream index or future tool name does not make an operation available.
+`EnabledCollection`, `FilterCollection` and `FacetCollection` are deployment-time enums derived from explicit enabled definitions and actual capabilities, not strings accepted as arbitrary upstream collection names. The full intended name set is the nine cores above. At the phase 3 milestone only articles was enabled; faq and sector guidance now also enables FAQs and sectors. Capability metadata must describe what works now; an upstream index or future tool name does not make an operation available.
 
 Keep all current article metadata fields and result values valid. Discovery can add optional `operations` and `resources` properties: `operations` maps each of `list`, `get`, `filters`, `search`, `facets` to its actual tool name or null; `resources` is an array of `{uri_template:string,mime_type:string}`. List/get/search names come from the matrix; filters/facets use the shared tool when enabled. This addition avoids teaching clients to call `list_articles` for every collection. Existing `fields`, `detail_fields`, `filterable_fields`, `sorts`, `pagination` and capabilities remain available. These properties describe record fields; the advertised tool schemas remain authoritative for types and validation.
 
@@ -198,4 +198,6 @@ Record visibility at every relation depth follows [data access responsibilities]
 
 The current resource decision supersedes the original deferrals: every core collection ships its resource and template with its record tools. See [collection resources](../collection-resources.md) and the updated [implementation plan](implementation-plan.md). FAQs and sectors now implement this contract.
 
-Group 2 now enables testimonial operations/resources alongside articles, FAQs and sectors. Article supporting fields are additive detail/front-matter fields; see [group 2 implementation](group-2.md).
+Article evidence and testimonial support enables testimonial operations/resources alongside articles, FAQs and sectors. Article supporting fields are additive detail/front-matter fields; see [article evidence and testimonials implementation](article-evidence-and-testimonials.md).
+
+Institutions and programs enable institution/program tools and resource templates using their native descriptions, contacts, locations and separately rendered forms; see [verified implementation](institutions-and-programs.md).

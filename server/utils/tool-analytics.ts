@@ -67,6 +67,8 @@ export async function readToolCallDetails(
     "search_faqs",
     "search_sectors",
     "search_testimonials",
+    "search_educational_institutions",
+    "search_programs",
     "get_facets"
   ].includes(name);
   if (includeData && supportsQuery && args?.query) {

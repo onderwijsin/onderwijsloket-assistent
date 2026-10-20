@@ -7,3 +7,5 @@ The MCP layer must not add `status: { _eq: "published" }` filters, equivalent ne
 Keep structural Zod validation, explicit field projections, user-requested domain filters, stable pagination, relation bounds and missing-target reporting. Publication dates may still be exposed as useful metadata or used for requested sorting. A record returned by the source is not rejected or omitted because of its status or publication date.
 
 Directus permissions must be configured upstream. Collection implementation and future implementation plans follow this boundary rather than duplicating those rules in application code.
+
+Synchronization bookkeeping (`last_sync`) is internal source metadata. Do not select or expose synchronization timestamps in collection schemas, list/get/search outputs, nested references, resource descriptors or YAML front matter. Use source update dates for public modification metadata.

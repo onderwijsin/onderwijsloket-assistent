@@ -1,5 +1,6 @@
-import { testimonialRecord } from "./group-two";
-import { faqId, sectorId } from "./group-one";
+import { institutionRecord, programRecord } from "./institutions-and-programs";
+import { testimonialRecord } from "./article-evidence-and-testimonials";
+import { faqId, sectorId } from "./faqs-and-sectors";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { articleId } from "./directus";
@@ -52,7 +53,14 @@ export async function createAlgoliaFixture() {
     const index = request.url?.split("/")[3];
     if (
       request.method !== "POST" ||
-      !["articles", "faqs", "sectors", "testimonials"].includes(index ?? "") ||
+      ![
+        "articles",
+        "faqs",
+        "sectors",
+        "testimonials",
+        "programs",
+        "educational_institutions"
+      ].includes(index ?? "") ||
       !request.url?.split("?")[0]?.endsWith("/query")
     ) {
       response.statusCode = 404;
@@ -62,31 +70,52 @@ export async function createAlgoliaFixture() {
       return;
     }
     const hits =
-      index === "testimonials"
+      index === "programs"
         ? [
             {
-              ...testimonialRecord,
-              objectID: testimonialRecord.id,
+              ...programRecord,
+              educational_institutions: programRecord.educational_institutions.map(
+                (row) => row.educational_institutions_id
+              ),
+              objectID: programRecord.id,
               topics: ["Teaching"],
               english: false
             }
           ]
-        : index === "articles"
-          ? articleHits
-          : [
+        : index === "educational_institutions"
+          ? [
               {
-                id: index === "faqs" ? faqId : sectorId,
-                objectID: index === "faqs" ? faqId : sectorId,
-                question: "Can I teach?",
-                title: "Primary education",
-                description: "Primary education guidance",
-                slug: "primary",
-                path: "/primary",
-                status: "published",
-                english: false,
-                topics: ["Teaching"]
+                ...institutionRecord,
+                objectID: institutionRecord.id,
+                topics: ["Teaching"],
+                english: false
               }
-            ];
+            ]
+          : index === "testimonials"
+            ? [
+                {
+                  ...testimonialRecord,
+                  objectID: testimonialRecord.id,
+                  topics: ["Teaching"],
+                  english: false
+                }
+              ]
+            : index === "articles"
+              ? articleHits
+              : [
+                  {
+                    id: index === "faqs" ? faqId : sectorId,
+                    objectID: index === "faqs" ? faqId : sectorId,
+                    question: "Can I teach?",
+                    title: "Primary education",
+                    description: "Primary education guidance",
+                    slug: "primary",
+                    path: "/primary",
+                    status: "published",
+                    english: false,
+                    topics: ["Teaching"]
+                  }
+                ];
     let body = "";
     for await (const chunk of request) body += chunk;
     const params = JSON.parse(body);
@@ -117,21 +146,35 @@ export async function createAlgoliaFixture() {
         )
     );
     const names = params.facets?.includes("*")
-      ? index === "testimonials"
+      ? index === "programs"
         ? [
-            "audiences.title",
-            "authors.name",
-            "phases.title",
+            "type",
+            "level",
+            "degrees",
             "roles.name",
             "sectors.title",
-            "topics.name",
-            "tracks.name"
+            "qualifications.name",
+            "school_subjects.name",
+            "program_forms.track.name",
+            "educational_institutions.title"
           ]
-        : index === "sectors"
-          ? []
-          : index === "faqs"
-            ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
-            : ["english", "topics.name", "roles.name"]
+        : index === "educational_institutions"
+          ? ["type"]
+          : index === "testimonials"
+            ? [
+                "audiences.title",
+                "authors.name",
+                "phases.title",
+                "roles.name",
+                "sectors.title",
+                "topics.name",
+                "tracks.name"
+              ]
+            : index === "sectors"
+              ? []
+              : index === "faqs"
+                ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
+                : ["english", "topics.name", "roles.name"]
       : (params.facets ?? []);
     const facets = Object.fromEntries(
       names.map((name: string) => {

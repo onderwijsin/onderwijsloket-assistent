@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { parse } from "yaml";
 import {
@@ -7,6 +7,12 @@ import {
   listResources,
   serveResource
 } from "../../server/utils/resources";
+
+const { read } = vi.hoisted(() => ({ read: vi.fn() }));
+vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectusServer: read }));
+beforeEach(() => {
+  read.mockReset();
+});
 
 vi.mock("nitropack/runtime", () => ({
   cachedFunction: (fn: unknown) => fn,
@@ -50,39 +56,62 @@ describe("reusable resource callbacks", () => {
   const id = "00f81660-a2e4-48af-b8d7-98ce338de447";
   const uri = new URL(`onderwijsloket://examples/${id}`);
 
-  it("lists every summary page under the supplied collection name", async () => {
-    const list = vi
-      .fn()
-      .mockResolvedValueOnce({ records: [{ ...record, id }], has_more: true })
-      .mockResolvedValueOnce({ records: [{ ...record, id: "second" }], has_more: false });
-    const result = await listResources({ name: "examples", list }, (value: typeof record) =>
-      describeResource("examples", value)
-    )();
-    expect(result.resources.map((item) => item.uri)).toEqual([
-      uri.toString(),
-      "onderwijsloket://examples/second"
-    ]);
-    expect(list.mock.calls).toEqual([[{ page: 1, page_size: 25 }], [{ page: 2, page_size: 25 }]]);
+  const collection = { name: "programs" as const, getInput: { shape: { id: z.string() } } };
+
+  it("lists over 1500 records using root-only pages, tolerating a smaller source page cap", async () => {
+    const records = Array.from({ length: 1501 }, (_, i) => ({
+      id: String(i),
+      title: `Program ${i}`
+    }));
+    read.mockImplementation(async (command) => {
+      const query = command().params;
+      expect(query.fields).toEqual(["id", "title", "date_updated"]);
+      expect(query.limit).toBe(250);
+      expect(query).not.toHaveProperty("deep");
+      expect(query).not.toHaveProperty("filter");
+      return records.slice(query.offset, query.offset + 100);
+    });
+    const result = await listResources(collection)();
+    expect(result.resources).toHaveLength(1501);
+    expect(new Set(result.resources.map((value) => value.uri)).size).toBe(1501);
+    expect(read).toHaveBeenCalledTimes(17);
+    expect(result.resources[0]).toMatchObject({ title: "Program 0", description: "" });
   });
 
-  it("returns an empty catalogue and does not silently return partial catalogues on failure", async () => {
-    const list = vi.fn().mockResolvedValueOnce({ records: [], has_more: false });
-    expect(
-      await listResources({ name: "examples", list }, (value: typeof record) =>
-        describeResource("examples", value)
-      )()
-    ).toEqual({ resources: [] });
-    list
-      .mockResolvedValueOnce({ records: [record], has_more: true })
-      .mockRejectedValueOnce(new Error("provider secret"));
-    await expect(
-      listResources({ name: "examples", list }, (value: typeof record) =>
-        describeResource("examples", value)
-      )()
-    ).rejects.toMatchObject({
-      code: -32603,
-      message: expect.not.stringContaining("provider secret")
+  it("uses FAQ questions as descriptor labels", async () => {
+    read.mockResolvedValueOnce([{ id: "faq-1", question: "Question?" }]).mockResolvedValueOnce([]);
+    const result = await listResources({ ...collection, name: "faqs" })();
+    expect(result.resources[0]?.title).toBe("Question?");
+    expect(read.mock.calls[0]![0]().params.fields).toEqual(["id", "question", "date_updated"]);
+  });
+
+  it("serializes concurrent collection reads and releases the queue after failure", async () => {
+    let active = 0;
+    let peak = 0;
+    read.mockImplementation(async () => {
+      active++;
+      peak = Math.max(peak, active);
+      await Promise.resolve();
+      active--;
+      return [];
     });
+    await Promise.all([
+      listResources(collection)(),
+      listResources({ ...collection, name: "sectors" })()
+    ]);
+    expect(peak).toBe(1);
+    read.mockRejectedValueOnce(new Error("provider secret"));
+    await expect(listResources(collection)()).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+    expect(await listResources(collection)()).toEqual({ resources: [] });
+  });
+
+  it("rejects repeated pages and malformed rows without exposing provider details", async () => {
+    read.mockResolvedValue([{ id: "same", title: "Title" }]);
+    await expect(listResources(collection)()).rejects.toMatchObject({ code: -32603 });
+    for (const row of [{ id: null, title: "Title" }, { id: "ok" }, { id: "ok", title: 12 }]) {
+      read.mockResolvedValueOnce([row]);
+      await expect(listResources(collection)()).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+    }
   });
 
   it("serves the existing Markdown body using collection-provided metadata", async () => {
@@ -104,6 +133,22 @@ describe("reusable resource callbacks", () => {
     expect(parse(resource.text.slice(4, end))).toEqual({ title: document.title });
     expect(resource.text.endsWith(document.content)).toBe(true);
   });
+
+  it.each([null, "", "   "])(
+    "adds a shared notice for absent body content (%j), preserving metadata",
+    async (content) => {
+      const handler = serveResource({
+        name: "examples",
+        id: z.uuid(),
+        get: async () => ({ record: { title: "Metadata-only record", content } }),
+        content: (record) => record.content,
+        metadata: (record) => ({ title: record.title })
+      });
+      const result = await handler(uri, { id });
+      expect(result.contents[0]!.text).toContain("> **Notice:** No body content is available.");
+      expect(result.contents[0]!.text).toContain("title: Metadata-only record");
+    }
+  );
 
   it("uses the collection identity and content mappings without requiring article fields", async () => {
     const get = vi.fn(async () => ({ record: { question: "Question?", answer: "Answer." } }));

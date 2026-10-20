@@ -17,13 +17,13 @@ Articles are available through the public `/mcp` endpoint at `onderwijsloket://a
 }
 ```
 
-The ID is illustrative. The template’s native list callback makes all article URIs visible in `resources/list`, including inspector catalogues. The shared helper reads summaries in batches of 25 and returns one complete descriptor list; it never loads document bodies. There is no separate cursor implementation or Nitro plugin. Use the existing tools for filtered, paginated discovery.
+The ID is illustrative. The template’s native list callback makes all article URIs visible in `resources/list`, including inspector catalogues. The shared helper reads only root identity, native title/question and update timestamps in pages of 250 and returns one complete descriptor list; it never loads document bodies. There is no separate cursor implementation or Nitro plugin. Use the existing tools for filtered, paginated discovery.
 
 The definition uses group `content` and tags `articles`, `education`, `readonly`. These organize the resource within MCP Toolkit; clients should not rely on group/tags being present as protocol fields. Audience annotations include users and assistants. No subscriptions or change notifications are implemented.
 
 ## Document format and implementation
 
-The resource definition wires `listResources(articles, describe)` into the template and uses `serveResource({ name, id, get, content, metadata })` for reads. Both helpers are collection-independent. The read helper calls the configured collection get method and returns its existing Markdown body with YAML front matter. Article-specific metadata selection lives in `resourceMetadata()` within `server/collections/articles.ts`. It includes public record fields, taxonomy labels, sources/documents/authors, `relations_truncated`, `truncated` and `content_warnings`, excluding the body itself. Source timestamps remain source timestamps; no volatile retrieval timestamp is added.
+The resource definition wires `listResources(articles)` into the template and uses `serveResource({ name, id, get, content, metadata })` for reads. Both helpers are collection-independent. The read helper calls the configured collection get method and returns its existing Markdown body with YAML front matter. Article-specific metadata selection lives in `resourceMetadata()` within `server/collections/articles.ts`. It includes public record fields, taxonomy labels, sources/documents/authors, `relations_truncated`, `truncated` and `content_warnings`, excluding the body itself. Source timestamps remain source timestamps; no volatile retrieval timestamp is added.
 
 `server/utils/content/front-matter.ts` uses the `yaml` library to serialize metadata. `server/utils/resources.ts` handles URI/descriptor formatting, complete catalogue listing, ID validation and safe resource responses for any collection. Neither utility imports an article collection. The resource file only declares the template, organization metadata and collection callbacks through MCP Toolkit.
 
@@ -36,3 +36,5 @@ Unit tests cover YAML round trips, body preservation, collection-specific metada
 The native callback returns a complete catalogue in one response. This keeps inspector discovery simple and lets the SDK combine different collection templates automatically. The complete catalogue is cached for five minutes per collection; protocol-level pagination remains deferred. Article tools and resource reads share the five-minute `articles.get()` cache, including rendered Markdown. Resource serialization itself is cheap and is not cached separately. See [cache configuration](./cache.md).
 
 FAQs, sectors and testimonials also expose resources/templates; every core collection must do so when implemented. See [collection resources](collection-resources.md) for native mappings and rollout requirements.
+
+Missing or empty source documents produce `content: null` in article JSON and the shared missing-body notice in resource Markdown. Heading metadata does not substitute for source content. See [the shared missing-body contract](collection-resources.md#missing-body-content).

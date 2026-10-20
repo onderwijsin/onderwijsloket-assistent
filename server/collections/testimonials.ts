@@ -195,7 +195,7 @@ export default defineMcpCollection({
   description:
     "The testimonials collection contains personal stories from people working in or transitioning into education. These accounts help prospective education professionals explore different experiences of entering the profession and working in educational roles, complementing the factual explanations in articles and FAQs. Stories combine readable narrative content and embedded editorial blocks with role, sector, audience, career-phase, topic and pathway context. Editorial authors identify the contributors responsible for a story, while featured profiles identify the people whose experiences it presents. Use testimonials for individual perspectives and examples; they do not establish general eligibility rules or replace factual guidance.",
   summary: summarySchema,
-  detail: summarySchema.extend({ content: z.string(), truncated: z.boolean() }),
+  detail: summarySchema.extend({ content: nullableOutput(z.string()), truncated: z.boolean() }),
   ...filters,
   sorts,
   ...defineCollectionSearch({

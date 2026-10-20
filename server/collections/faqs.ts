@@ -80,7 +80,7 @@ const sourceSchema = z.object({
   topics: taxonomyRelation("topics")
 });
 const detailSourceSchema = sourceSchema.extend({
-  answer: contentNodeSchema,
+  answer: contentNodeSchema.nullish(),
   articles: collectionRelationSchema("articles_id", articleSource)
 });
 const sorts = ["question", "-question", "date_updated", "-date_updated"] as const;
@@ -234,7 +234,7 @@ export default defineMcpCollection({
   },
   summary: summarySchema,
   detail: summarySchema.extend({
-    answer: z.string().describe("Answer as Markdown."),
+    answer: nullableOutput(z.string()).describe("Answer as Markdown."),
     articles: z.array(articleReference),
     truncated: z.boolean()
   }),

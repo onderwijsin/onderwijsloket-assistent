@@ -1,3 +1,4 @@
+import { resourceContent } from "../utils/resources";
 import { escapeMarkdownText } from "../utils/content/markdown-formatting";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
@@ -421,11 +422,13 @@ export function sectorResourceContent(
     salary_content: "Salary",
     costs_content: "Costs"
   };
-  return [
-    `# ${escapeMarkdownText(record.title)}`,
+  const body = [
     escapeMarkdownText(record.description),
     ...sectionNames.flatMap((name) =>
-      record[name] === null ? [] : [`## ${headings[name]}`, escapeMarkdownText(record[name])]
+      record[name]?.trim() ? [`## ${headings[name]}`, escapeMarkdownText(record[name])] : []
     )
-  ].join("\n\n");
+  ]
+    .filter((part) => part.trim())
+    .join("\n\n");
+  return [`# ${escapeMarkdownText(record.title)}`, resourceContent(body)].join("\n\n");
 }

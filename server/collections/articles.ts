@@ -229,7 +229,9 @@ export default defineMcpCollection({
       .describe(
         "Supporting relation names limited to the first 100 records; independent of document truncated."
       ),
-    content: z.string().describe("Article body as Markdown, including resolved editor blocks."),
+    content: nullableOutput(z.string()).describe(
+      "Article body as Markdown, including resolved editor blocks."
+    ),
     content_warnings: z
       .array(z.string())
       .describe(
@@ -315,8 +317,8 @@ export default defineMcpCollection({
       };
     },
     {
-      // Separate enriched cached records from pre-group-2 detail payloads.
-      name: "articles-get-supporting",
+      // Exclude older cached payloads that fabricated a body from record metadata.
+      name: "articles-get-nullable-content",
       maxAge: cacheDurations.article,
       swr: false /**
        * Isolate cached data by its configured identifier.

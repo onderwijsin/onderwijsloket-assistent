@@ -17,7 +17,15 @@ function createFilterDescriptor(operation: z.ZodType<string>) {
 
   /** Shared discovery contract; operators explain behavior rather than introducing a query DSL. */
   const taxonomyDescriptors = z.discriminatedUnion("type", [
-    z.object({ ...descriptorFields, type: z.literal("string"), operator: z.literal("eq") }),
+    z.object({
+      ...descriptorFields,
+      type: z.literal("string"),
+      operator: z.literal("eq"),
+      enum: z.array(z.string()).optional(),
+      lookup: z
+        .object({ collection: z.string(), tool: z.string(), path: z.string().optional() })
+        .optional()
+    }),
     z.object({ ...descriptorFields, type: z.literal("boolean"), operator: z.literal("eq") }),
     z.object({
       ...descriptorFields,
@@ -113,6 +121,36 @@ export function exactTextFilter(description: string) {
 }
 
 /**
+ * Define a source enum equality filter with portable discovery choices.
+ * @param values - Exact source classification values from the generated model.
+ * @param description - Meaning of the classification for list filtering.
+ * @returns A validated optional enum and matching discovery descriptor.
+ */
+export function enumFilter<const Values extends readonly string[]>(
+  values: Values,
+  description: string
+) {
+  return {
+    schema: z.enum(values).optional().describe(description),
+    /**
+     * Advertise accepted source codes rather than mutable search facet labels.
+     * @param name - Public filter key.
+     * @returns Enum equality descriptor routed to the consuming list tool.
+     */
+    async describe(name: string): Promise<FilterDescriptor> {
+      return {
+        name,
+        description,
+        type: "string",
+        operator: "eq",
+        enum: [...values],
+        operations: ["list_articles"]
+      };
+    }
+  } satisfies FilterDefinition;
+}
+
+/**
  * Reusable boolean equality filter; false remains an explicit filter value.
  *
  * @param description - Client-facing explanation of the filter and its matching behavior.
@@ -203,6 +241,41 @@ export function relationIdFilter(
         minItems: 1,
         maxItems: 50,
         lookup: { collection, tool, ...(path ? { path } : {}) }
+      };
+    }
+  } satisfies FilterDefinition;
+}
+
+/**
+ * Describe a single related-record ID, for nullable M2O fields such as program location.
+ * @param collection - Public collection supplying the nested identifier.
+ * @param tool - Concrete list tool to discover identifiers.
+ * @param id - Boundary validator for one target ID.
+ * @param path - Target ID path within the lookup result.
+ * @returns Single-ID equality validation and discovery metadata.
+ */
+export function relationIdEqualityFilter(
+  collection: string,
+  tool: string,
+  id: z.ZodType<string>,
+  path: string
+) {
+  const description = `Match the ID from ${path} returned by ${tool}; use the related record ID, not a parent ID or label.`;
+  return {
+    schema: id.optional().describe(description),
+    /**
+     * Advertise equality on a related ID with an explicit discovery path.
+     * @param name - Public filter name.
+     * @returns Lookup metadata for a single related ID.
+     */
+    async describe(name: string): Promise<FilterDescriptor> {
+      return {
+        name,
+        description,
+        type: "string",
+        operator: "eq",
+        operations: [tool],
+        lookup: { collection, tool, path }
       };
     }
   } satisfies FilterDefinition;

@@ -1,6 +1,6 @@
 # Collection implementation plan
 
-Phase 3 prepared the infrastructure. Groups 1 and 2 are implemented: FAQs, sectors and testimonials are enabled alongside enriched articles. See [group 1](group-1.md) and [group 2 contracts and evidence](group-2.md). This plan groups work by shared data relationships and verified rendering behavior. Each group may be delivered in smaller changes, with only completed collection/tool pairs added to the production allowlist. Tool names and record contracts follow [architecture](architecture.md) and [core contracts](core.md).
+Shared infrastructure supports the implemented articles, FAQs, sectors, testimonials, institutions and programs. See [FAQ and sector guidance](faqs-and-sectors.md), [article evidence and testimonials](article-evidence-and-testimonials.md) and [institutions and programs contracts and evidence](institutions-and-programs.md). This plan organizes work by shared data relationships and verified rendering behavior. Each collection domain may be delivered in smaller changes, with only completed collection/tool pairs added to the production allowlist. Tool names and record contracts follow [architecture](architecture.md) and [core contracts](core.md).
 
 ## Prepared in phase 3
 
@@ -13,9 +13,9 @@ Phase 3 prepared the infrastructure. Groups 1 and 2 are implemented: FAQs, secto
 
 The helpers remain internal APIs. Required `id` and `operations` configuration is an intentional internal definition change, separate from the intentional public rename of the article tools and removal of their redundant collection selector. Current article IDs, list/get/search data, resource URIs and filters remain intact. Discovery output has additive operation/resource metadata; descriptions and the internal source of shared discovery schemas change. No new collection is made available by merely generating its Directus types.
 
-All groups follow [data access responsibilities](../data-access.md): Directus owns visibility at every depth. Do not implement status filters, status guards or release-date gates in list/detail/search/resource paths. Upstream permission checks below concern source configuration, not application policy.
+All collections follow [data access responsibilities](../data-access.md): Directus owns visibility at every depth. Do not implement status filters, status guards or release-date gates in list/detail/search/resource paths. Upstream permission checks below concern source configuration, not application policy.
 
-## Common exit criteria for every group
+## Common exit criteria for every collection
 
 1. Read the relevant inventory entries and inspect permitted upstream samples, including null/missing relations. Verify the service account's collection, field, nested relation and vendor access. Do not infer public exposure from token access alone.
 2. Resolve ID formats and actual document/media/geometry encodings before choosing Zod schemas. Preserve source nullability and report bounded relationship incompleteness explicitly. No fake page routes, empty article fields or UUID assumptions.
@@ -25,7 +25,7 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 6. Register the collection resource template and complete catalogue callback, map native fields to Markdown/front matter and return links from list/get/search tools. Verify template/catalogue/read discovery, collection-specific IDs, warnings and sanitized errors. Follow [collection resources](../collection-resources.md).
 7. Preserve article regressions and resources. Run formatting, lint, typecheck and relevant unit/HTTP checks. Confirm no Node-only dependency entered runtime code used by Cloudflare Workers. Record remaining deployment-specific validation separately.
 
-## Group 1 — FAQs and sector guidance (implemented)
+## FAQs and sector guidance (implemented)
 
 **Collections:** `faqs`, `sectors`. **Dependencies:** existing topics, audiences, phases and sectors taxonomy lookups; article references; sector featured FAQ/article/media junctions. No new supporting-person or asset catalogue is required.
 
@@ -40,7 +40,7 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 
 **Release gates:** actual FAQ answer semantics, sector string markup/route, stable sector ordering, relevant index fields and permissions. **Regression focus:** FAQ ID handling and lack of slug/title; sector document ID equals its filter ID; no recursive reverse-content expansion; no unsupported sector facets.
 
-## Group 2 — Article supporting evidence and testimonials (implemented)
+## Article supporting evidence and testimonials (implemented)
 
 **Collections:** existing `articles` enrichment and new `testimonials`. **Supporting collections:** `sources`, `documents`, `authors`, `profiles`. **Dependencies:** permitted file assets, existing taxonomy and content-document pipeline.
 
@@ -53,9 +53,9 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 3. Add article supporting arrays as a documented additive contract change. Preserve every existing summary/detail field and resource representation. Define per-relation caps and additive completeness reporting before adding arrays; do not reinterpret the current document `truncated` flag.
 4. Implement testimonial list/get/search and its required resource/template with story Markdown, publication metadata, authors/profiles and resolved body nodes. Keep personal experience distinguishable from factual guidance in tool descriptions.
 
-**Resolved:** source date nullability, body/editor-node shape, minimal person projections, source URLs, PDF/image asset delivery and relation bounds; see [group 2](group-2.md). Unknown non-image document delivery remains explicit null, and profile biographies remain outside minimal attribution. **Regression focus:** citations resolve beyond Algolia's partial references; authors versus profiles remain distinct; source-returned records remain independent of status/date metadata; no article API regression.
+**Resolved:** source date nullability, body/editor-node shape, minimal person projections, source URLs, PDF/image asset delivery and relation bounds; see [article evidence and testimonials](article-evidence-and-testimonials.md). Unknown non-image document delivery remains explicit null, and profile biographies remain outside minimal attribution. **Regression focus:** citations resolve beyond Algolia's partial references; authors versus profiles remain distinct; source-returned records remain independent of status/date metadata; no article API regression.
 
-## Group 3 — Institutions and programs
+## Institutions and programs (implemented)
 
 **Collections:** `educational_institutions`, `programs`. **Embedded dependencies:** `locations`, `availabilities`, `program_forms`; institution/program/location junctions; qualifications, roles, sectors, school subjects and form track taxonomies.
 
@@ -63,17 +63,17 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 
 **Order and deliverables:**
 
-1. Verify permitted vendors and retain vendor/last_sync metadata. Resolve address/geopoint encoding and opening-hour time semantics. Implement bounded Location and Availability projections without provider/internal sync identifiers.
+1. Verify permitted vendors and retain vendor metadata. Resolve address/geopoint encoding and opening-hour time semantics. Implement bounded Location and Availability projections without provider/internal sync identifiers.
 2. Implement institution list/get/search and its resource/template, including description, contacts, main location, additional locations and language-tagged websites. Expose program linkage through filtered program lists rather than an unbounded institution detail graph.
 3. Add enum and relation-ID filter descriptors/builders needed by these collections. Keep accepted enum values in the actual source unions. Relation discovery points to the relevant public list tool rather than enumerating every institution or pretending relation IDs are taxonomy choices.
 4. Implement program registry-code/enum/taxonomy filters and per-form descriptions with nullable track. Add its resource/template with overview, providers, locations and separately named form sections. Preserve CROHO/CREBO as strings and keep forms ordered and separate.
 5. Verify search mappings before enabling them: documented `degree` versus generated `degrees`, and `program_forms.tracks.name` versus source `track`, must be resolved through actual permitted index evidence. Keep source list and search filters independent.
 
-**Release gates:** vendor license/policy grants; geometry/time encodings; program-form document shape; institution/program relation bounds; actual search keys. **Regression focus:** permitted vendor isolation across nested references, null locations, multiple providers, ordered forms, leading-zero codes, declared enum boundaries and correct junction filters. No geo search tool is included.
+**Resolved:** source projections and upstream access, GeoJSON/time encodings, form document rendering/ownership, bounded relationships and verified search keys; see [institutions and programs](institutions-and-programs.md). Degree filtering is search-only because source JSON filtering is unsupported. Degree labels and the live associate level override stale generated assumptions; unavailable location sync time remains null. **Regression focus:** distinct source provenance across nested references, null locations, multiple providers, ordered forms, leading-zero codes, declared enum boundaries and correct junction filters. No geo search tool is included.
 
-## Group 4 — Regional education desks and service coverage
+## Regional education desks and service coverage
 
-**Collection:** `regional_education_desks`. **Embedded dependencies:** `areas`; reuse locations, availability and asset projections from group 3. **Prerequisite:** group 3's location/availability boundary can be extracted and shipped first if desks are prioritized ahead of programs.
+**Collection:** `regional_education_desks`. **Embedded dependencies:** `areas`; reuse the implemented location, availability and asset projections from institutions and programs.
 
 **Why separate:** desk coverage and consultation services have materially different meaning from provider locations. Shared addresses do not justify sharing a detail schema or promising exact geographic matching.
 
@@ -86,9 +86,9 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 
 **Release gates:** required relation handling, geometry encodings, service descriptions, availability consistency and countable search fields. **Regression focus:** inaccessible area is not an empty service region; nullable location does not erase coverage; false booleans remain filters; no inference that area grid points are an address or proof of exact service eligibility.
 
-## Group 5 — Podcast series and episodes
+## Podcast series and episodes
 
-**Collections:** `podcast_shows`, `podcast_episodes`. **Supporting collections:** `podcast_hosts`, reuse `profiles`. **Embedded dependencies:** `seasons`, file/media assets, relevant taxonomy and host/guest junctions. **Prerequisite:** group 2's person/asset boundary can be reused; verify podcast-specific payloads independently.
+**Collections:** `podcast_shows`, `podcast_episodes`. **Supporting collections:** `podcast_hosts`, reuse `profiles`. **Embedded dependencies:** `seasons`, file/media assets, relevant taxonomy and host/guest junctions. **Prerequisite:** reuse the implemented person/asset projections and verify podcast-specific payloads independently.
 
 **Why together:** shows, seasons and episodes have required relationships and shared host identity. Deliver show references and hosts before episode detail. A host and a guest profile remain separate roles; season identity must agree with show identity.
 
@@ -101,8 +101,10 @@ All groups follow [data access responsibilities](../data-access.md): Directus ow
 
 **Release gates:** media schemas/units, date metadata nullability, transcript/speaker permissions and show/season consistency. **Regression focus:** source availability representation without date-based omission; null transcripts; accurate show/season/host/guest identity; no dead media links or false full-content guarantees.
 
-## Scope after these groups
+## Remaining scope
 
-The groups cover every requested core and supporting collection. Standalone supporting collections, videos, route/question/answer workflows, geocoding and exact geographic matching remain excluded or deferred as recorded in the inventory. Do not enable them as a side effect of reference expansion. Resources and URI templates are required deliverables for every core collection; their registration and tests belong in each group.
+The plan covers every requested core and supporting collection. Standalone supporting collections, videos, route/question/answer workflows, geocoding and exact geographic matching remain excluded or deferred as recorded in the inventory. Do not enable them as a side effect of reference expansion. Resources and URI templates are required deliverables for every core collection; their registration and tests belong in each collection implementation.
 
-No timeline or effort estimate is assumed before the live evidence gates are resolved. The default order is groups 1 → 2 → 3 → 4 → 5; each collection can release independently when its prerequisites and contracts pass. No additional generic tool factory, dependency, registry discovery mechanism or further article migration is required by this plan.
+No timeline or effort estimate is assumed before the live evidence gates are resolved. Implemented domains are listed first; regional education desks and podcasts remain planned. Each collection can release independently when its prerequisites and contracts pass. No additional generic tool factory, dependency, registry discovery mechanism or further article migration is required by this plan.
+
+Every future core implementation must follow the [shared missing-body contract](../collection-resources.md#missing-body-content): nullable JSON content, preserved metadata and a globally formatted Markdown notice for missing source content.

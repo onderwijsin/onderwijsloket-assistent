@@ -64,6 +64,8 @@ Live inspection confirmed the `articles` index and snippet/facet behavior in app
 
 Published tool descriptions, instructions and schemas describe collection search and record retrieval without naming infrastructure providers. Keep the distinction between search facet values (`get_facets`) and list filter taxonomy IDs (`get_filters`) explicit. Provider details belong in internal code and developer documentation. HTTP regression tests inspect the published MCP discovery responses.
 
-See [phase 3 preparation](collection-inventory/phase-3.md) for independent collection schemas, static facet-key boundaries and the test-only FAQ adapter. Articles, FAQs and sectors are enabled; see [group 1](collection-inventory/group-1.md) for native question hits, query-only sector search and verified FAQ facet keys.
+See [phase 3 preparation](collection-inventory/phase-3.md) for independent collection schemas, static facet-key boundaries and the test-only FAQ adapter. Articles, FAQs and sectors are enabled; see [FAQ and sector guidance](collection-inventory/faqs-and-sectors.md) for native question hits, query-only sector search and verified FAQ facet keys.
 
-Testimonials expose `search_testimonials` and shared `get_facets` with seven verified facets and native publication-date metadata. See [group 2](collection-inventory/group-2.md). They describe personal experiences, not factual eligibility rules.
+Testimonials expose `search_testimonials` and shared `get_facets` with seven verified facets and native publication-date metadata. See [article evidence and testimonials](collection-inventory/article-evidence-and-testimonials.md). They describe personal experiences, not factual eligibility rules.
+
+Programs and institutions have dedicated search tools and shared facet discovery. Program degrees are display labels and search filters use the verified singular `program_forms.track.name` path; institution search supports type only. Hits preserve native types and partial location/provider context without fabricated article descriptions. See [institutions and programs](collection-inventory/institutions-and-programs.md).

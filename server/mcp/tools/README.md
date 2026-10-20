@@ -12,7 +12,7 @@ The server exposes thirteen read-only tools through `/mcp`. Tool descriptions an
 | `search_articles`     | Return lightweight discovery results with matched snippets.          |
 | `get_facets`          | Return search facet names, values and contextual counts.             |
 
-FAQ and sector record tools are `list_faqs`, `get_faq`, `search_faqs`, `list_sectors`, `get_sector` and `search_sectors`. They have no collection selector and return resource links. Shared discovery includes all three collections; facets support articles and FAQs only. See [group 1](../../../docs/collection-inventory/group-1.md).
+FAQ and sector record tools are `list_faqs`, `get_faq`, `search_faqs`, `list_sectors`, `get_sector` and `search_sectors`. They have no collection selector and return resource links. Shared discovery includes all three collections; facets support articles and FAQs only. See [faq and sector guidance](../../../docs/collection-inventory/faqs-and-sectors.md).
 
 ## Response contracts
 
@@ -36,4 +36,6 @@ Discovery metadata includes concrete operation names and optional resource repre
 
 Article record entrypoints are `list-articles.ts`, `get-article.ts` and `search-articles.ts`; their public names are `list_articles`, `get_article` and `search_articles`. They take no collection selector. Old names are not registered.
 
-Testimonials add `list_testimonials`, `get_testimonial`, `search_testimonials` and resource links. Shared filters/facets include testimonials. Person-ID list filters use explicit nested lookup paths, separate from search facet labels. See [group 2](../../../docs/collection-inventory/group-2.md).
+Testimonials add `list_testimonials`, `get_testimonial`, `search_testimonials` and resource links. Shared filters/facets include testimonials. Person-ID list filters use explicit nested lookup paths, separate from search facet labels. See [article evidence and testimonials](../../../docs/collection-inventory/article-evidence-and-testimonials.md).
+
+Institutions and programs adds list/get/search tools for programs and educational institutions with resource links. Shared enum filter discovery describes source codes, while facets describe index labels. Institution programs remain a filtered program list instead of a recursive expansion. See [contracts](../../../docs/collection-inventory/institutions-and-programs.md).

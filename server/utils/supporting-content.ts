@@ -20,7 +20,7 @@ export const authorSchema = z.object({
   job_title: nullableOutput(z.string()),
   image: nullableOutput(assetSchema)
 });
-/** Minimal featured-person attribution; profile biography expansion remains outside this group. */
+/** Minimal featured-person attribution; profile biography expansion is outside the minimal attribution projection. */
 export const profileSchema = z.object({
   id: supportingIdSchema,
   first_name: z.string(),
@@ -81,6 +81,10 @@ function documentAsset(file: z.output<typeof fileSource>) {
     return asset(file, "image");
   return { id: typeof file === "string" ? file : file.id, url: null };
 }
+/** Shared image projection for editorial people and institution logos; strips raw file metadata. */
+export const imageAssetSourceSchema = fileSource
+  .nullish()
+  .transform((file) => (file ? asset(file, "image") : null));
 /** Source validator strips staff and reverse relations before attribution normalization. */
 export const authorSourceSchema = z
   .object({

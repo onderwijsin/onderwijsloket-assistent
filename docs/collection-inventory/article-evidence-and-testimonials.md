@@ -1,6 +1,6 @@
-# Group 2 — Article evidence and testimonials
+# Article evidence and testimonials
 
-Group 2 implements article supporting evidence and the `testimonials` core collection. Production discovery now includes articles, FAQs, sectors and testimonials: sixteen tools and four resource templates. Supporting collections remain embedded; no standalone author, profile, source or document tool/resource is added. [Data access responsibilities](../data-access.md) apply at every depth: no status filters, status validators or release-date gates.
+Article details include supporting evidence and attribution, while the `testimonials` core collection exposes personal stories with featured profiles and its own tools and resource template. Supporting collections remain embedded; no standalone author, profile, source or document tool/resource is added. [Data access responsibilities](../data-access.md) apply at every depth: no status filters, status validators or release-date gates.
 
 ## Article additive detail contract
 
@@ -48,4 +48,4 @@ Inspected read-only on 2026-10-20 using the configured source and search credent
 
 Deterministic unit and production HTTP tests cover supporting projections, safe URLs/assets, attribution separation, bounded and missing relations, unchanged article bodies/list/search contracts, future dates, missing body warnings, testimonial filters/search/facets, tool links, template/catalogue/read behavior, schema portability and sanitized errors. Node HTTP behavior is tested; a deployed Cloudflare Workers instance is not. Runtime code uses existing cross-runtime dependencies.
 
-Groups 3–5, standalone supporting resources and profile biographies remain outside this group. Unsupported document asset delivery URLs remain explicitly null pending verified mappings.
+Navigator and podcast collections, standalone supporting resources and profile biographies remain outside this contract. Unsupported document asset delivery URLs remain explicitly null pending verified mappings.

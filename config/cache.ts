@@ -4,7 +4,7 @@ export const cacheDurations = {
   article: 5 * 60,
   /** Search facet values and counts for each collection and request. */
   facets: 5 * 60,
-  /** Complete resource descriptors for each collection, without document bodies. */
+  /** Root-only resource descriptors for each collection; concurrent cold reads are coalesced. */
   resourceCatalogue: 5 * 60,
   /** Available search facet names for each index. */
   facetNames: 60,

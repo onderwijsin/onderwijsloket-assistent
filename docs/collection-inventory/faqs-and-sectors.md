@@ -1,4 +1,4 @@
-# Group 1 — FAQs and sector guidance
+# FAQs and sector guidance
 
 `faqs` and `sectors` are enabled alongside articles. Each has its own list/get/search tools; shared discovery remains common. FAQ and sector resources and URI templates are registered; sectors do not support facets. Article tool inputs, record outputs and Markdown resources remain unchanged.
 
@@ -44,7 +44,7 @@ Inspected 2026-10-20 with the configured proxy token, selecting only relevant so
 
 Deterministic unit and HTTP tests use synthetic records. They cover query projections, absence of publication filters and guards at every depth, junction filters, false booleans, missing relations, truncation, plain-text sections, nullable salary-card actions, media identity/order, search projections, safe failures and the expanded thirteen-tool catalogue. The earlier non-UUID FAQ-shaped fixture remains test-only to protect infrastructure extensibility; it is not the live FAQ ID contract.
 
-The change uses existing dependencies and runtime APIs. Node HTTP integration is tested; a deployed Cloudflare Workers instance and every possible future source record are not verified. Group 2 and later collections, geo/route operations remain outside this group.
+The change uses existing dependencies and runtime APIs. Node HTTP integration is tested; a deployed Cloudflare Workers instance and every possible future source record are not verified. Article evidence and testimonials and later collections, geo/route operations remain outside this contract.
 
 ## Resources
 

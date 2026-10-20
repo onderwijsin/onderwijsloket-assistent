@@ -1,11 +1,12 @@
 # Collection inventory and MCP architecture
 
-Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; groups 1 and 2 enable articles, FAQs, sectors and testimonials.
+Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; implemented domains enable articles, FAQs, sectors, testimonials, institutions and programs.
 
-- [Group 1 implementation](group-1.md): live FAQ/sector contracts, evidence, relation bounds and validation.
+- [FAQ and sector guidance implementation](faqs-and-sectors.md): live FAQ/sector contracts, evidence, relation bounds and validation.
 - [Phase 3 preparation](phase-3.md): implemented boundaries, extension steps and verification limits.
-- [Group 2 implementation](group-2.md): article evidence, authors, documents, featured profiles and testimonial resources.
-- [Grouped implementation plan](implementation-plan.md): five collection groups, prerequisites and release gates.
+- [Institutions and programs implementation](institutions-and-programs.md): programs, institutions, locations, schedules, variants and verified search/resource contracts.
+- [Article evidence and testimonials implementation](article-evidence-and-testimonials.md): article evidence, authors, documents, featured profiles and testimonial resources.
+- [Collection implementation plan](implementation-plan.md): collection domains, prerequisites and release gates.
 - [Phase 2 architecture](architecture.md): contract comparison, hybrid tool surface, static schemas and the minimum phase 3 scope.
 - [Core contracts](core.md): nine intended public collections, including the existing articles contract.
 - [Supporting and dependent collections](dependencies.md): five named supporting collections, taxonomy and relational dependencies, deferred and excluded tables.
@@ -23,7 +24,7 @@ Primary evidence:
 - [Knowledge Base](https://docs.onderwijsloket.com/data-model/families/knowledge-base), [Navigator](https://docs.onderwijsloket.com/data-model/families/navigator), [Media](https://docs.onderwijsloket.com/data-model/families/media), [Filters](https://docs.onderwijsloket.com/data-model/families/filters), [Indexes](https://docs.onderwijsloket.com/search/collections), [Permissions](https://docs.onderwijsloket.com/misc/permissions), read through the Onderwijsloket API Docs plugin.
 - `SPEC.md` provides intent; current code wins for implemented article behavior. For example, the draft specification's old detail character cap is not the current renderer contract.
 
-The Algolia Productivity plugin only accepts a fixed application allowlist that excludes `WSV9PQ4NXW`, the application recorded in `docs/search.md`. No live index query or settings audit was performed in phase 1. Group 1 subsequently verified FAQ and sector queries using the configured SDK credentials; see [group 1 evidence](group-1.md). Index names and field lists below are documentation evidence, not live verification. No credentials, records or settings were changed.
+The Algolia Productivity plugin only accepts a fixed application allowlist that excludes `WSV9PQ4NXW`, the application recorded in `docs/search.md`. No live index query or settings audit was performed in phase 1. FAQ and sector guidance subsequently verified FAQ and sector queries using the configured SDK credentials; see [FAQ and sector guidance evidence](faqs-and-sectors.md). Index names and field lists below are documentation evidence, not live verification. No credentials, records or settings were changed.
 
 ## Contract notation and shared proposals
 
@@ -44,13 +45,13 @@ These shared proposals are notation for comparing contracts, not a decision to u
 
 ## Resource contract
 
-Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs, sectors and testimonials are implemented; the remaining five ship resources with their collection groups. Supporting collections remain embedded.
+Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs, sectors, testimonials, institutions and programs are implemented; the remaining three ship resources with their collection implementations. Supporting collections remain embedded.
 
 ## Exposure and access
 
-Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs, sectors and testimonials are implemented; the remaining cores are still planned.
+Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs, sectors, testimonials, institutions and programs are implemented; desks and podcasts remain planned.
 
-Directus owns record visibility for every collection and nested relation; see [data access responsibilities](../data-access.md). The MCP layer does not implement publication filters or guards. Documentation says Navigator datasets depend on vendor-specific policies; the current service account's grants are TBD. Retain `vendor` and `last_sync` where present so callers can distinguish origin and freshness. The desk type has no vendor field: do not invent one.
+Directus owns record visibility for every collection and nested relation; see [data access responsibilities](../data-access.md). The MCP layer does not implement publication filters or guards. Documentation says Navigator datasets depend on vendor-specific policies; the current service account's grants are TBD. Retain `vendor` where present so callers can distinguish origin. The desk type has no vendor field: do not invent one.
 
 Do not expose staff/review metadata, Directus users, internal notes, sync identifiers or contact data merely because the service token can read them. Public desk/institution contact information is intentional; podcast-host email is not proposed for exposure. Source-returned publication metadata does not establish playback availability. Publication cutoffs and access rules are configured upstream, not enforced by this layer.
 

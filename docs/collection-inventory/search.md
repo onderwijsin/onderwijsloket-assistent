@@ -1,6 +1,6 @@
 # Search and facet evidence
 
-Observed through the [official index documentation](https://docs.onderwijsloket.com/search/collections) on 2026-10-20. These are documented capabilities, not a live settings snapshot. Group 1 has since verified the live FAQ and sector indexes; its [contract and evidence](group-1.md) supersede those two rows where they differ (notably the FAQ english facet). Directus is the detail source; index content can lag and its nested projections are incomplete.
+Observed through the [official index documentation](https://docs.onderwijsloket.com/search/collections) on 2026-10-20. These are documented capabilities, not a live settings snapshot. FAQ and sector guidance has since verified the live FAQ and sector indexes; its [contract and evidence](faqs-and-sectors.md) supersede those two rows where they differ (notably the FAQ english facet). Directus is the detail source; index content can lag and its nested projections are incomplete.
 
 ## Documented index inventory
 
@@ -57,4 +57,6 @@ Facet input (implemented articles; proposed where applicable): `{query?:string,f
 
 Evidence: current `server/utils/search/schemas.ts`, `collection-search.ts`, `docs/search.md` and the API documentation above. Live index existence, current settings, optional fields, publication policy and permissions remain TBD for the new collections.
 
-Testimonials now implement the seven documented plural-relation facet keys, with UUID identity and publication-date metadata. Read-only index/adapter checks and the precise public hit contract are recorded in [group 2](group-2.md). No english filter or singular `topic.name` facet is exposed.
+Testimonials now implement the seven documented plural-relation facet keys, with UUID identity and publication-date metadata. Read-only index/adapter checks and the precise public hit contract are recorded in [article evidence and testimonials](article-evidence-and-testimonials.md). No english filter or singular `topic.name` facet is exposed.
+
+Institutions and programs verifies `degrees` (display labels), `program_forms.track.name` and `school_subjects.name` among nine program facets, and type as the sole institution facet. These replace the earlier proposed singular-degree/plural-tracks paths. Native search hits retain partial providers/locations without invented descriptions or opening schedules. See [institutions and programs](institutions-and-programs.md).

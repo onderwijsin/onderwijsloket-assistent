@@ -32,7 +32,7 @@ vi.mock("../../server/utils/search/algolia-client", () => ({
 }));
 
 import articles from "../../server/collections/articles";
-import { listResources, serveResource, describeResource } from "../../server/utils/resources";
+import { listResources, serveResource } from "../../server/utils/resources";
 import { defineCollectionSearch } from "../../server/utils/search/collection-search";
 import { facetsOptionsSchema } from "../../server/utils/search/schemas";
 import { cacheDurations } from "../../config/cache";
@@ -108,22 +108,17 @@ describe("MCP cache boundaries", () => {
   });
 
   it("caches complete catalogues per collection, refreshing all pages after expiry", async () => {
-    const list = vi
-      .fn()
-      .mockImplementation(async ({ page }) => ({ records: [article], has_more: page === 1 }));
-    const catalogue = listResources({ name: "articles", list }, (record: typeof article) =>
-      describeResource("articles", record)
-    );
-    expect((await catalogue()).resources).toHaveLength(2);
+    read.mockImplementation(async (command) => (command().params.offset === 0 ? [article] : []));
+    const catalogue = listResources(articles);
+    expect((await Promise.all([catalogue(), catalogue()]))[0]!.resources).toHaveLength(1);
+    expect(read).toHaveBeenCalledTimes(2);
     await catalogue();
-    expect(list).toHaveBeenCalledTimes(2);
-    await listResources({ name: "other", list }, (record: typeof article) =>
-      describeResource("other", record)
-    )();
-    expect(list).toHaveBeenCalledTimes(4);
+    expect(read).toHaveBeenCalledTimes(2);
+    await listResources({ name: "sectors", getInput: articles.getInput })();
+    expect(read).toHaveBeenCalledTimes(4);
     vi.advanceTimersByTime(cacheDurations.resourceCatalogue * 1000 + 1);
     await catalogue();
-    expect(list).toHaveBeenCalledTimes(6);
+    expect(read).toHaveBeenCalledTimes(6);
   });
 
   it("does not cache failed facets or incomplete catalogues", async () => {
@@ -134,16 +129,14 @@ describe("MCP cache boundaries", () => {
     );
     await collection.facets(facetsOptionsSchema.parse({}));
     expect(search).toHaveBeenCalledTimes(2);
-    const list = vi
-      .fn()
-      .mockResolvedValueOnce({ records: [article], has_more: true })
+    read
+      .mockReset()
+      .mockResolvedValueOnce([article])
       .mockRejectedValueOnce(new Error("offline"))
-      .mockResolvedValue({ records: [], has_more: false });
-    const catalogue = listResources({ name: "articles", list }, (record: typeof article) =>
-      describeResource("articles", record)
-    );
+      .mockResolvedValue([]);
+    const catalogue = listResources(articles);
     await expect(catalogue()).rejects.toThrow("UPSTREAM_UNAVAILABLE");
     expect((await catalogue()).resources).toEqual([]);
-    expect(list).toHaveBeenCalledTimes(3);
+    expect(read).toHaveBeenCalledTimes(3);
   });
 });
