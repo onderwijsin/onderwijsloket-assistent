@@ -31,3 +31,9 @@ Keep collection-specific queries, field mappings and metadata selection in the c
 Tools and resource reads both call the collection methods. Article detail caching therefore serves both access paths without separate document caches. Durations are configured in [`config/cache.ts`](../../config/cache.ts).
 
 See [article contracts](../../docs/articles-poc.md), [search](../../docs/search.md), [content documents](../../docs/content-documents.md) and [resources](../../docs/article-resources.md).
+
+## Registry and independent contracts
+
+The explicit production allowlist lives in `index.ts`. Shared discovery consumes its narrow metadata/filter/facet view; collection-specific record tools retain their own schemas. Definitions require an ID schema and concrete list/get/search operation names. Search result/input schemas and resource representations are independent opt-ins.
+
+See [phase 3 preparation](../../docs/collection-inventory/phase-3.md) for the extension steps and [the grouped plan](../../docs/collection-inventory/implementation-plan.md) for the collection rollout order and evidence gates. Only articles is enabled; the FAQ collection in tests is synthetic.

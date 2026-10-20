@@ -8,7 +8,7 @@ export default defineMcpResource({
   name: "articles",
   title: "Onderwijsloket articles",
   description:
-    "Read an article as Markdown with YAML front matter. Browse resources/list, use list_records or follow its resource links. Cite source_url; check truncated and content_warnings before treating a document as complete.",
+    "Read an article as Markdown with YAML front matter. Browse resources/list, use list_articles or follow its resource links. Cite source_url; check truncated and content_warnings before treating a document as complete.",
   group: "content",
   tags: ["articles", "education", "readonly"],
   uri: new ResourceTemplate(resourceUri(articles.name, "{id}"), { list: listResources(articles) }),

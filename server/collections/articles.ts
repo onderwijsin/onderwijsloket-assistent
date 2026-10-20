@@ -31,21 +31,25 @@ const taxonomyNames = [
   "topics",
   "tracks"
 ] as const;
-const articleFilters = defineCollectionFilters("articles", {
-  title: exactTextFilter("Exact article title; not a keyword or full-text search."),
-  slug: exactTextFilter("Exact article slug, without a URL or path."),
-  english: booleanFilter(
-    "Match the language flag exactly: true for English, false for non-English. Omit for either."
-  ),
-  ...taxonomyFilters(taxonomyNames)
-});
+const articleFilters = defineCollectionFilters(
+  "articles",
+  {
+    title: exactTextFilter("Exact article title; not a keyword or full-text search."),
+    slug: exactTextFilter("Exact article slug, without a URL or path."),
+    english: booleanFilter(
+      "Match the language flag exactly: true for English, false for non-English. Omit for either."
+    ),
+    ...taxonomyFilters(taxonomyNames)
+  },
+  { listTool: "list_articles", collectionArgument: false }
+);
 
 const articleSchema = z.object({
-  id: z.uuid().describe("Article identifier; pass to get_record for full content."),
+  id: z.uuid().describe("Article identifier; pass to get_article for full content."),
   title: z.string().describe("Article title."),
   slug: z.string().describe("Article URL slug."),
   description: z.string().describe("Short article description."),
-  summary: z.string().describe("Article summary; full content is available through get_record."),
+  summary: z.string().describe("Article summary; full content is available through get_article."),
   date_updated: nullableOutput(z.string()).describe(
     "Source update timestamp, or null when unavailable."
   ),
@@ -169,6 +173,11 @@ function summarize(record: z.infer<typeof sourceSchema>) {
 /** Complete articles definition consumed by the MCP tools. */
 export default defineMcpCollection({
   name: "articles",
+  id: z
+    .uuid()
+    .describe("Record ID returned by list_articles or search_articles; not a taxonomy ID or slug."),
+  operations: { list: "list_articles", get: "get_article", search: "search_articles" },
+  resources: [{ uri_template: "onderwijsloket://articles/{id}", mime_type: "text/markdown" }],
   description:
     "The articles collection contains long-form informational content about working in education. Articles explain topics such as qualifications, career paths, legislation, and practical considerations for entering the education sector. They combine detailed explanations with summaries and taxonomy metadata, helping advisers and prospective education professionals understand their options and next steps.",
   summary: summarySchema,

@@ -18,12 +18,19 @@ const toolCallSchema = z.object({
 type CollectionTool = {
   name?: string;
   inputSchema?: { collection?: z.ZodType };
+  _meta?: Record<string, unknown>;
 };
 
 /** Request details retained until the tool completes; excludes unrelated arguments. */
 export type ToolCallDetails = Pick<ToolAnalyticsProps, "tool" | "collection" | "data">;
 
-/** Capture analytics before the SDK consumes the stream, preserving its request body. */
+/**
+ * Capture analytics before the SDK consumes the stream, preserving its request body.
+ * @param event - Incoming MCP request, cloned or cached before transport consumption.
+ * @param tools - Registered definitions supplying trusted static or schema-based collection identity.
+ * @param includeData - Whether to retain the explicitly allowlisted search query context.
+ * @returns Minimal call attribution, or undefined when the request cannot be inspected.
+ */
 export async function readToolCallDetails(
   event: H3Event,
   tools: readonly CollectionTool[],
@@ -41,15 +48,21 @@ export async function readToolCallDetails(
   if (!parsed.success) return;
 
   const { name, arguments: args } = parsed.data.params;
-  const schema = tools.find((tool) => tool.name === name)?.inputSchema?.collection;
+  const tool = tools.find((tool) => tool.name === name);
+  const schema = tool?.inputSchema?.collection;
+  const configuredCollection = tool?._meta?.["onderwijsloket.com/collection"];
   const collection = schema?.safeParse(args?.collection);
   const details: ToolCallDetails = {
     tool: name,
     collection:
-      collection?.success && typeof collection.data === "string" ? collection.data : "unknown"
+      typeof configuredCollection === "string"
+        ? configuredCollection
+        : collection?.success && typeof collection.data === "string"
+          ? collection.data
+          : "unknown"
   };
 
-  const supportsQuery = name === "search_collection" || name === "get_facets";
+  const supportsQuery = name === "search_articles" || name === "get_facets";
   if (includeData && supportsQuery && args?.query) {
     details.data = args.query.slice(0, 500);
   }

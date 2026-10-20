@@ -1,6 +1,6 @@
 # Articles POC
 
-The current implementation exposes five Directus-backed tools. Article Markdown resources are also available; see [article resources](article-resources.md). `search_collection` and `get_facets` add [Algolia discovery](search.md). Global search, UI and prompts remain deferred.
+The current implementation exposes five Directus-backed tools. Article Markdown resources are also available; see [article resources](article-resources.md). `search_articles` and `get_facets` add [Algolia discovery](search.md). Global search, UI and prompts remain deferred.
 
 ## Collection architecture
 
@@ -21,15 +21,17 @@ await articles.filters();
 
 ## Tools
 
+`list_articles`, `get_article` and `search_articles` target articles directly and take no `collection` argument. Shared `describe_collection`, `get_filters` and `get_facets` still require a collection selector.
+
 | Tool                  | Behavior                                                                            |
 | --------------------- | ----------------------------------------------------------------------------------- |
 | `list_collections`    | Lists articles with a description and capabilities.                                 |
 | `describe_collection` | Describes summary/detail fields, supported sorts and pagination.                    |
-| `list_records`        | Retrieves a page of article summaries with optional scalar and relation filters.    |
-| `get_record`          | Retrieves article detail by UUID, including readable content and taxonomy metadata. |
+| `list_articles`       | Retrieves a page of article summaries with optional scalar and relation filters.    |
+| `get_article`         | Retrieves article detail by UUID, including readable content and taxonomy metadata. |
 | `get_filters`         | Describes accepted filters and fetches current taxonomy choices from Directus.      |
 
-The two additional tools `search_collection` and `get_facets` are registered. Collection metadata advertises `list`, `get`, `filters`, `search` and `facets` as available. Search filters are index facet values, separate from the Directus taxonomy ID filters described below.
+The two additional tools `search_articles` and `get_facets` are registered. Collection metadata advertises `list`, `get`, `filters`, `search` and `facets` as available. Search filters are index facet values, separate from the Directus taxonomy ID filters described below.
 
 ## Filtering
 

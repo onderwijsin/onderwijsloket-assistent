@@ -13,6 +13,8 @@ function createCollection() {
   const collection = defineMcpCollection({
     name: "articles",
     description: "Example collection",
+    id: z.uuid(),
+    operations: { list: "list_articles", get: "get_article" },
     summary,
     detail: summary.extend({ content: z.string().min(1) }),
     filterSchema: z.strictObject({ slug: z.string().optional() }),

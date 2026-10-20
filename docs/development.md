@@ -14,7 +14,7 @@ With dependencies and environment access available:
 corepack pnpm dev
 ```
 
-Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools plus `search_collection` and `get_facets`. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
+Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools plus `search_articles` and `get_facets`. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
 
 ## Checks
 
@@ -90,7 +90,7 @@ See [the articles POC](articles-poc.md) for the implemented MCP contracts.
 
 ## Current implementation entry point
 
-Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Chat, prompts and additional collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
+Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Shared collection preparation and the rollout plan are documented in [phase 3 preparation](collection-inventory/phase-3.md). Chat, prompts and live additional collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
 
 ## Server JSDoc
 

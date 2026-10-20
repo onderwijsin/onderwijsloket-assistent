@@ -44,3 +44,7 @@ These tests cover the Node server’s HTTP contracts. They do not verify browser
 Place isolated behavior tests in `unit/**/*.test.ts` and HTTP contract tests in `e2e/**/*.test.ts`. Import Vitest APIs explicitly. Use synthetic or sanitized fixtures and add cases that protect observable behavior or known regressions.
 
 Coverage reports are written to ignored `coverage/`. Use them to investigate gaps; percentage targets are not enforced.
+
+## Collection architecture fixtures
+
+`fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. These tests do not enable a live FAQ collection or verify its source permissions.

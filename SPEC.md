@@ -4,7 +4,7 @@ Status: rough draft for discussion. Research date: 19 October 2026.
 
 ## Current milestone: articles POC
 
-The current implementation exposes articles through `list_collections`, `describe_collection`, `list_records`, `get_record` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_collection` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria.
+The current implementation exposes articles through `list_collections`, `describe_collection`, `list_articles`, `get_article` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_articles` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria.
 
 The remainder describes the broader product roadmap. Its additional domain tools, workflows, workflow resources and chat are deferred beyond this POC.
 
@@ -133,8 +133,8 @@ Proposed names and inputs below are provisional until the first contract review:
 | ------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------- |
 | `list_domains`                  | None                                                           | Supported domains, collections and availability                  |
 | `describe_collection`           | Approved collection                                            | Public fields, filters, relationships and search capabilities    |
-| `list_records`                  | Collection, typed filters, page, page size, allowed sort       | Bounded record summaries                                         |
-| `get_record`                    | Collection, ID, optional supported section                     | Normalized detail and related references                         |
+| `list_articles`                 | Typed article filters, page, page size, allowed sort           | Bounded record summaries                                         |
+| `get_article`                   | Article ID                                                     | Normalized detail and related references                         |
 | `search_content`                | Query, optional content types and typed facets                 | Ranked content hits and citations                                |
 | `search_programs`               | Query, supported programme facets, optional coordinates/radius | Programmes and relevant location information                     |
 | `find_regional_education_desks` | Coordinates, radius, optional sector                           | Candidate desks with approximate service-area matching explained |

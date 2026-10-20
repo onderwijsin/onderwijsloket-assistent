@@ -1,6 +1,6 @@
 # Collection search
 
-The MCP exposes `search_collection` and `get_facets` for articles. Search is collection-scoped; global search remains deferred. Directus continues to serve `list_records`, `get_record` and Markdown resources.
+The MCP exposes `search_articles` and `get_facets` for articles. `search_articles` selects articles by its name and takes no collection selector. `get_facets` remains shared and requires `collection: "articles"`. Search is collection-scoped; global search remains deferred. Directus continues to serve `list_articles`, `get_article` and Markdown resources.
 
 ## Runtime configuration
 
@@ -14,17 +14,16 @@ The articles definition includes:
 ...defineCollectionSearch({ name: "articles", indexName: "articles" })
 ```
 
-The shared utility supplies `search()` and `facets()` implementations. Optional field mappings adapt other collections' ID/title/description/slug/path fields; the defaults match the articles index. The client can never select an arbitrary index. `defineMcpCollection` validates input/output schemas and advertises search/facets capabilities only when implementations are configured.
+The shared utility supplies `search()` and `facets()` implementations plus their input/result schemas. Optional field mappings retain the article-shaped compatibility projection. New collections can provide their own `recordSchema`, `attributes`, `mapHit` and strict `filterSchema`; they need not have article ID/title/description/slug fields. The defaults still match the articles index. The client can never select an arbitrary index. `defineMcpCollection` validates input/output schemas and advertises search/facets capabilities only when implementations are configured.
 
 ## Agent workflow
 
 1. Call `get_facets` with `collection: "articles"` to discover current countable facet names, values and counts.
-2. Call `search_collection` with a query and/or selected facet values.
-3. Use a returned ID with `get_record`, or follow its resource link, for full current content.
+2. Call `search_articles` with a query and/or selected facet values.
+3. Use a returned ID with `get_article`, or follow its resource link, for full current content.
 
 ```json
 {
-  "collection": "articles",
   "query": "zij-instroom",
   "filters": {
     "sectors.title": ["Primair onderwijs", "Voortgezet onderwijs"],
@@ -37,7 +36,7 @@ The shared utility supplies `search()` and `facets()` implementations. Optional 
 
 Facet names/values above illustrate the live index; always discover them before selecting filters. Values within one field use OR; different fields use AND. Arrays accept strings, booleans or numbers. The service converts these into `facetFilters`, escaping leading minus signs; raw Algolia expressions and request parameters are not accepted.
 
-Directus filtering is a different contract: `get_filters` returns taxonomy IDs for `list_records`. Search uses index facet names and values, often taxonomy labels. Do not interchange the two.
+Directus filtering is a different contract: `get_filters` returns taxonomy IDs for `list_articles`. Search uses index facet names and values, often taxonomy labels. Do not interchange the two.
 
 ## Search output and snippets
 
@@ -64,3 +63,5 @@ Live inspection confirmed the `articles` index and snippet/facet behavior in app
 ## MCP wording
 
 Published tool descriptions, instructions and schemas describe collection search and record retrieval without naming infrastructure providers. Keep the distinction between search facet values (`get_facets`) and list filter taxonomy IDs (`get_filters`) explicit. Provider details belong in internal code and developer documentation. HTTP regression tests inspect the published MCP discovery responses.
+
+See [phase 3 preparation](collection-inventory/phase-3.md) for independent collection schemas, static facet-key boundaries and the test-only FAQ adapter. Articles remain the only production search collection.

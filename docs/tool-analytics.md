@@ -29,19 +29,19 @@ Enable the custom properties below in Plausible to inspect their breakdowns.
 
 ## Properties
 
-| Property     | Meaning                                                                                                                           |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `tool`       | Executed tool name.                                                                                                               |
-| `collection` | Request collection validated against the registered tool's collection schema, otherwise `unknown` (including `list_collections`). |
-| `status`     | `error` when the MCP result has `isError`, otherwise `success`, independently of HTTP status.                                     |
-| `client`     | SDK initialization client name when available; otherwise `unknown`. Client names are self-reported, not authenticated identities. |
-| `data`       | Optional tool-specific context. Currently only the query of `search_collection` and `get_facets`, limited to 500 characters.      |
+| Property     | Meaning                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tool`       | Executed tool name.                                                                                                                        |
+| `collection` | Static collection from the registered tool metadata, or a request collection validated against its collection schema; otherwise `unknown`. |
+| `status`     | `error` when the MCP result has `isError`, otherwise `success`, independently of HTTP status.                                              |
+| `client`     | SDK initialization client name when available; otherwise `unknown`. Client names are self-reported, not authenticated identities.          |
+| `data`       | Optional tool-specific context. Currently only the query of `search_articles` and `get_facets`, limited to 500 characters.                 |
 
 `data` is an explicit allowlist, not an arbitrary argument dump. Query capture is
 opt-in because queries can contain personal information and create high-cardinality
 reports. Enabling it sends query text to Plausible. Other arguments, record contents,
 outputs and prompts are never included. Extend the allowlist deliberately for future tools.
-Collections are resolved from registered schemas, so new collections need no analytics calls.
+Dedicated collection tools declare `_meta["onderwijsloket.com/collection"]`; shared tools resolve collection arguments from registered schemas. Client-supplied metadata is never used for attribution. New collections need no analytics delivery calls.
 Input is captured before the SDK consumes the request stream. Web request bodies are
 cloned; Node bodies are cached by h3 and replayed to the SDK. The completion hook
 never reads the stream. If there is no matching single `tools/call` body, collection is

@@ -1,0 +1,58 @@
+# Search and facet evidence
+
+Observed through the [official index documentation](https://docs.onderwijsloket.com/search/collections) on 2026-10-20. These are documented capabilities, not a live settings snapshot. Directus is the detail source; index content can lag and its nested projections are incomplete.
+
+## Documented index inventory
+
+All nine core collections have a documented index with the same name. Supporting sources/documents/authors/podcast_hosts/profiles do not have standalone documented indexes. Locations has an index but is embedded in this scope; videos is deferred. Absence from the documentation is not proof an index does not exist.
+
+| Index                    | Documented facets                                                                                                              | Documented searchable fields                                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| articles                 | audiences.title, authors.name, phases.title, qualifications.name, roles.name, sectors.title, topics.name, tracks.name, english | title, summary, description, bodyString, topics.name, roles.name, qualifications.name                     |
+| educational_institutions | type                                                                                                                           | title, type, bodyString                                                                                   |
+| faqs                     | audiences.title, phases.title, sectors.title, topics.name                                                                      | question, bodyString, topics.name                                                                         |
+| podcast_episodes         | audiences.title, phases.title, roles.name, sectors.title, topics.name, tracks.name, show.title                                 | title, show.title, bodyString, transcript_string, guests.first_name, guests.last_name                     |
+| podcast_shows            | audiences.title, phases.title, sectors.title                                                                                   | title, creator_name, bodyString, hosts.first_name, hosts.last_name                                        |
+| programs                 | qualifications.name, roles.name, sectors.title, educational_institutions.title, type, level, degree, program_forms.tracks.name | title, program_forms.bodyString, qualifications.name, educational_institutions.title, type, level, degree |
+| regional_education_desks | sectors.title, has_consultation_service, orientation_activity_types, content_types                                             | title, regions, cities_municipalities, bodyString                                                         |
+| sectors                  | (none)                                                                                                                         | title, alt_names, description, introduction, roles_content, routes_content, salary_content, costs_content |
+| testimonials             | audiences.title, authors.name, phases.title, roles.name, sectors.title, topics.name, tracks.name                               | title, summary, description, bodyString, topic.name, authors.name, roles.name                             |
+| videos                   | audiences.title, phases.title, roles.name, sectors.title, topics.name, tracks.name                                             | title, transcript_string, profiles.first_name, profiles.last_name, bodyString                             |
+| locations                | has_programs, has_educational_institutions, has_regional_education_desks                                                       | (none)                                                                                                    |
+
+The documented program `degree` differs from generated `degrees`, and `program_forms.tracks.name` differs from the singular Directus `ProgramForm.track`. Testimonial searchable `topic.name` differs from its plural relation/facet `topics.name`. Resolve these with a permitted index inspection; do not silently correct documentation into an invented live contract. Sectors have no documented facets. Locations are geo-oriented with no documented searchable text fields.
+
+## Operation contracts
+
+Implemented article search input: `{query?:string,filters?:Record<string,(string|boolean|number)[]>,page?:integer,page_size?:integer}`, with query trimmed, maximum 500 characters, default empty; page 1–10000 default 1; page_size 1–25 default 10. An empty query browses index ranking. Filter keys are 1–100 characters; each array holds 1–50 values; strings are 1–300 characters. Fields combine with AND and values within a field with OR. Names must be dynamically countable facets; no arbitrary provider expression syntax. New core collections can provisionally use these bounds, but each filter key/value type and static schema remains a phase 2 decision. Exact enum values are discovered from actual facets rather than guessed from taxonomy labels.
+
+Implemented search output: `{collection:string,query:string,records:SearchRecord[],page:integer,page_size:integer,total:integer,total_is_exact:boolean,total_pages:integer,has_more:boolean,retrieved_at:ISO-UTC}`. SearchRecord is currently `{id:UUID,collection:string,title:string,slug:string,description:string,source_url:URL|null,snippet:Snippet|null}`. Snippet is `{field:string,text:string,match_level:partial|full}`; text uses Markdown bold match markers. Browsing has null snippets. Total pages may reflect provider limits; total_is_exact must be inspected. No cross-index score or common ranking is promised.
+
+Proposed per-core hit projections, preserving enough identity for detail reads:
+
+| Collection               | Proposed search fields                                                                                                               | Constraint                                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| articles                 | Existing title, slug, description strings                                                                                            | Preserve UUID and current envelope.                                     |
+| sectors                  | title, slug, description strings                                                                                                     | source_url null until route verified; GUID-compatible ID.               |
+| faqs                     | question:string                                                                                                                      | No native slug/title/description/path; a snippet is not the answer.     |
+| programs                 | title, slug strings; type/level source enums; degrees:source array or null; institutions:InstitutionRef[], location:Location or null | Optional index projections require verification.                        |
+| regional_education_desks | title, slug strings; area:Area or null, location:Location or null, has_consultation_service:boolean                                  | Partial indexed area is not full coverage evidence.                     |
+| educational_institutions | title, slug strings; type:source enum; main_location:Location or null                                                                | Body is a text projection, not an article description.                  |
+| testimonials             | title, slug, description strings; publication_date:string or null                                                                    | Future discoverability is not readable availability.                    |
+| podcast_episodes         | title, slug strings; show:ShowRef or null, publication_date:string or null                                                           | No native description; snippets do not establish playback availability. |
+| podcast_shows            | title, slug, tagline strings; podcast_status:source enum                                                                             | JSON description is not a string description field.                     |
+
+These are proposed normalized result shapes. Verify that all selected fields are returned under current index permissions and configure explicit adapters before implementing them. Non-article IDs remain opaque strings until verified; index objectID must map to the same Directus target ID. Index misses, stale hits and inaccessible detail records must remain distinguishable. No new collection can be enabled simply by supplying its index name to the current UUID/article-shaped result schema.
+
+Facet input (implemented articles; proposed where applicable): `{query?:string,filters?:SearchFilters,facets?:string[],max_values?:integer}`; same query/filter rules, facets 1–20 names of 1–100 characters, max_values 1–1000 default 100. Omitting facets requests all countable facets. Output: `{collection,query,filters,facets:[{name:string,values:[{value:string,count:nonnegative-integer}]}],max_values:integer,counts_are_exact:boolean,retrieved_at:ISO-UTC}`. Current booleans/numbers become string values in facet discovery; consumers must use the returned values. Counts include the facet's own filter and are not disjunctive. Exact counts do not imply complete value enumeration. No facet endpoint is proposed for sectors until a countable field exists.
+
+## Transformations and access limits
+
+- Algolia flattens M2M junctions and limits related fields. Fetch supporting citations and full detail relationships from Directus. In particular sources embed only id/title, documents id/title/asset, authors id/name/image; these are not complete Directus objects.
+- Rich documents become searchable `bodyString`, including form-specific text; original body/JSON description is not a search detail source. Preserve which field supplied a snippet.
+- Programs/institutions omit provider IDs from indexes; institutions also omit brin_code. Desk phone_availability and consultation_service_description are omitted. Episodes omit transcript_raw, transcript_string_with_speakers and speaker_map. Never promise these in search results.
+- Desk `_geoloc` is a grid approximating the service area, not a physical location or exact coverage polygon. Geo domain operation, coordinate/radius bounds and normalized output remain TBD. Existing shared search inputs have no geo arguments.
+- Article facet-name discovery uses a zero-hit search because the configured key denies settings reads. Names are cached 60 seconds; facet responses five minutes. Do not presume the same account can inspect settings for new indexes. Filter-only fields cannot be discovered as countable facets through this route.
+- Existing search disables analytics. A search key is not proof that every hit can be read or its media played; enforce permitted vendor/publication behavior consistently with detail and resource paths.
+
+Evidence: current `server/utils/search/schemas.ts`, `collection-search.ts`, `docs/search.md` and the API documentation above. Live index existence, current settings, optional fields, publication policy and permissions remain TBD for the new collections.

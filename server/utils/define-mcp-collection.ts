@@ -1,10 +1,15 @@
 import {
+  collectionMetadataSchema,
+  collectionOperationsSchema,
+  collectionResourceSchema
+} from "./collection-metadata";
+import {
   searchOptionsSchema,
   searchResultSchema,
   facetsOptionsSchema,
   facetsResultSchema
 } from "./search/schemas";
-import type { SearchOptions, SearchResult, FacetsOptions, FacetsResult } from "./search/schemas";
+import type { FacetsOptions, FacetsResult } from "./search/schemas";
 import { createError } from "h3";
 import type { Schema } from "#directus";
 import { z } from "zod";
@@ -34,10 +39,18 @@ export function defineMcpCollection<
   Detail extends z.ZodObject,
   Filters extends z.ZodObject,
   const Sorts extends readonly [string, ...string[]],
-  FilterOutput extends z.ZodObject
+  FilterOutput extends z.ZodObject,
+  Id extends z.ZodType<string>,
+  SearchInput extends z.ZodObject = typeof searchOptionsSchema,
+  SearchOutput extends z.ZodObject = typeof searchResultSchema
 >(collection: {
   name: Name;
   description: string;
+  id: Id;
+  operations: { list: string; get: string; search?: string };
+  resources?: z.output<typeof collectionResourceSchema>[];
+  searchOptions?: SearchInput;
+  searchResult?: SearchOutput;
   summary: Summary;
   detail: Detail;
   filterSchema: Filters;
@@ -49,7 +62,7 @@ export function defineMcpCollection<
    * @param options - Parsed query, selected facets or filters, and operation-specific limits.
    * @returns Validated lightweight search results with query context and pagination.
    */
-  search?(options: SearchOptions): Promise<SearchResult>;
+  search?(options: z.output<NoInfer<SearchInput>>): Promise<z.output<NoInfer<SearchOutput>>>;
   /**
    * Discover facet values and counts for the supplied search context.
    *
@@ -87,6 +100,9 @@ export function defineMcpCollection<
    */
   filters(): Promise<z.output<FilterOutput>>;
 }) {
+  if (collection.search && !collection.operations.search) {
+    throw new Error("Search-capable collections require a concrete search tool name.");
+  }
   const collectionInput = {
     collection: z.literal(collection.name).describe("Collection name returned by list_collections.")
   };
@@ -123,17 +139,13 @@ export function defineMcpCollection<
   });
   const getInput = z.strictObject({
     ...collectionInput,
-    id: z
-      .uuid()
-      .describe(
-        "Record ID returned by list_records or search_collection; not a taxonomy ID or slug."
-      )
+    id: collection.id
   });
   const listOutput = z.object({
     records: z
       .array(collection.summary)
       .max(25)
-      .describe("Matching record summaries. Use get_record for full Markdown content."),
+      .describe(`Matching record summaries. Use ${collection.operations.get} for full detail.`),
     page: z.number().int().positive(),
     page_size: z.number().int().min(1).max(25),
     has_more: z.boolean().describe("Whether another page is available."),
@@ -147,39 +159,26 @@ export function defineMcpCollection<
       .datetime()
       .describe("UTC time when this response was assembled; not the source update time.")
   });
-  const searchInput = searchOptionsSchema.extend(collectionInput);
-  const searchOutput = searchResultSchema.extend({ collection: z.literal(collection.name) });
+  // Defaults retain the original article contract for definitions without search adapters.
+  const searchOptions = (collection.searchOptions ?? searchOptionsSchema) as SearchInput;
+  const searchResult = (collection.searchResult ?? searchResultSchema) as SearchOutput;
+  // Preserve concrete shape inference while adding the collection literal for MCP discovery.
+  const searchInput = z.strictObject({
+    ...searchOptions.shape,
+    ...collectionInput
+  } as SearchInput["shape"] & typeof collectionInput);
+  const searchOutput = z.object({ ...searchResult.shape, ...collectionInput } as Omit<
+    SearchOutput["shape"],
+    "collection"
+  > &
+    typeof collectionInput);
   const facetsInput = facetsOptionsSchema.extend(collectionInput);
   const facetsOutput = facetsResultSchema.extend({ collection: z.literal(collection.name) });
-  const metadataSchema = z.object({
-    name: z.literal(collection.name).describe("Collection name used in tool arguments."),
-    description: z.string().describe("Content and purpose of this collection."),
-    capabilities: z
-      .object({
-        list: z.boolean(),
-        get: z.boolean(),
-        filters: z.boolean(),
-        search: z.boolean(),
-        facets: z.boolean()
-      })
-      .describe("Available operations. False means the operation is not implemented."),
-    fields: z.array(z.string()).describe("Fields included in list_records summaries."),
-    detail_fields: z.array(z.string()).describe("Additional fields returned by get_record."),
-    filterable_fields: z
-      .array(z.string())
-      .describe(
-        "Accepted keys under list_records.filters. Call get_filters for matching rules and current taxonomy choices."
-      ),
-    sorts: z
-      .array(z.enum(collection.sorts))
-      .describe("Accepted sorts; the first is the default. Minus means descending."),
-    pagination: z
-      .object({
-        default_page_size: z.number().int().positive(),
-        max_page_size: z.number().int().positive(),
-        first_page: z.literal(1)
-      })
-      .describe("Pagination defaults and limits for list_records.")
+  const metadataSchema = collectionMetadataSchema.extend({
+    name: z.literal(collection.name),
+    sorts: z.array(z.enum(collection.sorts)),
+    operations: collectionOperationsSchema.optional(),
+    resources: z.array(collectionResourceSchema).optional()
   });
   return {
     ...collection,
@@ -194,14 +193,18 @@ export function defineMcpCollection<
      * @param input - Caller-supplied options; omitted values use the collection defaults.
      * @returns Validated lightweight search results with query context and pagination.
      */
-    async search(input: z.input<typeof searchOptionsSchema> = {}) {
-      const args = searchInput.parse({ ...input, collection: collection.name });
+    async search(input: Partial<z.input<SearchInput>> = {}) {
+      const args = { ...input, collection: collection.name };
+      searchInput.parse(args);
       if (!collection.search)
         throw createError({
           statusCode: 501,
           message: "UNSUPPORTED_OPERATION: Search is not available for this collection."
         });
-      return searchOutput.parse(await collection.search(args));
+      const { collection: _name, ...options } = args;
+      const result = searchResult.parse(await collection.search(searchOptions.parse(options)));
+      searchOutput.parse(result);
+      return result;
     },
     /**
      * Validate facet discovery and its dynamic response contract.
@@ -254,9 +257,9 @@ export function defineMcpCollection<
      * @returns Validated record detail and response timestamp.
      */
     async get(id: string) {
-      getInput.parse({ collection: collection.name, id });
+      const recordId = collection.id.parse(id);
       return getOutput.parse({
-        record: await collection.get(id),
+        record: await collection.get(recordId),
         retrieved_at: new Date().toISOString()
       });
     },
@@ -277,8 +280,16 @@ export function defineMcpCollection<
       ),
       // Derive this separately from record fields: some dimensions are filterable but not returned.
       filterable_fields: Object.keys(collection.filterSchema.shape),
-      sorts: collection.sorts,
-      pagination: { default_page_size: 10, max_page_size: 25, first_page: 1 }
+      sorts: [...collection.sorts],
+      pagination: { default_page_size: 10, max_page_size: 25, first_page: 1 as const },
+      operations: {
+        list: collection.operations.list,
+        get: collection.operations.get,
+        filters: "get_filters",
+        search: collection.search ? (collection.operations.search ?? null) : null,
+        facets: collection.facets ? "get_facets" : null
+      },
+      resources: collection.resources ?? []
     }
   };
 }

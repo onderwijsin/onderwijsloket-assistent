@@ -22,7 +22,7 @@ export const taxonomySchema = z.object({
   id: z
     .guid()
     .describe(
-      "Opaque taxonomy identifier. Copy this id into the corresponding list_records filter array."
+      "Opaque taxonomy identifier. Copy this id into the corresponding collection list filter array."
     ),
   title: z.string().describe("Human-readable label to select the appropriate taxonomy value."),
   slug: nullableOutput(z.string()).describe(

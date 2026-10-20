@@ -104,21 +104,26 @@ describe("application", async () => {
       expect(tool.description.length).toBeGreaterThan(40);
     }
     const listTool = result.result.tools.find(
-      (tool: { name: string }) => tool.name === "list_records"
+      (tool: { name: string }) => tool.name === "list_articles"
     );
     expect(listTool.inputSchema.properties.filters.properties.topics.description).toContain(
       "get_filters"
     );
     expect(listTool.inputSchema.properties.filters.properties.title.description).toContain("Exact");
     expect(listTool.inputSchema.properties.page.default).toBe(1);
+    for (const name of ["list_articles", "get_article", "search_articles"]) {
+      const tool = result.result.tools.find((entry: { name: string }) => entry.name === name);
+      expect(tool.inputSchema.properties).not.toHaveProperty("collection");
+      expect(tool._meta).toMatchObject({ "onderwijsloket.com/collection": "articles" });
+    }
     expect(result.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
       "describe_collection",
+      "get_article",
       "get_facets",
       "get_filters",
-      "get_record",
+      "list_articles",
       "list_collections",
-      "list_records",
-      "search_collection"
+      "search_articles"
     ]);
   });
 
@@ -149,6 +154,16 @@ describe("application", async () => {
       search: true,
       facets: true
     });
+    expect(catalogue.result.structuredContent.collections[0]).toMatchObject({
+      operations: {
+        list: "list_articles",
+        get: "get_article",
+        filters: "get_filters",
+        search: "search_articles",
+        facets: "get_facets"
+      },
+      resources: [{ uri_template: "onderwijsloket://articles/{id}", mime_type: "text/markdown" }]
+    });
     const description = await call("describe_collection", { collection: "articles" });
     expect(description.result.structuredContent.filterable_fields).toEqual([
       "title",
@@ -167,11 +182,10 @@ describe("application", async () => {
   });
   it("lists filtered pages through MCP and the real Directus HTTP client", async () => {
     const args = {
-      collection: "articles",
       page_size: 1,
       filters: { english: false, topics: [topicId] }
     };
-    const first = (await call("list_records", args)).result;
+    const first = (await call("list_articles", args)).result;
     expect(first.isError).not.toBe(true);
     expect(first.structuredContent).toMatchObject({ page: 1, page_size: 1, has_more: true });
     expect(first.structuredContent.records[0]).toMatchObject({
@@ -180,7 +194,7 @@ describe("application", async () => {
     });
     expect(first.structuredContent.records[0]).not.toHaveProperty("content");
     expect(JSON.parse(first.content[0].text)).toEqual(first.structuredContent);
-    const second = (await call("list_records", { ...args, page: 2 })).result;
+    const second = (await call("list_articles", { ...args, page: 2 })).result;
     expect(second.structuredContent).toMatchObject({
       page: 2,
       has_more: false,
@@ -197,7 +211,7 @@ describe("application", async () => {
   });
 
   it("renders complete article Markdown and embedded relations through MCP", async () => {
-    const result = (await call("get_record", { collection: "articles", id: articleId })).result;
+    const result = (await call("get_article", { id: articleId })).result;
     expect(result.isError).not.toBe(true);
     const record = result.structuredContent.record;
     expect(record.content).toContain("# Alpha\n\nAn introduction");
@@ -224,6 +238,8 @@ describe("application", async () => {
     const result = (await call("get_filters", { collection: "articles" })).result;
     expect(result.isError).not.toBe(true);
     expect(result.structuredContent.filters).toHaveLength(10);
+    expect(result.structuredContent.instructions).toContain("Call list_articles and filters");
+    expect(result.structuredContent.instructions).not.toContain("with collection");
     expect(
       result.structuredContent.filters.find((field: { name: string }) => field.name === "topics")
     ).toMatchObject({ type: "array", values: [{ id: topicId, title: "Career paths" }] });
@@ -234,9 +250,9 @@ describe("application", async () => {
 
   it("rejects invalid MCP arguments before making upstream requests", async () => {
     for (const [name, args] of [
-      ["list_records", { collection: "articles", page_size: 26 }],
-      ["list_records", { collection: "articles", filters: { english: "false" } }],
-      ["get_record", { collection: "articles", id: "invalid" }]
+      ["list_articles", { page_size: 26 }],
+      ["list_articles", { filters: { english: "false" } }],
+      ["get_article", { id: "invalid" }]
     ] as const) {
       const count = directus.requests.length;
       const result = await call(name, args);
@@ -247,16 +263,14 @@ describe("application", async () => {
 
   it("returns safe MCP errors for absent, unavailable and malformed records", async () => {
     const missing = (
-      await call("get_record", {
-        collection: "articles",
+      await call("get_article", {
         id: "00f81660-a2e4-48af-b8d7-98ce338de999"
       })
     ).result;
     expect(missing.isError).toBe(true);
     expect(JSON.stringify(missing)).toContain("NOT_FOUND");
     for (const title of ["upstream-error", "upstream-invalid"]) {
-      const result = (await call("list_records", { collection: "articles", filters: { title } }))
-        .result;
+      const result = (await call("list_articles", { filters: { title } })).result;
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result)).toContain("UPSTREAM_UNAVAILABLE");
       expect(JSON.stringify(result)).not.toContain("fixture upstream secret");
@@ -334,9 +348,9 @@ describe("application", async () => {
     const uri = `onderwijsloket://articles/${articleId}`;
     const readsBefore = directus.requests.length;
     const resource = (await rpc("resources/read", { uri })).result.contents[0];
-    const tool = (await call("get_record", { collection: "articles", id: articleId })).result;
+    const tool = (await call("get_article", { id: articleId })).result;
     expect(resource).toMatchObject({ uri, mimeType: "text/markdown" });
-    // The earlier get_record warmed the same article cache used by resource reads.
+    // The earlier get_article warmed the same article cache used by resource reads.
     expect(directus.requests).toHaveLength(readsBefore);
     const end = resource.text.indexOf("\n---\n", 4);
     expect(parse(resource.text.slice(4, end))).toMatchObject({
@@ -352,7 +366,7 @@ describe("application", async () => {
       uri,
       mimeType: "text/markdown"
     });
-    const list = (await call("list_records", { collection: "articles", page_size: 1 })).result;
+    const list = (await call("list_articles", { page_size: 1 })).result;
     expect(list.content[1]).toMatchObject({ type: "resource_link", uri });
   });
 
@@ -370,8 +384,7 @@ describe("application", async () => {
       "roles.name"
     ]);
     const result = (
-      await call("search_collection", {
-        collection: "articles",
+      await call("search_articles", {
         query: "classroom",
         page_size: 1,
         filters: { english: [false] }
@@ -410,8 +423,7 @@ describe("application", async () => {
     });
     expect(algolia.requests.at(-1)!.params.attributesToRetrieve).not.toContain("bodyString");
     const second = (
-      await call("search_collection", {
-        collection: "articles",
+      await call("search_articles", {
         query: "classroom",
         page_size: 1,
         page: 2,
@@ -432,7 +444,7 @@ describe("application", async () => {
 
   it("supports browsing, facet-filtered counts, AND/OR selection and empty results", async () => {
     const filters = { "topics.name": ["Salaris", "Career paths"], english: [false] };
-    const browse = (await call("search_collection", { collection: "articles", filters })).result;
+    const browse = (await call("search_articles", { filters })).result;
     expect(browse.structuredContent.records).toHaveLength(2);
     expect(
       browse.structuredContent.records.every(
@@ -451,8 +463,7 @@ describe("application", async () => {
         ]
       }
     ]);
-    const empty = (await call("search_collection", { collection: "articles", query: "no-results" }))
-      .result;
+    const empty = (await call("search_articles", { query: "no-results" })).result;
     expect(empty.structuredContent).toMatchObject({
       records: [],
       total: 0,
@@ -463,15 +474,15 @@ describe("application", async () => {
 
   it("validates search boundaries and does not leak provider failures or private config", async () => {
     for (const [name, args] of [
-      ["search_collection", { collection: "articles", page: 0 }],
-      ["search_collection", { collection: "articles", filters: { unknown: ["value"] } }],
+      ["search_articles", { page: 0 }],
+      ["search_articles", { filters: { unknown: ["value"] } }],
       ["get_facets", { collection: "articles", facets: ["unknown"] }]
     ] as const) {
       const failed = await call(name, args);
       expect(failed.result?.isError || failed.error).toBeTruthy();
     }
     for (const query of ["provider-error", "malformed"]) {
-      const failed = (await call("search_collection", { collection: "articles", query })).result;
+      const failed = (await call("search_articles", { query })).result;
       expect(failed.isError).toBe(true);
       expect(JSON.stringify(failed)).toContain("UPSTREAM_UNAVAILABLE");
       expect(JSON.stringify(failed)).not.toContain("fixture Algolia secret");

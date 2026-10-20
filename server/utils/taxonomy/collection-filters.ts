@@ -3,33 +3,65 @@ import { readTaxonomy } from "./read-taxonomy";
 import { taxonomySchema } from "./taxonomy";
 import type { TaxonomyCollection } from "./taxonomy";
 
-const operations = z.array(z.literal("list_records"));
-const descriptorFields = {
-  name: z.string(),
-  description: z.string().describe("Meaning and usage of this filter."),
-  operations
-};
+/**
+ * Describe the same small filter vocabulary for any concrete list tool.
+ * @param operation - Tool-name schema; literal for a collection, string for shared discovery.
+ * @returns Typed filter descriptors without embedding collection record schemas.
+ */
+function createFilterDescriptor(operation: z.ZodType<string>) {
+  const descriptorFields = {
+    name: z.string(),
+    description: z.string().describe("Meaning and usage of this filter."),
+    operations: z.array(operation)
+  };
 
-/** Shared discovery contract; operators explain behavior rather than introducing a query DSL. */
-const filterDescriptor = z.discriminatedUnion("type", [
-  z.object({ ...descriptorFields, type: z.literal("string"), operator: z.literal("eq") }),
-  z.object({ ...descriptorFields, type: z.literal("boolean"), operator: z.literal("eq") }),
-  z.object({
-    ...descriptorFields,
-    type: z.literal("array"),
-    operator: z.literal("in"),
-    items: z.object({ type: z.literal("string"), pattern: z.string() }),
-    minItems: z.literal(1),
-    maxItems: z.literal(50),
-    values: z
-      .array(taxonomySchema)
-      .describe(
-        "Current choices. Submit their id fields; choices do not imply matching record counts."
-      )
-  })
-]);
+  /** Shared discovery contract; operators explain behavior rather than introducing a query DSL. */
+  return z.discriminatedUnion("type", [
+    z.object({ ...descriptorFields, type: z.literal("string"), operator: z.literal("eq") }),
+    z.object({ ...descriptorFields, type: z.literal("boolean"), operator: z.literal("eq") }),
+    z.object({
+      ...descriptorFields,
+      type: z.literal("array"),
+      operator: z.literal("in"),
+      items: z.object({ type: z.literal("string"), pattern: z.string() }),
+      minItems: z.literal(1),
+      maxItems: z.literal(50),
+      values: z
+        .array(taxonomySchema)
+        .describe(
+          "Current choices. Submit their id fields; choices do not imply matching record counts."
+        )
+    })
+  ]);
+}
 
-type FilterDescriptor = z.output<typeof filterDescriptor>;
+/** Common filter vocabulary used by the registry's discovery boundary. */
+export const filterDescriptorSchema = createFilterDescriptor(z.string());
+type FilterDescriptor = z.output<typeof filterDescriptorSchema>;
+
+/**
+ * Build a shared result envelope without coupling it to article metadata or records.
+ * @param collection - Allowed public collection identifiers.
+ * @param operation - Allowed list-tool names in the descriptors.
+ * @returns A portable discovery output schema.
+ */
+export function createFiltersOutputSchema(
+  collection: z.ZodType<string>,
+  operation: z.ZodType<string> = z.string()
+) {
+  return z.object({
+    collection,
+    combination: z.string().describe("How conditions combine across and within filter fields."),
+    instructions: z.string().describe("How to translate these definitions into list arguments."),
+    filters: z.array(createFilterDescriptor(operation)),
+    retrieved_at: z.iso
+      .datetime()
+      .describe("UTC response time. Taxonomy choices may be cached for up to one minute.")
+  });
+}
+
+/** Shared result type for filter discovery, independent of the collection's records. */
+export type CollectionFiltersResult = z.output<ReturnType<typeof createFiltersOutputSchema>>;
 
 /** A filter's input validation and discovery data stay together to prevent contract drift. */
 interface FilterDefinition<Schema extends z.ZodType = z.ZodType> {
@@ -59,7 +91,7 @@ export function exactTextFilter(description: string) {
      * @returns The filter descriptor, including current taxonomy choices where applicable.
      */
     async describe(name: string): Promise<FilterDescriptor> {
-      return { name, description, type: "string", operator: "eq", operations: ["list_records"] };
+      return { name, description, type: "string", operator: "eq", operations: ["list_articles"] };
     }
   } satisfies FilterDefinition;
 }
@@ -80,7 +112,7 @@ export function booleanFilter(description: string) {
      * @returns The filter descriptor, including current taxonomy choices where applicable.
      */
     async describe(name: string): Promise<FilterDescriptor> {
-      return { name, description, type: "boolean", operator: "eq", operations: ["list_records"] };
+      return { name, description, type: "boolean", operator: "eq", operations: ["list_articles"] };
     }
   } satisfies FilterDefinition;
 }
@@ -107,7 +139,7 @@ export function taxonomyFilter(collection: TaxonomyCollection) {
         description,
         type: "array",
         operator: "in",
-        operations: ["list_records"],
+        operations: ["list_articles"],
         items: { type: "string", pattern: z.toJSONSchema(taxonomySchema.shape.id).pattern! },
         minItems: 1,
         maxItems: 50,
@@ -134,29 +166,25 @@ export function taxonomyFilters<const Names extends readonly TaxonomyCollection[
  *
  * @param collection - Collection name or definition used by this operation.
  * @param fields - Filter definitions keyed by their public argument names.
+ * @param options - Concrete list-tool routing; omit the collection argument for dedicated tools.
  * @returns The combined input schema, discovery output schema and filters method.
  */
 export function defineCollectionFilters<
   const Name extends string,
   Fields extends Record<string, FilterDefinition>
->(collection: Name, fields: Fields) {
+>(
+  collection: Name,
+  fields: Fields,
+  options: { listTool?: string; collectionArgument?: boolean } = {}
+) {
   // Object.fromEntries loses mapped keys; every schema below comes directly from the same field entry.
   const shape = Object.fromEntries(
     Object.entries(fields).map(([name, field]) => [name, field.schema])
   ) as {
     [Key in keyof Fields]: Fields[Key]["schema"];
   };
-  const filtersOutput = z.object({
-    collection: z.literal(collection),
-    combination: z.string().describe("How conditions combine across and within filter fields."),
-    instructions: z
-      .string()
-      .describe("How to translate these definitions into list_records arguments."),
-    filters: z.array(filterDescriptor),
-    retrieved_at: z.iso
-      .datetime()
-      .describe("UTC response time. Taxonomy choices may be cached for up to one minute.")
-  });
+  const listTool = options.listTool ?? "list_articles";
+  const filtersOutput = createFiltersOutputSchema(z.literal(collection), z.literal(listTool));
   return {
     filterSchema: z.strictObject(shape),
     filtersOutput,
@@ -167,12 +195,15 @@ export function defineCollectionFilters<
      */
     async filters(): Promise<z.output<typeof filtersOutput>> {
       const filters = await Promise.all(
-        Object.entries(fields).map(([name, field]) => field.describe(name))
+        Object.entries(fields).map(async ([name, field]) => ({
+          ...(await field.describe(name)),
+          operations: [listTool]
+        }))
       );
       return {
         collection,
         combination: "AND between dimensions; OR within each dimension",
-        instructions: `Call list_records with collection: "${collection}" and filters keyed by the names below. Use IDs from values for taxonomy arrays, not titles or slugs. Pass plain scalar values or ID arrays; do not send operator objects. Omit unused filters. String filters are exact matches, not full-text search. Choices do not include record-match counts.`,
+        instructions: `Call ${listTool}${options.collectionArgument === false ? "" : ` with collection: "${collection}"`} and filters keyed by the names below. Use IDs from values for taxonomy arrays, not titles or slugs. Pass plain scalar values or ID arrays; do not send operator objects. Omit unused filters. String filters are exact matches, not full-text search. Choices do not include record-match counts.`,
         filters,
         retrieved_at: new Date().toISOString()
       };

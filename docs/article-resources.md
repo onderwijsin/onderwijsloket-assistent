@@ -4,7 +4,7 @@ Articles are available through the public `/mcp` endpoint at `onderwijsloket://a
 
 ## Discovery and reading
 
-`resources/templates/list` advertises the article URI template with MIME type `text/markdown`. Use `list_records` to find article IDs, or follow the `resource_link` blocks returned by `list_records` and `get_record`. Then request a document:
+`resources/templates/list` advertises the article URI template with MIME type `text/markdown`. Use `list_articles` to find article IDs, or follow the `resource_link` blocks returned by `list_articles` and `get_article`. Then request a document:
 
 ```json
 {

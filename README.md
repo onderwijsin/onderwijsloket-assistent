@@ -32,25 +32,24 @@ For a hosted instance, use its origin followed by `/mcp`. No API key or sign-in 
 | --------------------- | ------------------------------------------------------------------------ |
 | `list_collections`    | Discover collections and supported operations.                           |
 | `describe_collection` | Inspect record fields, filters, sorting and pagination.                  |
-| `list_records`        | Browse article summaries with exact-value and taxonomy filters.          |
-| `get_record`          | Read an article’s metadata and complete Markdown content by ID.          |
+| `list_articles`       | Browse article summaries with exact-value and taxonomy filters.          |
+| `get_article`         | Read an article’s metadata and complete Markdown content by ID.          |
 | `get_filters`         | Discover list filter rules and available taxonomy IDs.                   |
-| `search_collection`   | Search or browse articles with lightweight results and matched snippets. |
+| `search_articles`     | Search or browse articles with lightweight results and matched snippets. |
 | `get_facets`          | Discover search filter names, values and match counts.                   |
 
-The available collection is `articles`. Start with `list_collections`, then use the operation that fits the question.
+The available collection is `articles`. The three article record tools do not take a `collection` argument; shared discovery tools do. Start with `list_collections`, then use the operation that fits the question.
 
-To find articles about entering education through an alternative route, call `search_collection` with:
+To find articles about entering education through an alternative route, call `search_articles` with:
 
 ```json
 {
-  "collection": "articles",
   "query": "zij-instroom",
   "page_size": 5
 }
 ```
 
-Pass a returned ID to `get_record` for the complete article. For filtered search, discover values with `get_facets`. For `list_records`, use `get_filters`; its taxonomy IDs are a separate filter contract. Pagination starts at page 1, with a maximum of 25 records per page.
+Pass a returned ID to `get_article` for the complete article. For filtered search, discover values with `get_facets`. For `list_articles`, use `get_filters`; its taxonomy IDs are a separate filter contract. Pagination starts at page 1, with a maximum of 25 records per page.
 
 ### Article resources
 
