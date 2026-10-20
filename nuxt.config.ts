@@ -57,6 +57,7 @@ export default defineNuxtConfig({
   piniaPluginPersistedstate: { storage: "localStorage" },
 
   routeRules: {
+    "/": { prerender: true },
     "/_nuxt/**": {
       cache: { maxAge: 31_536_000, swr: true },
       headers: { "cache-control": "public, max-age=31_536_000, s-maxage=31_536_000, immutable" }
