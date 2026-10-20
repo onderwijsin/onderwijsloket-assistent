@@ -30,12 +30,12 @@ Cache tests use Nitro’s actual function cache with isolated storage and contro
 
 Local HTTP fixtures supply synthetic content and search responses:
 
-- `fixtures/directus.ts` serves article and taxonomy records.
+- `fixtures/directus.ts` serves article, FAQ, sector and taxonomy records.
 - `fixtures/algolia.ts` serves search results, snippets and facets.
 
 Runtime requests use these fixtures and synthetic credentials. The installed SDKs and application handlers run against real HTTP boundaries. Build-time module initialization still uses the normal configured environment.
 
-Assertions cover all seven tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
+Assertions cover all thirteen tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
 
 These tests cover the Node server’s HTTP contracts. They do not verify browser hydration, live service permissions or a deployed Cloudflare Workers instance.
 
@@ -47,4 +47,4 @@ Coverage reports are written to ignored `coverage/`. Use them to investigate gap
 
 ## Collection architecture fixtures
 
-`fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. These tests do not enable a live FAQ collection or verify its source permissions.
+`fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. This synthetic fixture is separate from the real FAQ collection. Group-one source contracts use synthetic source-returned FAQ/sector fixtures and their own unit/HTTP checks; live evidence is recorded in the collection inventory.

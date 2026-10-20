@@ -4,7 +4,7 @@ Status: rough draft for discussion. Research date: 19 October 2026.
 
 ## Current milestone: articles POC
 
-The current implementation exposes articles through `list_collections`, `describe_collection`, `list_articles`, `get_article` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_articles` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria.
+The current implementation exposes articles through `list_collections`, `describe_collection`, `list_articles`, `get_article` and `get_filters`, plus [article Markdown resources](docs/article-resources.md). Collection-scoped `search_articles` and `get_facets` are implemented; see [search](docs/search.md). Global search, UI, prompts and model integration remain deferred. See [the articles POC guide](docs/articles-poc.md) for the implementation handoff and acceptance criteria. FAQs and sectors are now enabled with their own list/get/search tools; see [group 1 contracts](docs/collection-inventory/group-1.md).
 
 The remainder describes the broader product roadmap. Its additional domain tools, workflows, workflow resources and chat are deferred beyond this POC.
 
@@ -252,3 +252,5 @@ Verification should protect real risks: exposure through nested relations/proxie
 6. What are the desired scope and eligibility semantics for route tools beyond retrieval?
 
 These decisions do not block drafting the architecture. Data rights, deployment controls and a tested model choice must be resolved before public release.
+
+See [collection resources](docs/collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.

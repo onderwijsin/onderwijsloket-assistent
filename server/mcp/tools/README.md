@@ -1,6 +1,6 @@
 # MCP tools
 
-The server exposes seven read-only tools through `/mcp`. Tool descriptions and schemas explain how to discover collections, select filters and retrieve content without exposing underlying service providers.
+The server exposes thirteen read-only tools through `/mcp`. Tool descriptions and schemas explain how to discover collections, select filters and retrieve content without exposing underlying service providers.
 
 | Tool                  | Responsibility                                                       |
 | --------------------- | -------------------------------------------------------------------- |
@@ -12,6 +12,8 @@ The server exposes seven read-only tools through `/mcp`. Tool descriptions and s
 | `search_articles`     | Return lightweight discovery results with matched snippets.          |
 | `get_facets`          | Return search facet names, values and contextual counts.             |
 
+FAQ and sector record tools are `list_faqs`, `get_faq`, `search_faqs`, `list_sectors`, `get_sector` and `search_sectors`. They have no collection selector and return resource links. Shared discovery includes all three collections; facets support articles and FAQs only. See [group 1](../../../docs/collection-inventory/group-1.md).
+
 ## Response contracts
 
 Each tool declares input and output schemas. The four shared discovery tools delegate through the explicit collection registry; the article list/get/search tools retain their own definition and contracts. Successful responses include validated `structuredContent` and a JSON text fallback. Record retrieval, listing and search also include resource links for reading article documents through MCP.
@@ -20,7 +22,7 @@ Missing records return `NOT_FOUND`. Provider failures and invalid upstream data 
 
 ## Filtering and discovery
 
-`get_filters` describes the filters accepted by `list_articles`; taxonomy arrays use returned IDs. `get_facets` describes the values accepted by `search_articles`; these use search facet names and values. Both combine fields with AND and values within a taxonomy or facet array with OR.
+`get_filters` describes the selected collection's concrete list tool; taxonomy arrays use returned IDs. `get_facets` describes search values for articles and FAQs; these use search facet names and values. Both combine fields with AND and values within a taxonomy or facet array with OR.
 
 Search results contain discovery metadata and an optional query-matched snippet. Use `get_article` or the linked resource for the complete article. Clients should cite `source_url` and inspect `content_warnings` and `truncated` when using article content.
 

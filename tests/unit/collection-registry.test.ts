@@ -19,11 +19,15 @@ vi.mock("../../server/utils/search/algolia-client", () => ({
 beforeEach(() => search.mockReset());
 
 describe("allowlisted collection discovery", () => {
-  it("exposes only production articles; fixtures cannot mutate article schemas", async () => {
+  it("keeps the explicit production allowlist independent of synthetic registry fixtures", async () => {
     const before = z.toJSONSchema(articles.getOutput);
     const { collection } = createFaqCollection();
     const registry = createCollectionRegistry([articles, collection]);
-    expect(collections.catalogue().map(({ name }) => name)).toEqual(["articles"]);
+    expect(collections.catalogue().map(({ name }) => name)).toEqual([
+      "articles",
+      "faqs",
+      "sectors"
+    ]);
     expect(registry.catalogue().map(({ name }) => name)).toEqual(["articles", "faqs"]);
     expect(z.toJSONSchema(articles.getOutput)).toEqual(before);
     expect(registry.catalogue()[1]).toMatchObject({

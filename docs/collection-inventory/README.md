@@ -1,7 +1,8 @@
 # Collection inventory and MCP architecture
 
-Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implements the shared preparation while retaining articles as the only live collection.
+Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; group 1 now enables articles, FAQs and sectors.
 
+- [Group 1 implementation](group-1.md): live FAQ/sector contracts, evidence, relation bounds and validation.
 - [Phase 3 preparation](phase-3.md): implemented boundaries, extension steps and verification limits.
 - [Grouped implementation plan](implementation-plan.md): five collection groups, prerequisites and release gates.
 - [Phase 2 architecture](architecture.md): contract comparison, hybrid tool surface, static schemas and the minimum phase 3 scope.
@@ -21,7 +22,7 @@ Primary evidence:
 - [Knowledge Base](https://docs.onderwijsloket.com/data-model/families/knowledge-base), [Navigator](https://docs.onderwijsloket.com/data-model/families/navigator), [Media](https://docs.onderwijsloket.com/data-model/families/media), [Filters](https://docs.onderwijsloket.com/data-model/families/filters), [Indexes](https://docs.onderwijsloket.com/search/collections), [Permissions](https://docs.onderwijsloket.com/misc/permissions), read through the Onderwijsloket API Docs plugin.
 - `SPEC.md` provides intent; current code wins for implemented article behavior. For example, the draft specification's old detail character cap is not the current renderer contract.
 
-The Algolia Productivity plugin only accepts a fixed application allowlist that excludes `WSV9PQ4NXW`, the application recorded in `docs/search.md`. No live index query or settings audit was performed in this inventory. Index names and field lists below are documentation evidence, not live verification. No credentials, records or settings were changed.
+The Algolia Productivity plugin only accepts a fixed application allowlist that excludes `WSV9PQ4NXW`, the application recorded in `docs/search.md`. No live index query or settings audit was performed in phase 1. Group 1 subsequently verified FAQ and sector queries using the configured SDK credentials; see [group 1 evidence](group-1.md). Index names and field lists below are documentation evidence, not live verification. No credentials, records or settings were changed.
 
 ## Contract notation and shared proposals
 
@@ -40,20 +41,24 @@ For proposed public core collections:
 
 These shared proposals are notation for comparing contracts, not a decision to use generic tools or identical envelopes for every operation. Non-applicable operations on embedded/deferred/excluded candidates are explicitly absent.
 
+## Resource contract
+
+Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs and sectors are implemented; the remaining six ship resources with their collection groups. Supporting collections remain embedded.
+
 ## Exposure and access
 
-Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Nothing other than articles is implemented yet.
+Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs and sectors are implemented; the remaining cores are still planned.
 
-Only published, permitted records should enter a public response or a flattened relation. Documentation says Navigator datasets depend on vendor-specific policies; the current service account's grants are TBD. Retain `vendor` and `last_sync` where present so callers can distinguish origin and freshness. The desk type has no vendor field: do not invent one.
+Directus owns record visibility for every collection and nested relation; see [data access responsibilities](../data-access.md). The MCP layer does not implement publication filters or guards. Documentation says Navigator datasets depend on vendor-specific policies; the current service account's grants are TBD. Retain `vendor` and `last_sync` where present so callers can distinguish origin and freshness. The desk type has no vendor field: do not invent one.
 
-Do not expose staff/review metadata, Directus users, internal notes, sync identifiers or contact data merely because the service token can read them. Public desk/institution contact information is intentional; podcast-host email is not proposed for exposure. Testimonials and episodes may be discoverable before publication while content/assets remain unavailable. Exact publication cutoff, timezone and null-date behavior are TBD; listings must not imply availability and details must not leak embargoed content through search, resources or relations.
+Do not expose staff/review metadata, Directus users, internal notes, sync identifiers or contact data merely because the service token can read them. Public desk/institution contact information is intentional; podcast-host email is not proposed for exposure. Source-returned publication metadata does not establish playback availability. Publication cutoffs and access rules are configured upstream, not enforced by this layer.
 
 ## Remaining evidence before implementation
 
-1. Validate non-article ID formats, published-only relation permissions and vendor access with the actual service account.
+1. Validate non-article ID formats, upstream relation permissions and vendor access with the actual service account.
 2. Inspect one permitted representative record per core collection and optional/null relation cases. Resolve string/HTML/Tiptap content formats, geometry encodings, media JSON and asset delivery URLs.
 3. Verify actual index existence, countable facets, search fields and hit-to-record identity. In particular resolve `degree` vs `degrees`, `track` vs `tracks`, and FAQ URL/title mapping.
 4. Confirm sector canonical routes; FAQ has no path; do not generate either from guesses.
-5. Choose relation caps, availability representation and publication behavior before advertising new schemas. Resource candidates remain optional (issue #2).
+5. Choose relation caps and source availability representation before advertising new schemas. Resource representations and templates are required for each core collection.
 
 The [phase 2 decision](architecture.md) selects shared discovery and collection-specific record operations, preserving current article contracts. Phase 3 preparation is documented in [phase-3.md](phase-3.md); unresolved upstream details still gate live collection rollout.

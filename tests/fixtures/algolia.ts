@@ -1,3 +1,4 @@
+import { faqId, sectorId } from "./group-one";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { articleId } from "./directus";
@@ -5,7 +6,7 @@ import { articleId } from "./directus";
 /** HTTP fixture for the SDK's query endpoint; real client serialization and auth stay in the test. */
 export async function createAlgoliaFixture() {
   const requests: { path: string; params: Record<string, unknown> }[] = [];
-  const hits = [
+  const articleHits = [
     {
       id: articleId,
       objectID: articleId,
@@ -47,13 +48,35 @@ export async function createAlgoliaFixture() {
       response.end(JSON.stringify({ message: "Expected fixture credentials" }));
       return;
     }
-    if (request.method !== "POST" || request.url?.split("?")[0] !== "/1/indexes/articles/query") {
+    const index = request.url?.split("/")[3];
+    if (
+      request.method !== "POST" ||
+      !["articles", "faqs", "sectors"].includes(index ?? "") ||
+      !request.url?.split("?")[0]?.endsWith("/query")
+    ) {
       response.statusCode = 404;
       response.end(
         JSON.stringify({ message: "Unexpected endpoint; index settings are not available" })
       );
       return;
     }
+    const hits =
+      index === "articles"
+        ? articleHits
+        : [
+            {
+              id: index === "faqs" ? faqId : sectorId,
+              objectID: index === "faqs" ? faqId : sectorId,
+              question: "Can I teach?",
+              title: "Primary education",
+              description: "Primary education guidance",
+              slug: "primary",
+              path: "/primary",
+              status: "published",
+              english: false,
+              topics: ["Teaching"]
+            }
+          ];
     let body = "";
     for await (const chunk of request) body += chunk;
     const params = JSON.parse(body);
@@ -84,7 +107,11 @@ export async function createAlgoliaFixture() {
         )
     );
     const names = params.facets?.includes("*")
-      ? ["english", "topics.name", "roles.name"]
+      ? index === "sectors"
+        ? []
+        : index === "faqs"
+          ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
+          : ["english", "topics.name", "roles.name"]
       : (params.facets ?? []);
     const facets = Object.fromEntries(
       names.map((name: string) => {

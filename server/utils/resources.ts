@@ -9,7 +9,7 @@ import type { Resource } from "@modelcontextprotocol/sdk/types.js";
 interface ResourceRecord {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   date_updated?: string | null;
 }
 
@@ -37,7 +37,7 @@ export function describeResource(collection: string, record: ResourceRecord): Re
     uri: resourceUri(collection, record.id),
     name: record.id,
     title: record.title,
-    description: record.description,
+    ...(record.description !== undefined ? { description: record.description } : {}),
     mimeType: "text/markdown",
     ...(updated && !Number.isNaN(updated.getTime())
       ? { annotations: { lastModified: updated.toISOString() } }
@@ -49,21 +49,25 @@ export function describeResource(collection: string, record: ResourceRecord): Re
  * Supply the native template list callback with every descriptor, fetching summaries in batches.
  *
  * @param collection - Public collection name and its summary-listing method.
+ * @param describe - Collection-specific summary descriptor; never loads detail content.
  * @returns A cached callback returning the complete resource catalogue; failures reject without caching partial results.
  */
-export function listResources(collection: {
-  name: string;
-  /**
-   * Retrieve a page of collection summaries.
-   *
-   * @param options - Summary page number and page size.
-   * @returns Summary records and whether another page is available.
-   */
-  list(options: { page: number; page_size: number }): Promise<{
-    records: ResourceRecord[];
-    has_more: boolean;
-  }>;
-}) {
+export function listResources<Record>(
+  collection: {
+    name: string;
+    /**
+     * Retrieve a page of collection summaries.
+     *
+     * @param options - Summary page number and page size.
+     * @returns Summary records and whether another page is available.
+     */
+    list(options: { page: number; page_size: number }): Promise<{
+      records: Record[];
+      has_more: boolean;
+    }>;
+  },
+  describe: (record: Record) => Resource
+) {
   return defineCachedFunction(
     async () => {
       try {
@@ -72,9 +76,7 @@ export function listResources(collection: {
         // without introducing a second pagination protocol or loading document bodies.
         for (let page = 1; ; page++) {
           const result = await collection.list({ page, page_size: 25 });
-          resources.push(
-            ...result.records.map((record) => describeResource(collection.name, record))
-          );
+          resources.push(...result.records.map(describe));
           if (!result.has_more) return { resources };
         }
       } catch {
@@ -101,10 +103,17 @@ export function listResources(collection: {
 /**
  * Create a Markdown resource handler using the collection's validated get method and metadata.
  *
- * @param options - Collection name, validated record getter and optional front matter selector.
+ * @param options - Collection name, ID schema, getter, Markdown selector and optional front matter selector.
  * @returns An MCP template read handler accepting a URI and ID variables and returning Markdown with front matter.
  */
-export function serveResource<Document extends { content: string }>(options: {
+export function serveResource<Document>(options: {
+  id: z.ZodType<string>;
+  /**
+   * Select the collection-specific Markdown representation.
+   * @param record - Validated detail returned by the collection getter.
+   * @returns The readable resource body.
+   */
+  content(record: Document): string;
   name: string;
   /**
    * Retrieve one complete collection record.
@@ -122,9 +131,8 @@ export function serveResource<Document extends { content: string }>(options: {
   metadata?(record: Document): Record<string, unknown>;
 }) {
   return (async (uri, variables) => {
-    // Collection get methods currently accept UUIDs. Validate before the upstream call so
-    // malformed template variables produce a client error rather than an internal error.
-    const id = z.uuid().safeParse(variables.id);
+    // Validate with the same collection-specific identity contract as its get tool.
+    const id = options.id.safeParse(variables.id);
     if (!id.success) throw new McpError(ErrorCode.InvalidParams, "Invalid resource ID.");
     try {
       const { record } = await options.get(id.data);
@@ -133,7 +141,7 @@ export function serveResource<Document extends { content: string }>(options: {
           {
             uri: uri.toString(),
             mimeType: "text/markdown",
-            text: withFrontMatter(record.content, options.metadata?.(record))
+            text: withFrontMatter(options.content(record), options.metadata?.(record))
           }
         ]
       };

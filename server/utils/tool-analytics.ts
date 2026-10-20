@@ -62,7 +62,9 @@ export async function readToolCallDetails(
           : "unknown"
   };
 
-  const supportsQuery = name === "search_articles" || name === "get_facets";
+  const supportsQuery = ["search_articles", "search_faqs", "search_sectors", "get_facets"].includes(
+    name
+  );
   if (includeData && supportsQuery && args?.query) {
     details.data = args.query.slice(0, 500);
   }

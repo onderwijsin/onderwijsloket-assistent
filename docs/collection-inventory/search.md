@@ -1,6 +1,6 @@
 # Search and facet evidence
 
-Observed through the [official index documentation](https://docs.onderwijsloket.com/search/collections) on 2026-10-20. These are documented capabilities, not a live settings snapshot. Directus is the detail source; index content can lag and its nested projections are incomplete.
+Observed through the [official index documentation](https://docs.onderwijsloket.com/search/collections) on 2026-10-20. These are documented capabilities, not a live settings snapshot. Group 1 has since verified the live FAQ and sector indexes; its [contract and evidence](group-1.md) supersede those two rows where they differ (notably the FAQ english facet). Directus is the detail source; index content can lag and its nested projections are incomplete.
 
 ## Documented index inventory
 
@@ -53,6 +53,6 @@ Facet input (implemented articles; proposed where applicable): `{query?:string,f
 - Programs/institutions omit provider IDs from indexes; institutions also omit brin_code. Desk phone_availability and consultation_service_description are omitted. Episodes omit transcript_raw, transcript_string_with_speakers and speaker_map. Never promise these in search results.
 - Desk `_geoloc` is a grid approximating the service area, not a physical location or exact coverage polygon. Geo domain operation, coordinate/radius bounds and normalized output remain TBD. Existing shared search inputs have no geo arguments.
 - Article facet-name discovery uses a zero-hit search because the configured key denies settings reads. Names are cached 60 seconds; facet responses five minutes. Do not presume the same account can inspect settings for new indexes. Filter-only fields cannot be discovered as countable facets through this route.
-- Existing search disables analytics. A search key is not proof that every hit can be read or its media played; enforce permitted vendor/publication behavior consistently with detail and resource paths.
+- Existing search disables analytics. A search key is not proof that every hit can be read or its media played; visibility belongs upstream; follow [data access responsibilities](../data-access.md) without local publication filters or guards.
 
 Evidence: current `server/utils/search/schemas.ts`, `collection-search.ts`, `docs/search.md` and the API documentation above. Live index existence, current settings, optional fields, publication policy and permissions remain TBD for the new collections.

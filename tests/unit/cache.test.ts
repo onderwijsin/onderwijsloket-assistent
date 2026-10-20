@@ -32,7 +32,7 @@ vi.mock("../../server/utils/search/algolia-client", () => ({
 }));
 
 import articles from "../../server/collections/articles";
-import { listResources, serveResource } from "../../server/utils/resources";
+import { listResources, serveResource, describeResource } from "../../server/utils/resources";
 import { defineCollectionSearch } from "../../server/utils/search/collection-search";
 import { facetsOptionsSchema } from "../../server/utils/search/schemas";
 import { cacheDurations } from "../../config/cache";
@@ -57,7 +57,12 @@ afterEach(() => vi.useRealTimers());
 
 describe("MCP cache boundaries", () => {
   it("shares article reads between tools and resources, isolates IDs and expires after five minutes", async () => {
-    const get = serveResource({ name: "articles", get: articles.get });
+    const get = serveResource({
+      name: "articles",
+      id: articles.getInput.shape.id,
+      content: (record) => record.content,
+      get: articles.get
+    });
     await articles.get(id);
     await get(new URL(`onderwijsloket://articles/${id}`), { id });
     expect(read).toHaveBeenCalledTimes(1);
@@ -103,11 +108,15 @@ describe("MCP cache boundaries", () => {
     const list = vi
       .fn()
       .mockImplementation(async ({ page }) => ({ records: [article], has_more: page === 1 }));
-    const catalogue = listResources({ name: "articles", list });
+    const catalogue = listResources({ name: "articles", list }, (record: typeof article) =>
+      describeResource("articles", record)
+    );
     expect((await catalogue()).resources).toHaveLength(2);
     await catalogue();
     expect(list).toHaveBeenCalledTimes(2);
-    await listResources({ name: "other", list })();
+    await listResources({ name: "other", list }, (record: typeof article) =>
+      describeResource("other", record)
+    )();
     expect(list).toHaveBeenCalledTimes(4);
     vi.advanceTimersByTime(cacheDurations.resourceCatalogue * 1000 + 1);
     await catalogue();
@@ -127,7 +136,9 @@ describe("MCP cache boundaries", () => {
       .mockResolvedValueOnce({ records: [article], has_more: true })
       .mockRejectedValueOnce(new Error("offline"))
       .mockResolvedValue({ records: [], has_more: false });
-    const catalogue = listResources({ name: "articles", list });
+    const catalogue = listResources({ name: "articles", list }, (record: typeof article) =>
+      describeResource("articles", record)
+    );
     await expect(catalogue()).rejects.toThrow("UPSTREAM_UNAVAILABLE");
     expect((await catalogue()).resources).toEqual([]);
     expect(list).toHaveBeenCalledTimes(3);

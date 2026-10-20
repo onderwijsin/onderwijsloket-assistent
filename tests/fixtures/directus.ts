@@ -1,3 +1,4 @@
+import { faqRecord, sectorRecord } from "./group-one";
 import { createServer } from "node:http";
 import { once } from "node:events";
 
@@ -76,6 +77,29 @@ export async function createDirectusFixture() {
     }
     if (filter.title?._eq === "upstream-invalid") {
       response.end(JSON.stringify({ data: [{ id: "malformed" }] }));
+      return;
+    }
+    if (
+      collection === "faqs" ||
+      (collection === "sectors" && url.searchParams.get("fields")?.includes("code"))
+    ) {
+      const source = collection === "faqs" ? faqRecord : sectorRecord;
+      const catalogue = [source];
+      const rows = catalogue.filter((row) => {
+        const scalar = row as Record<string, unknown>;
+        return Object.entries(filter).every(([key, condition]) => {
+          const operation = condition as { _eq?: unknown; [key: string]: unknown };
+          if ("_eq" in operation) return scalar[key] === operation._eq;
+          if (key === "articles") return JSON.stringify(operation).includes(articleId);
+          return (
+            ["sectors", "topics", "phases", "audiences"].includes(key) &&
+            JSON.stringify(operation).includes(topicId)
+          );
+        });
+      });
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? 10);
+      response.end(JSON.stringify({ data: rows.slice(offset, offset + limit) }));
       return;
     }
     if (collection === "articles") {

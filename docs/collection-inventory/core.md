@@ -1,6 +1,6 @@
 # Core collection contracts
 
-All nine collections are intended public collections by the supplied scope. Only articles are implemented. Read the common limits, null rules and evidence levels in [README](README.md); source field types and exact enums are in [schema evidence](schema-evidence.md). Search fields/facets and hit projections are in [search evidence](search.md). `Taxonomy`, `Area`, `Location`, `Season`, `Author`, `Document`, `Source` and reference shapes are specified in [dependencies](dependencies.md).
+All nine collections are intended public collections by the supplied scope. Articles, FAQs and sectors are implemented; [group 1](group-1.md) is authoritative for the final FAQ/sector contracts and evidence. Read the common limits, null rules and evidence levels in [README](README.md); source field types and exact enums are in [schema evidence](schema-evidence.md). Search fields/facets and hit projections are in [search evidence](search.md). `Taxonomy`, `Area`, `Location`, `Season`, `Author`, `Document`, `Source` and reference shapes are specified in [dependencies](dependencies.md).
 
 ## articles
 
@@ -16,9 +16,11 @@ All nine collections are intended public collections by the supplied scope. Only
 
 ## sectors
 
+Implemented in group 1; see [the implementation contract](group-1.md). The proposal below records the phase 1 comparison and is superseded where group 1 differs.
+
 - **Purpose / audience:** Sector guidance for readers; reusable filter vocabulary for all tagged content.
 - **Source / exposure:** Directus `sectors` (`Sector`); documented Algolia `sectors` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery. No documented facets, so no useful facet operation until evidence changes. Markdown resource candidate; representation TBD.
+- **Operations / resources:** Proposed list/get/search/filter discovery. No documented facets, so no useful facet operation until evidence changes. Implemented Markdown resource/template with named guidance sections; see [collection resources](../collection-resources.md).
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug, code (exact). Sort allowlist: `sort, -sort, title, -title`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, code:string, description:string, alt_names:string[]|null, icon:string|null.
 - **Detail:** summary plus introduction, roles_content, routes_content, salary_content, costs_content: string|null; costs_actions:{label:string,link:string,internal:boolean}[]|null; salary_cards:{title,description,link,link_label,link_internal,icon:string}[]|null; featured_articles:ArticleRef[], featured_faqs:FaqRef[], featured_media:MediaRef[].
@@ -28,9 +30,11 @@ All nine collections are intended public collections by the supplied scope. Only
 
 ## faqs
 
+Implemented in group 1; see [the implementation contract](group-1.md). The proposal below records the phase 1 comparison and is superseded where group 1 differs.
+
 - **Purpose / audience:** Concise factual answers for readers and advisers.
 - **Source / exposure:** Directus `faqs` (`Faq`); documented Algolia `faqs` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Markdown resource candidate once descriptors are defined; no native title/description/slug.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Implemented Markdown resource/template; question supplies the descriptor title and answer supplies the body. No native title/description/slug.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: question (exact); english:boolean; sectors, audiences, phases, topics (GUID arrays); articles (relation IDs, via articles.articles_id). Sort allowlist: `question, -question, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus question:string, english:boolean|null; sectors, audiences, phases, topics:Taxonomy[]. No invented summary/excerpt field.
 - **Detail:** summary plus answer:Markdown, content_warnings:string[], truncated:boolean, articles:ArticleRef[].
@@ -42,7 +46,7 @@ All nine collections are intended public collections by the supplied scope. Only
 
 - **Purpose / audience:** Compare education pathways, qualifications and providers for prospective students/advisers.
 - **Source / exposure:** Directus `programs` (`Program`); documented Algolia `programs` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. No resource initially; detail is structured, with multiple form descriptions. Geo search is a possible future operation; input/matching semantics TBD.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with overview and named form descriptions. Geo search is a possible future operation; input/matching semantics TBD.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug, croho, crebo (exact); type, level, financing, vendor (source enums); degrees (1–50 values from Program.degrees union); sectors, qualifications, roles, school_subjects (GUID arrays); educational_institutions (ID array); location (ID). Sort allowlist: `title, -title, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, type:Program.type, level:Program.level, degrees:Program.degrees|null, financing:Program.financing|null, credits:number|null, croho:string|null, crebo:string|null, vendor:Program.vendor, last_sync:string|null; educational_institutions:InstitutionRef[], location:Location|null; sectors, qualifications, roles, school_subjects:Taxonomy[].
 - **Detail:** summary plus program_forms:ProgramForm[]; croho_name, croho_sector, crebo_profile:string|null; aggregate content_warnings:string[], truncated:boolean for rendered form descriptions.
@@ -54,7 +58,7 @@ All nine collections are intended public collections by the supplied scope. Only
 
 - **Purpose / audience:** Find regional guidance, contact options and service coverage.
 - **Source / exposure:** Directus `regional_education_desks` (`RegionalEducationDesk`); documented Algolia `regional_education_desks` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. No resource initially. Domain-specific area matching is TBD; no coordinates/radius API promised in phase 1.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with desk/service descriptions, coverage and contacts. Domain-specific area matching is TBD; no coordinates/radius API promised in phase 1.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug (exact); sectors (GUID arrays); has_consultation_service, has_physical_location, appointment_for_visit (boolean); regions (1–50 exact strings); orientation_activity_types, content_types (source-enum arrays). Sort allowlist: `title, -title, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, website:URL|null, email:string|null, phone:string|null; has_consultation_service, has_physical_location, appointment_for_visit:boolean; area:Area; location:Location|null; sectors:Taxonomy[]; regions:string[]|null; cities_municipalities:string|null.
 - **Detail:** summary plus description:Markdown, consultation_service_description:Markdown; consultation_service_url:URL|null; phone_availability:Availability|null; email_response_time:source enum|null; service_links:{url:URL,type:source enum,domain:string}[]|null; orientation_activity_types, content_types:source-enum arrays|null; content_warnings:string[], truncated:boolean.
@@ -66,7 +70,7 @@ All nine collections are intended public collections by the supplied scope. Only
 
 - **Purpose / audience:** Discover programme providers, their locations and public contact details.
 - **Source / exposure:** Directus `educational_institutions` (`EducationalInstitution`); documented Algolia `educational_institutions` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. No resource initially. Program catalogue is retrieved through filtered program lists, not unbounded recursion.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with institution description, contacts and locations. Program catalogue is retrieved through filtered program lists, not unbounded recursion.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug, code, brin_code (exact); type, vendor (source enums); locations (ID array via locations.locations_id). Sort allowlist: `title, -title, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, code:string, type:EducationalInstitution.type, vendor:EducationalInstitution.vendor, last_sync:string|null; logo:Asset|null; main_location:Location|null; locations:Location[].
 - **Detail:** summary plus description:Markdown; email:string|null, phone:string|null, website:{url:URL,lang: Nederlands|Engels|Overig}[]|null; brin_code:string|null; content_warnings:string[], truncated:boolean. Related programs use programs filter educational_institutions; bounded references only if needed.
@@ -78,31 +82,31 @@ All nine collections are intended public collections by the supplied scope. Only
 
 - **Purpose / audience:** Personal experience for prospective entrants; not a source of general eligibility rules.
 - **Source / exposure:** Directus `testimonials` (`Testimonial`); documented Algolia `testimonials` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Markdown resource candidate subject to publication restrictions.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with story and attribution.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug (exact); sectors, audiences, phases, roles, topics, tracks (GUID arrays); authors, profiles (ID arrays). Sort allowlist: `title, -title, publication_date, -publication_date`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, description:string, summary:string, publication_date:string|null; sectors, audiences, phases, roles, topics, tracks:Taxonomy[]; profiles:ProfileRef[], authors:Author[].
 - **Detail:** summary plus content:Markdown, content_warnings:string[], truncated:boolean.
 - **Relationships / transformations:** body plus TestimonialsEditorNode[]; authors.authors_id; profiles.profiles_id; taxonomy junctions. Keep featured people separate from authors.
-- **Distinct behavior / unresolved evidence:** Future-dated records can be discoverable before readable. Availability field/error contract and null-publication handling TBD; do not replace unavailable body with an apparently complete empty document. No english flag exists.
+- **Distinct behavior / unresolved evidence:** Represent source availability explicitly; do not replace missing body with an apparently complete empty document. Directus owns publication visibility; no local date/status gates. No english flag exists.
 - **Evidence / status:** local `Testimonial` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
 
 ## podcast_episodes
 
 - **Purpose / audience:** Discover individual audio conversations and retrieve readable transcripts.
 - **Source / exposure:** Directus `podcast_episodes` (`PodcastEpisode`); documented Algolia `podcast_episodes` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Transcript/Markdown resource candidate; never advertise audio binary as a Markdown resource.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template with episode metadata and available transcript; missing transcript does not disable the resource. Never advertise audio binary as a Markdown resource.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug (exact); show, season (single IDs); hosts, guests (ID arrays); sectors, audiences, phases, roles, topics, tracks (GUID arrays); episode_number (integer, valid range TBD). Sort allowlist: `publication_date, -publication_date, episode_number, -episode_number`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, duration:number, episode_number:number, publication_date:string|null; show:ShowRef, season:Season; hosts:PodcastHost[], guests:ProfileRef[]; sectors, audiences, phases, roles, topics, tracks:Taxonomy[].
 - **Detail:** summary plus content:Markdown from body; transcript_string:string|null; transcript_string_with_speakers:string|null; speaker_map:{speaker:number,name:string}[]|null; external_urls:{name:source enum,url:URL}[]|null; audio:normalized media|null (schema TBD); content_warnings:string[], truncated:boolean.
 - **Relationships / transformations:** show and season are required M2O; season includes show identity so mismatches can be detected. hosts.podcast_hosts_id and guests.profiles_id flatten separately. No episode editor_nodes field exists.
-- **Distinct behavior / unresolved evidence:** No description field; never require an article-shaped description. Audio JSON and duration units TBD; generated number does not prove positive integer seconds. Missing transcript is explicit null, not an inferred transcript from the description. Future publication restrictions cover assets and transcript reads.
+- **Distinct behavior / unresolved evidence:** No description field; never require an article-shaped description. Audio JSON and duration units TBD; generated number does not prove positive integer seconds. Missing transcript is explicit null, not an inferred transcript from the description. Directus owns visibility of assets and transcripts; no local publication gates.
 - **Evidence / status:** local `PodcastEpisode` interface and related junctions; API family/index documentation. Articles behavior verified in `articles.ts`; all additions/new collections are proposals requiring live fixtures, permission checks and the stated TBD resolutions.
 
 ## podcast_shows
 
 - **Purpose / audience:** Discover a podcast series, hosts, release state and its episodes.
 - **Source / exposure:** Directus `podcast_shows` (`PodcastShow`); documented Algolia `podcast_shows` index. Intended public core collection; sectors additionally supply filter metadata.
-- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Markdown resource candidate for series description, not an unbounded episode dump.
+- **Operations / resources:** Proposed list/get/search/filter discovery/facets. Required Markdown resource/template for series description, hosts and platform links, not an unbounded episode dump.
 - **Inputs:** get requires `id`; list uses the shared optional pagination/filter contract. Proposed/implemented filter keys: title, slug, creator_name (exact); podcast_status (ongoing|ended|planned); sectors, audiences, phases (GUID arrays); hosts (ID arrays). Sort allowlist: `title, -title, date_updated, -date_updated`. No domain-specific inputs beyond those explicitly described. Search/facet parameters follow search evidence.
 - **Summary:** common keys plus title:string, slug:string, creator_name:string, tagline:string, podcast_status:ongoing|ended|planned; artwork:Asset|null; hosts:PodcastHost[]; sectors, audiences, phases:Taxonomy[].
 - **Detail:** summary plus description:Markdown; header_image:Asset|null; trailer:normalized media|null (schema TBD); external_urls:{name:source enum,url:URL}[]|null; seasons:Season[]; content_warnings:string[], truncated:boolean. Retrieve episodes via list filter show rather than expanding the full series.

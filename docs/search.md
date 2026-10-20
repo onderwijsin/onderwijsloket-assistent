@@ -64,4 +64,4 @@ Live inspection confirmed the `articles` index and snippet/facet behavior in app
 
 Published tool descriptions, instructions and schemas describe collection search and record retrieval without naming infrastructure providers. Keep the distinction between search facet values (`get_facets`) and list filter taxonomy IDs (`get_filters`) explicit. Provider details belong in internal code and developer documentation. HTTP regression tests inspect the published MCP discovery responses.
 
-See [phase 3 preparation](collection-inventory/phase-3.md) for independent collection schemas, static facet-key boundaries and the test-only FAQ adapter. Articles remain the only production search collection.
+See [phase 3 preparation](collection-inventory/phase-3.md) for independent collection schemas, static facet-key boundaries and the test-only FAQ adapter. Articles, FAQs and sectors are enabled; see [group 1](collection-inventory/group-1.md) for native question hits, query-only sector search and verified FAQ facet keys.

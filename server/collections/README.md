@@ -34,6 +34,10 @@ See [article contracts](../../docs/articles-poc.md), [search](../../docs/search.
 
 ## Registry and independent contracts
 
-The explicit production allowlist lives in `index.ts`. Shared discovery consumes its narrow metadata/filter/facet view; collection-specific record tools retain their own schemas. Definitions require an ID schema and concrete list/get/search operation names. Search result/input schemas and resource representations are independent opt-ins.
+The explicit production allowlist lives in `index.ts`. Shared discovery consumes its narrow metadata/filter/facet view; collection-specific record tools retain their own schemas. Definitions require an ID schema and concrete list/get/search operation names. Search schemas and resource representations use independent native mappings. Every production core collection requires a resource/template; synthetic fixtures may omit them.
 
-See [phase 3 preparation](../../docs/collection-inventory/phase-3.md) for the extension steps and [the grouped plan](../../docs/collection-inventory/implementation-plan.md) for the collection rollout order and evidence gates. Only articles is enabled; the FAQ collection in tests is synthetic.
+See [phase 3 preparation](../../docs/collection-inventory/phase-3.md) for the extension steps and [the grouped plan](../../docs/collection-inventory/implementation-plan.md) for the collection rollout order and evidence gates. Articles, FAQs and sectors are enabled. The separate FAQ-shaped infrastructure fixture remains synthetic.
+
+## FAQs and sectors
+
+`faqs.ts` and `sectors.ts` provide independent list/get/search schemas and source reads governed by Directus permissions (see [data access responsibilities](../../docs/data-access.md)). FAQs render native answers and expand related article references; sectors retain named plain-text sections and bounded featured content. Sector identity is shared with taxonomy filters, with resources/templates enabled and facets disabled. See [group 1 contracts](../../docs/collection-inventory/group-1.md).

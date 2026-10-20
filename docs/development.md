@@ -80,7 +80,7 @@ dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is di
 
 Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
 `fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all seven
+build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all thirteen
 MCP tools. It does not verify browser hydration.
 
 Server and build isolation does not replace upstream services: the app still loads
@@ -96,7 +96,7 @@ See [the articles POC](articles-poc.md) for the implemented MCP contracts.
 
 ## Current implementation entry point
 
-Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Shared collection preparation and the rollout plan are documented in [phase 3 preparation](collection-inventory/phase-3.md). Chat, prompts and live additional collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
+Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Shared collection preparation and the rollout plan are documented in [phase 3 preparation](collection-inventory/phase-3.md). FAQs and sectors are enabled by [group 1](collection-inventory/group-1.md). Chat, prompts and the remaining live collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
 
 ## Server JSDoc
 
@@ -106,3 +106,5 @@ MCP handlers, collection methods and their supporting server utilities document 
 
 See [server-side tool analytics](tool-analytics.md) for Plausible configuration,
 properties, optional query data, delivery behavior and attribution limitations.
+
+See [collection resources](collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.

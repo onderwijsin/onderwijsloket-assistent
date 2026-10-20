@@ -19,7 +19,8 @@ export default defineNuxtConfig({
 
   mcp: {
     name: "Onderwijsloket Assistent (experimental)",
-    description: "Experimental read-only access to published Onderwijsloket articles.",
+    description:
+      "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education.",
     version: packageVersion,
     // instructions: '', TODO add good system instruction
     icons: [

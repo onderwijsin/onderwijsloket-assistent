@@ -16,7 +16,7 @@ function createFilterDescriptor(operation: z.ZodType<string>) {
   };
 
   /** Shared discovery contract; operators explain behavior rather than introducing a query DSL. */
-  return z.discriminatedUnion("type", [
+  const taxonomyDescriptors = z.discriminatedUnion("type", [
     z.object({ ...descriptorFields, type: z.literal("string"), operator: z.literal("eq") }),
     z.object({ ...descriptorFields, type: z.literal("boolean"), operator: z.literal("eq") }),
     z.object({
@@ -31,6 +31,22 @@ function createFilterDescriptor(operation: z.ZodType<string>) {
         .describe(
           "Current choices. Submit their id fields; choices do not imply matching record counts."
         )
+    })
+  ]);
+  return z.union([
+    taxonomyDescriptors,
+    z.object({
+      ...descriptorFields,
+      type: z.literal("array"),
+      operator: z.literal("in"),
+      items: z.object({
+        type: z.literal("string"),
+        format: z.string().optional(),
+        pattern: z.string().optional()
+      }),
+      minItems: z.literal(1),
+      maxItems: z.literal(50),
+      lookup: z.object({ collection: z.string(), tool: z.string() })
     })
   ]);
 }
@@ -144,6 +160,43 @@ export function taxonomyFilter(collection: TaxonomyCollection) {
         minItems: 1,
         maxItems: 50,
         values: await readTaxonomy([collection])
+      };
+    }
+  } satisfies FilterDefinition;
+}
+
+/**
+ * Describe bounded related-record ID selection without enumerating every target record.
+ * @param collection - Related public collection.
+ * @param tool - Concrete list tool providing accepted target IDs.
+ * @param id - Validator for target identities, independent of taxonomy GUIDs.
+ * @returns Matching input and relation-lookup discovery metadata.
+ */
+export function relationIdFilter(collection: string, tool: string, id: z.ZodType<string>) {
+  const description = `Match any of 1–50 ${collection} IDs returned by ${tool}; use IDs, not labels.`;
+  return {
+    schema: z.array(id).min(1).max(50).optional().describe(description),
+    /**
+     * Describe related-record lookup and ID validation.
+     * @param name - Public filter key.
+     * @returns A bounded array descriptor referencing its lookup tool.
+     */
+    async describe(name: string): Promise<FilterDescriptor> {
+      const json = z.toJSONSchema(id);
+      return {
+        name,
+        description,
+        type: "array",
+        operator: "in",
+        operations: [tool],
+        items: {
+          type: "string",
+          ...(typeof json.format === "string" ? { format: json.format } : {}),
+          ...(typeof json.pattern === "string" ? { pattern: json.pattern } : {})
+        },
+        minItems: 1,
+        maxItems: 50,
+        lookup: { collection, tool }
       };
     }
   } satisfies FilterDefinition;

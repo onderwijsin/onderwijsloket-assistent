@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { z } from "zod";
 import { parse } from "yaml";
 import {
   describeResource,
@@ -26,6 +27,12 @@ describe("collection-independent resource descriptors", () => {
     });
   });
 
+  it("omits absent descriptor fields so cached catalogue metadata remains stable", () => {
+    const descriptor = describeResource("faqs", { id: "faq-1", title: "Question?" });
+    expect(descriptor).not.toHaveProperty("description");
+    expect(JSON.parse(JSON.stringify(descriptor))).toEqual(descriptor);
+  });
+
   it("adds valid source update annotations and omits unknown dates", () => {
     expect(
       describeResource("examples", { ...record, date_updated: "2026-10-19T12:00:00Z" }).annotations
@@ -48,7 +55,9 @@ describe("reusable resource callbacks", () => {
       .fn()
       .mockResolvedValueOnce({ records: [{ ...record, id }], has_more: true })
       .mockResolvedValueOnce({ records: [{ ...record, id: "second" }], has_more: false });
-    const result = await listResources({ name: "examples", list })();
+    const result = await listResources({ name: "examples", list }, (value: typeof record) =>
+      describeResource("examples", value)
+    )();
     expect(result.resources.map((item) => item.uri)).toEqual([
       uri.toString(),
       "onderwijsloket://examples/second"
@@ -58,11 +67,19 @@ describe("reusable resource callbacks", () => {
 
   it("returns an empty catalogue and does not silently return partial catalogues on failure", async () => {
     const list = vi.fn().mockResolvedValueOnce({ records: [], has_more: false });
-    expect(await listResources({ name: "examples", list })()).toEqual({ resources: [] });
+    expect(
+      await listResources({ name: "examples", list }, (value: typeof record) =>
+        describeResource("examples", value)
+      )()
+    ).toEqual({ resources: [] });
     list
       .mockResolvedValueOnce({ records: [record], has_more: true })
       .mockRejectedValueOnce(new Error("provider secret"));
-    await expect(listResources({ name: "examples", list })()).rejects.toMatchObject({
+    await expect(
+      listResources({ name: "examples", list }, (value: typeof record) =>
+        describeResource("examples", value)
+      )()
+    ).rejects.toMatchObject({
       code: -32603,
       message: expect.not.stringContaining("provider secret")
     });
@@ -73,6 +90,8 @@ describe("reusable resource callbacks", () => {
     const get = vi.fn(async () => ({ record: document }));
     const handler = serveResource({
       name: "examples",
+      id: z.uuid(),
+      content: (record) => record.content,
       get,
       metadata: (value) => ({ title: value.title })
     });
@@ -86,9 +105,29 @@ describe("reusable resource callbacks", () => {
     expect(resource.text.endsWith(document.content)).toBe(true);
   });
 
+  it("uses the collection identity and content mappings without requiring article fields", async () => {
+    const get = vi.fn(async () => ({ record: { question: "Question?", answer: "Answer." } }));
+    const handler = serveResource({
+      name: "faqs",
+      id: z.literal("faq-1"),
+      get,
+      content: (record) => record.answer,
+      metadata: (record) => ({ question: record.question })
+    });
+    const result = await handler(new URL("onderwijsloket://faqs/faq-1"), { id: "faq-1" });
+    expect(result.contents[0]?.text).toContain("Answer.");
+    expect(get).toHaveBeenCalledWith("faq-1");
+    await expect(handler(uri, { id })).rejects.toMatchObject({ code: -32602 });
+  });
+
   it("validates IDs before fetching and preserves safe protocol error semantics", async () => {
     const get = vi.fn<() => Promise<{ record: { content: string } }>>();
-    const handler = serveResource({ name: "examples", get });
+    const handler = serveResource({
+      name: "examples",
+      id: z.uuid(),
+      content: (record) => record.content,
+      get
+    });
     for (const invalid of ["invalid", [id]]) {
       await expect(handler(uri, { id: invalid })).rejects.toMatchObject({ code: -32602 });
     }
