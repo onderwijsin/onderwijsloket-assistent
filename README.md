@@ -2,45 +2,62 @@
 
 # Onderwijsloket Assistent
 
-Connect AI assistants to Onderwijsloket’s knowledge about working in education.
+Read-only access to Onderwijsloket’s knowledge about working in education, through the Model Context Protocol (MCP).
 
-Onderwijsloket Assistent is an experimental, read-only MCP server for finding and reading articles about qualifications, career paths, legislation and entering the education sector. It gives advisers and other users access to searchable content, structured metadata and complete Markdown documents through their MCP-compatible assistant.
+Onderwijsloket Assistent lets AI assistants find guidance, compare education programs, explore institutions and regional advice services, and read stories and media from Onderwijsloket. It combines relevance-ranked search, structured collection records and complete Markdown resources in one discoverable interface.
 
-## Capabilities
+## What the server provides
 
-- **Search articles** with relevance-ranked results and snippets showing matched terms.
-- **Explore by topic** using education sectors, qualifications, audiences, career phases, roles, topics and tracks.
-- **Read complete articles** with taxonomy metadata, canonical source links and Markdown content.
-- **Browse document resources** through catalogues and URI templates for all enabled core collections, with YAML front matter for each document.
-- **Discover the API** through collection descriptions, filter definitions and tool input/output schemas.
+- **Ten core content collections** with dedicated tools for browsing, searching and reading individual records.
+- **Filter discovery** for education sectors, qualifications, audiences, career phases, roles, topics and tracks, with collection-specific search facets and counts.
+- **Structured detail records** with relevant relationships, including program forms, institution locations, regional service areas, authors, sources and podcast participants.
+- **Readable resources** for every core collection, with YAML metadata, Markdown content and transcripts where available.
+- **Source attribution** through canonical website links and explicit indicators for missing content or bounded relationships.
+- **Self-describing contracts** with collection descriptions, input/output schemas, supported filters, sorting and pagination.
 
-Access requires no authentication. All operations are read-only. The experimental label indicates that contracts and behavior can evolve.
+All operations are read-only. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
 
-## Connect an assistant
+## Connect
 
-Add the server’s `/mcp` endpoint to an MCP-compatible client. For a local instance, use:
+Add the deployment’s `/mcp` URL to an MCP-compatible client. For a local instance:
 
 ```text
 http://localhost:3000/mcp
 ```
 
-For a hosted instance, use its origin followed by `/mcp`. No API key or sign-in is required for MCP access.
+The client can discover tools, browse resource catalogues and read resources by URI. Start with `list_collections` to inspect the available content, then use `describe_collection` for a collection’s detailed contract.
 
-### Tools
+## Collections and tools
 
-| Tool                  | Purpose                                                                  |
-| --------------------- | ------------------------------------------------------------------------ |
-| `list_collections`    | Discover collections and supported operations.                           |
-| `describe_collection` | Inspect record fields, filters, sorting and pagination.                  |
-| `list_articles`       | Browse article summaries with exact-value and taxonomy filters.          |
-| `get_article`         | Read an article’s metadata and complete Markdown content by ID.          |
-| `get_filters`         | Discover list filter rules and available taxonomy IDs.                   |
-| `search_articles`     | Search or browse articles with lightweight results and matched snippets. |
-| `get_facets`          | Discover search filter names, values and match counts.                   |
+Each collection has a dedicated list, get and search tool. Record tools select their collection through the tool name; they do not take a `collection` argument.
 
-The available collections are `articles`, `faqs`, `sectors`, `testimonials`, `educational_institutions`, `programs`, `regional_education_desks`, `podcast_shows`, `podcast_episodes` and `videos`. The three article record tools do not take a `collection` argument; shared discovery tools do. Start with `list_collections`, then use the operation that fits the question.
+| Collection               | Browse                          | Read                          | Search                            |
+| ------------------------ | ------------------------------- | ----------------------------- | --------------------------------- |
+| Articles                 | `list_articles`                 | `get_article`                 | `search_articles`                 |
+| FAQs                     | `list_faqs`                     | `get_faq`                     | `search_faqs`                     |
+| Education sectors        | `list_sectors`                  | `get_sector`                  | `search_sectors`                  |
+| Testimonials             | `list_testimonials`             | `get_testimonial`             | `search_testimonials`             |
+| Educational institutions | `list_educational_institutions` | `get_educational_institution` | `search_educational_institutions` |
+| Programs                 | `list_programs`                 | `get_program`                 | `search_programs`                 |
+| Regional education desks | `list_regional_education_desks` | `get_regional_education_desk` | `search_regional_education_desks` |
+| Podcast shows            | `list_podcast_shows`            | `get_podcast_show`            | `search_podcast_shows`            |
+| Podcast episodes         | `list_podcast_episodes`         | `get_podcast_episode`         | `search_podcast_episodes`         |
+| Videos                   | `list_videos`                   | `get_video`                   | `search_videos`                   |
 
-To find articles about entering education through an alternative route, call `search_articles` with:
+Four shared tools complete the interface:
+
+| Tool                  | Purpose                                                            |
+| --------------------- | ------------------------------------------------------------------ |
+| `list_collections`    | Discover collection identities, descriptions and capabilities.     |
+| `describe_collection` | Inspect a collection’s fields, operations, filters and pagination. |
+| `get_filters`         | Discover source-list filter rules and available taxonomy IDs.      |
+| `get_facets`          | Discover supported search filters, values and match counts.        |
+
+Source lists and search have separate filter contracts. Use `get_filters` for list operations and `get_facets` for search operations that support facets. Sector search accepts a query without facets. Paginated record results start at page 1 and allow up to 25 records per page.
+
+### Find and read content
+
+For example, call `search_articles` to find guidance about an alternative route into teaching:
 
 ```json
 {
@@ -49,41 +66,30 @@ To find articles about entering education through an alternative route, call `se
 }
 ```
 
-Pass a returned ID to `get_article` for the complete article. For filtered search, discover values with `get_facets`. For `list_articles`, use `get_filters`; its taxonomy IDs are a separate filter contract. Pagination starts at page 1, with a maximum of 25 records per page.
+Search results contain lightweight records and matched snippets. Pass a returned ID to `get_article` for the full record, or follow its resource link for a Markdown document. The same search-to-detail workflow applies to the other collections.
 
-FAQs and sectors have independent `list_faqs`/`get_faq`/`search_faqs` and `list_sectors`/`get_sector`/`search_sectors` tools. Shared discovery covers all ten collections; all ten expose resources/templates. Sector facets remain unavailable. See [FAQ and sector guidance contracts](docs/collection-data.md).
+## Resources and data quality
 
-### Collection resources
-
-All enabled core collections are available as Markdown resources:
+Every collection exposes a resource catalogue and a URI template:
 
 ```text
-onderwijsloket://articles/{id}
-onderwijsloket://faqs/{id}
-onderwijsloket://sectors/{id}
-onderwijsloket://testimonials/{id}
-onderwijsloket://educational_institutions/{id}
-onderwijsloket://programs/{id}
-onderwijsloket://regional_education_desks/{id}
-onderwijsloket://podcast_shows/{id}
-onderwijsloket://podcast_episodes/{id}
-onderwijsloket://videos/{id}
+onderwijsloket://{collection}/{id}
 ```
 
-Browse `resources/list` for record URIs, or follow resource links returned by record tools. Each document includes YAML metadata and its Markdown body. These URIs are MCP identifiers; use the record’s `source_url` to open or cite the original website article.
+Here, `collection` is a registered name such as `articles`, `programs` or `podcast_episodes`. Browse `resources/list` for concrete record URIs or use the collection’s advertised template. MCP URIs identify resources inside the client; use `source_url` to open or cite the original website page when available.
 
-Check `content_warnings`, `relations_truncated` and document `truncated` where present before treating a document as complete. Article reads, search facets and resource catalogues are cached for five minutes. See [caching](docs/cache.md) for cache boundaries and freshness behavior.
+Resources include YAML front matter and a Markdown body. Records retain their native fields: FAQs have answers, programs describe forms, and media can include transcripts. When text is absent, the resource explains this with a notice; structured fields preserve the source’s null value. Check `content_warnings`, `relations_truncated` and `truncated` where present before treating content as complete.
 
-## Run locally
+Individual record reads share a configurable cache between tools and resources, with a five-minute default per collection. Catalogues and selected discovery data are also cached. Ordinary lists and search results remain uncached. See [resources](docs/collection-resources.md), [collection data](docs/collection-data.md) and [caching](docs/cache.md) for the full behavior.
 
-Use Node.js 24 and the Corepack-managed package manager pinned in `package.json`. Configure the Varlock environment profiles in `envs/` with access to the required services and secrets provider, then run:
+## Run the server
+
+Use Node.js 24, as specified in `.nvmrc`, and the Corepack-managed package manager pinned in `package.json`. Configure the Varlock environment profiles in `envs/` with access to the required services and secrets provider.
 
 ```sh
 pnpm install
 pnpm dev
 ```
-
-Installation and builds initialize Nuxt modules and can require service credentials and schema access. See [development](docs/development.md) for environment and tooling details.
 
 For a Node server build:
 
@@ -92,25 +98,34 @@ pnpm build
 pnpm start
 ```
 
+Module initialization and schema generation can require service credentials and network access during installation and builds. See [development](docs/development.md) for environment setup and build requirements.
+
+## Verification
+
+The automated suite covers collection contracts, validation, search mappings, content rendering, cache behavior and the public MCP endpoint. HTTP integration tests build and run the application against local Directus and Algolia fixtures.
+
+```sh
+pnpm fmt:check
+pnpm lint
+pnpm typecheck
+pnpm test
+```
+
+See the [testing guide](tests/README.md) for focused commands, fixture conventions and verification boundaries.
+
 ## Documentation
 
-- [Collection registry](docs/collection-registry.md) — architecture, boundaries and rationale.
-- [Search](docs/search.md) — source filters, index projections, snippets and facets.
-- [Collection data](docs/collection-data.md) — domain relationships and public projections.
-- [Resources](docs/collection-resources.md) — catalogue discovery, readable documents and missing content.
-- [Caching](docs/cache.md) — per-collection detail settings and shared discovery caches.
-- [Content documents](docs/content-documents.md) — hydration and Markdown rendering.
-- [Development](docs/development.md) and [tests](tests/README.md) — setup and verification.
+| Guide                                              | Covers                                                         |
+| -------------------------------------------------- | -------------------------------------------------------------- |
+| [Collection registry](docs/collection-registry.md) | Architecture, public contracts and responsibilities by layer.  |
+| [Collection data](docs/collection-data.md)         | Domain relationships, native records and reusable projections. |
+| [Search](docs/search.md)                           | Source filters, search indexes, snippets and facets.           |
+| [Resources](docs/collection-resources.md)          | Catalogues, URI templates and readable documents.              |
+| [Content documents](docs/content-documents.md)     | Editor content hydration and Markdown rendering.               |
+| [Taxonomies](docs/taxonomies.md)                   | Filter identities, archive links and normalization.            |
+| [Caching](docs/cache.md)                           | Cache configuration, freshness and failure behavior.           |
+| [Data access](docs/data-access.md)                 | Visibility and source-system responsibilities.                 |
+| [Development](docs/development.md)                 | Environment setup, checks and contributor conventions.         |
+| [Tool analytics](docs/tool-analytics.md)           | Optional server-side analytics and query-data controls.        |
 
-## Repository layout
-
-| Path                    | Responsibility                                           |
-| ----------------------- | -------------------------------------------------------- |
-| `server/collections/`   | Collection schemas, operations and metadata.             |
-| `server/mcp/tools/`     | MCP tool definitions and response adapters.              |
-| `server/mcp/resources/` | Resource templates and collection bindings.              |
-| `server/utils/`         | Shared content, search, taxonomy and resource utilities. |
-| `config/cache.ts`       | Server cache durations in seconds.                       |
-| `tests/`                | Unit tests, HTTP integration tests and service fixtures. |
-
-The shared infrastructure is grouped under `server/utils/collections/`, domain projections under `server/utils/projections/`, and pure rendering under `server/utils/content/`. Geocoding and exact geographic matching remain future features.
+Maintained by [Stichting Onderwijs in](https://onderwijsin.nl) for [Onderwijsloket](https://onderwijsloket.com). Report bugs and request features through [GitHub issues](https://github.com/onderwijsin/onderwijsloket-assistent/issues).

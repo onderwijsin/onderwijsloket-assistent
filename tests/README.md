@@ -1,62 +1,57 @@
-# Tests
+# Testing
 
-The test suite verifies collection contracts, document rendering and the public MCP endpoint. Vitest runs separate unit and HTTP end-to-end projects.
+Vitest runs two projects: isolated unit tests and HTTP integration tests against a built Node server. Together they protect collection contracts and the MCP interface across all ten core collections.
 
-## Commands
+## Run tests
+
+Use the Node version in `.nvmrc` and the package manager pinned in `package.json`.
 
 ```sh
 corepack pnpm test            # Complete suite
 corepack pnpm test:unit       # Unit tests
-corepack pnpm test:e2e        # Production HTTP integration tests
+corepack pnpm test:e2e        # HTTP integration tests
 corepack pnpm test:watch      # Unit tests in watch mode
 corepack pnpm test:coverage   # Unit tests with V8 coverage reports
+corepack pnpm typecheck       # Application and test TypeScript checks
 ```
 
-Use the Node version in `.nvmrc` and the package manager pinned in `package.json`. Application builds load the configured environment and require access to the services used during module initialization and schema generation. See [development](../docs/development.md) for setup.
+HTTP tests build the application, so the configured Varlock environment, secrets-provider access and build-time services must be available. Runtime Directus and Algolia requests use local fixtures with synthetic credentials. See [development](../docs/development.md) for environment setup.
 
-## Unit coverage
+## Where tests belong
 
-`unit/` covers collection schemas, boundary validation, query translation, pagination, taxonomy normalization, filter discovery, search mapping and safe errors.
+| Location        | Responsibility                                                                         |
+| --------------- | -------------------------------------------------------------------------------------- |
+| `unit/`         | Schemas, query translation, normalization, rendering, discovery and shared mechanisms. |
+| `e2e/`          | Advertised MCP contracts and behavior across the production HTTP boundary.             |
+| `fixtures/`     | Synthetic domain records, test-only collection definitions and local provider servers. |
+| `tsconfig.json` | Type checking for tests, fixtures and Vitest configuration.                            |
 
-Document tests exercise supported editor relations, nested callouts, repeated references, cycles, malformed or unresolved content, tables, text formatting, links, assets, H1 insertion and documents beyond 20,000 characters. Traversal depth and node-count limits have separate assertions.
+Unit tests import Vitest APIs explicitly and mock environment or external-service boundaries where needed. They do not boot Nuxt or provide a browser DOM. Collection tests use collection names; shared behavior tests use the mechanism they protect.
 
-Resource tests verify URI construction, descriptors, collection metadata selection, reusable list/read callbacks and YAML front matter. Search tests verify client reuse, dynamic facets, literal filter values and nested matched snippets.
+The HTTP project uses `@nuxt/test-utils` to build and start an isolated Node server on an available port. Build artifacts live under ignored `.nuxt/test/`; test-utils manages server teardown. Tests do not reuse a development server or the normal `.output/` build.
 
-Cache tests use Nitro’s actual function cache with isolated storage and controlled time for all ten production definitions. They verify key isolation, expiry, shared collection/tool/resource reads and retries after failures, including incomplete catalogues.
+## Behavior covered
 
-## HTTP integration coverage
+- **Collection contracts:** native schemas, boundary validation, source filters, pagination, relationship projections and sanitized provider errors.
+- **Discovery and search:** the explicit collection allowlist, capability gating, facets, literal filter values, snippets and index-to-record mapping.
+- **Content and resources:** editor hydration, Markdown/YAML rendering, missing-body notices, transcripts, relation bounds, traversal limits and truncation indicators.
+- **Caching:** Nitro’s actual function cache with isolated storage and controlled time, including collection/ID isolation, concurrent reads, expiry, retries and tool/resource reuse across all ten collections.
+- **MCP over HTTP:** all thirty-four tools, advertised schemas, structured responses and text fallbacks, resource links, templates and catalogues. Catalogue cases include more than 1,500 records, lower upstream page caps and incomplete responses.
 
-`e2e/` builds and starts the application with the Node server preset using `@nuxt/test-utils`. Each run uses an isolated build directory and a server on an available port, with teardown managed by the test runner.
+The HTTP fixtures in `fixtures/directus.ts` and `fixtures/algolia.ts` exercise installed SDKs against real HTTP boundaries. Domain fixture modules provide relationships and collection-specific source/search records. Missing-content and error variants use distinct synthetic IDs so an earlier cached record cannot hide the scenario under test.
 
-Local HTTP fixtures supply synthetic content and search responses:
+`fixtures/faq-collection.ts` is a separate test-only collection, not the production FAQ definition. It tests registry behavior with non-UUID IDs, different native fields and optional capabilities. In-memory SDK tests check its protocol contract without adding it to the production registry.
 
-- `fixtures/directus.ts` serves article, FAQ, sector and taxonomy records.
-- `fixtures/algolia.ts` serves search results, snippets and facets.
+## Adding regression coverage
 
-Runtime requests use these fixtures and synthetic credentials. The installed SDKs and application handlers run against real HTTP boundaries. Build-time module initialization still uses the normal configured environment.
+Add tests for observable behavior or a known failure risk. Keep source fixtures synthetic or sanitized, and place reusable domain data in the relevant fixture module. Test contract differences explicitly rather than reproducing implementation details in assertions.
 
-Assertions cover all thirty-four tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
+Choose the lowest boundary that proves the behavior: unit tests for transformations and validation, HTTP tests for advertised schemas, SDK serialization and protocol responses. Test execution does not replace TypeScript checking; run `corepack pnpm typecheck` when changing test code.
 
-These tests cover the Node server’s HTTP contracts. They do not verify browser hydration, live service permissions or a deployed Cloudflare Workers instance.
+Coverage reports are written to ignored `coverage/`. Use them to investigate gaps; percentage targets are not enforced. Live-provider checks should remain opt-in and bounded.
 
-## Adding tests
+## Verification boundaries
 
-Name tests, fixtures and contract documents after the collections or behavior they cover, so names remain meaningful after delivery. Keep imports and documentation links aligned when files move.
+The suite verifies the Node server’s HTTP contracts. It does not establish browser hydration behavior, live service permissions or deployed Cloudflare Workers behavior. Build-time module initialization uses the normal configured environment even when runtime requests use fixtures.
 
-Place isolated behavior tests in `unit/**/*.test.ts` and HTTP contract tests in `e2e/**/*.test.ts`. Import Vitest APIs explicitly. Use synthetic or sanitized fixtures and add cases that protect observable behavior or known regressions.
-
-Coverage reports are written to ignored `coverage/`. Use them to investigate gaps; percentage targets are not enforced.
-
-## Collection architecture fixtures
-
-`fixtures/faq-collection.ts` is a test-only domain with question/answer fields, non-UUID IDs and independent search/filter schemas. Registry tests prove capability gating, allowlisting and resource absence. `collection-mcp.test.ts` verifies the fixture's advertised schemas and calls using the real SDK with in-memory transports. This synthetic fixture is separate from the real FAQ collection. FAQ and sector source contracts use synthetic source-returned FAQ/sector fixtures and their own unit/HTTP checks; live evidence is recorded in the collection inventory.
-
-Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](../docs/collection-data.md).
-
-Collection behavior lives in `articles.test.ts`, `faqs.test.ts`, `sectors.test.ts`, `testimonials.test.ts`, `educational-institutions.test.ts`, `programs.test.ts`, `regional-education-desks.test.ts`, `podcast-shows.test.ts`, `podcast-episodes.test.ts` and `videos.test.ts`. Shared projection validators remain in `supporting-content.test.ts` and `locations.test.ts`. Catalogue tests cover more than 1,500 records, lower upstream page caps, serialized reads and failed/incomplete responses.
-
-Regional desk tests use `tests/unit/regional-education-desks.test.ts` and synthetic `tests/fixtures/regional-education-desks.ts`, plus the HTTP suite, for coverage geometry, schedules, null content and strict search filters.
-
-Media regression tests are collection-based: `podcast-shows.test.ts`, `podcast-episodes.test.ts` and `videos.test.ts`, with shared normalization cases in `media-content.test.ts` and synthetic `podcasts-and-videos.ts` fixtures. HTTP checks cover all nine new record tools and three resources, long transcripts, null text, discovery and sanitized errors.
-
-HTTP source variants use distinct synthetic IDs for missing-content/error scenarios, so legitimate warm detail caches do not hide source behavior changes. Tool/resource cache reuse is verified for every core collection.
+See [collection architecture](../docs/collection-registry.md), [collection data](../docs/collection-data.md), [search](../docs/search.md), [resources](../docs/collection-resources.md) and [caching](../docs/cache.md) for the contracts these tests protect.
