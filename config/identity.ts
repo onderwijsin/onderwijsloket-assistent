@@ -7,7 +7,8 @@ export const APP_IDENTITY = {
   /** Main application title shown in browser/page metadata. */
   siteTitle: "Onderwijsloket Assistent",
   /** Primary SEO description used in page metadata. */
-  siteDescription: "Een experimentele MCP server voor het Onderwijsloket met Assistent UI."
+  siteDescription:
+    "Een experimentele MCP server voor het Onderwijsloket met Assistent UI - ontwikkeld door Stichting Onderwijs in."
 } as const;
 
 export const ORGANIZATION_SCHEMA_ID = "#organization";
