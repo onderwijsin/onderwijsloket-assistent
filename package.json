@@ -45,6 +45,7 @@
     "@onderwijsin/nuxt-directus-config": "catalog:",
     "@onderwijsin/nuxt-healthcheck": "catalog:",
     "@onderwijsin/nuxt-newsletter-signup": "catalog:",
+    "@onderwijsin/nuxt-simple-rate-limiter": "catalog:",
     "@pinia/nuxt": "catalog:",
     "@tailwindcss/typography": "catalog:",
     "@tiptap/core": "catalog:",
