@@ -1,3 +1,4 @@
+import { deskId, deskRecord, areaRecord } from "../fixtures/regional-education-desks";
 import { institutionId, programId, locationId } from "../fixtures/institutions-and-programs";
 import { testimonialId } from "../fixtures/article-evidence-and-testimonials";
 import { faqId, sectorId } from "../fixtures/faqs-and-sectors";
@@ -127,6 +128,7 @@ describe("application", async () => {
       "get_faq",
       "get_filters",
       "get_program",
+      "get_regional_education_desk",
       "get_sector",
       "get_testimonial",
       "list_articles",
@@ -134,12 +136,14 @@ describe("application", async () => {
       "list_educational_institutions",
       "list_faqs",
       "list_programs",
+      "list_regional_education_desks",
       "list_sectors",
       "list_testimonials",
       "search_articles",
       "search_educational_institutions",
       "search_faqs",
       "search_programs",
+      "search_regional_education_desks",
       "search_sectors",
       "search_testimonials"
     ]);
@@ -170,7 +174,8 @@ describe("application", async () => {
       "sectors",
       "testimonials",
       "educational_institutions",
-      "programs"
+      "programs",
+      "regional_education_desks"
     ]);
     expect(catalogue.result.structuredContent.collections[0].capabilities).toMatchObject({
       list: true,
@@ -309,14 +314,15 @@ describe("application", async () => {
     });
     expect(initialized.result.capabilities.resources).toBeDefined();
     const templates = await rpc("resources/templates/list");
-    expect(templates.result.resourceTemplates).toHaveLength(6);
+    expect(templates.result.resourceTemplates).toHaveLength(7);
     for (const name of [
       "articles",
       "faqs",
       "sectors",
       "testimonials",
       "educational_institutions",
-      "programs"
+      "programs",
+      "regional_education_desks"
     ]) {
       expect(templates.result.resourceTemplates).toContainEqual(
         expect.objectContaining({
@@ -362,8 +368,8 @@ describe("application", async () => {
     try {
       const count = directus.requests.length;
       const result = (await rpc("resources/list")).result;
-      expect(result.resources).toHaveLength(1532);
-      expect(new Set(result.resources.map((item: { uri: string }) => item.uri)).size).toBe(1532);
+      expect(result.resources).toHaveLength(1533);
+      expect(new Set(result.resources.map((item: { uri: string }) => item.uri)).size).toBe(1533);
       expect(result.resources[0]).toMatchObject({
         uri: `onderwijsloket://articles/${articleId}`,
         title: "Alpha",
@@ -880,5 +886,114 @@ describe("application", async () => {
     } finally {
       directus.state.missingInstitutionDescription = false;
     }
+  });
+  it("serves regional desks with independent coverage, service documents, contacts and schedules", async () => {
+    const listed = (
+      await call("list_regional_education_desks", {
+        filters: { appointment_for_visit: false, sectors: [sectorId] },
+        page_size: 1
+      })
+    ).result;
+    expect(listed.isError).not.toBe(true);
+    expect(listed.structuredContent.records[0]).toMatchObject({
+      id: deskId,
+      area: areaRecord,
+      appointment_for_visit: false
+    });
+    const uri = `onderwijsloket://regional_education_desks/${deskId}`;
+    expect(listed.content).toContainEqual(expect.objectContaining({ type: "resource_link", uri }));
+    const detail = (await call("get_regional_education_desk", { id: deskId })).result;
+    expect(detail.structuredContent.record.phone_availability.monday_start).toBe("09:00:00");
+    expect(detail.structuredContent.record.location.opening_hours.monday_start).toBe("22:00:00");
+    expect(detail.structuredContent.record.consultation_service_description).toBe(
+      "Book an advice conversation."
+    );
+    const search = (
+      await call("search_regional_education_desks", {
+        query: "region",
+        filters: { has_consultation_service: [true], content_types: ["podcasts"] }
+      })
+    ).result;
+    expect(search.isError).not.toBe(true);
+    expect(search.structuredContent.records[0].id).toBe(deskId);
+    expect(search.structuredContent.records[0]).not.toHaveProperty("area");
+    const facets = (await call("get_facets", { collection: "regional_education_desks" })).result;
+    expect(
+      facets.structuredContent.facets.map((facet: { name: string }) => facet.name).sort()
+    ).toEqual([
+      "content_types",
+      "has_consultation_service",
+      "orientation_activity_types",
+      "sectors.title"
+    ]);
+    const rules = (await call("get_filters", { collection: "regional_education_desks" })).result;
+    expect(
+      rules.structuredContent.filters.find(
+        (field: { name: string }) => field.name === "appointment_for_visit"
+      ).type
+    ).toBe("boolean");
+    const resource = (await rpc("resources/read", { uri })).result.contents[0];
+    expect(resource.text).toContain("## Consultation service");
+    expect(resource.text).toContain("Book an advice conversation.");
+    const end = resource.text.indexOf("\n---\n", 4);
+    expect(parse(resource.text.slice(4, end))).toMatchObject({
+      area: areaRecord,
+      id: deskId,
+      phone_availability: { monday_start: "09:00:00" },
+      relations_truncated: []
+    });
+    expect((await rpc("resources/list")).result.resources).toContainEqual(
+      expect.objectContaining({ uri, title: deskRecord.title })
+    );
+    expect(JSON.stringify(detail)).not.toMatch(/last_sync|reviewed_by|notes/);
+    const invalid = await call("list_regional_education_desks", {
+      filters: { regions: ["Region"] }
+    });
+    expect(invalid.result?.isError || invalid.error).toBeTruthy();
+  });
+  it("preserves nullable desk bodies and unavailable coverage, and sanitizes source failures", async () => {
+    const uri = `onderwijsloket://regional_education_desks/${deskId}`;
+    try {
+      directus.state.deskResponse = "missing-content";
+      expect(
+        (await call("get_regional_education_desk", { id: deskId })).result.structuredContent.record
+          .description
+      ).toBeNull();
+      expect(
+        (await rpc("resources/read", { uri })).result.contents[0].text.match(/\*\*Notice:\*\*/g)
+      ).toHaveLength(2);
+      directus.state.deskResponse = "missing-area";
+      const record = (await call("get_regional_education_desk", { id: deskId })).result
+        .structuredContent.record;
+      expect(record.area).toBeNull();
+      expect(record.location).toBeNull();
+      expect(record.content_warnings.join()).toContain("coverage cannot be determined");
+      for (const mode of ["invalid", "unavailable"]) {
+        directus.state.deskResponse = mode;
+        const result = await call("get_regional_education_desk", { id: deskId });
+        expect(result.result.isError).toBe(true);
+        expect(JSON.stringify(result)).not.toContain("fixture upstream secret");
+        const resource = await rpc("resources/read", { uri });
+        expect(resource.error.code).toBe(-32603);
+      }
+      directus.state.deskResponse = "";
+      expect(
+        (
+          await rpc("resources/read", {
+            uri: "onderwijsloket://regional_education_desks/00f81660-a2e4-48af-b8d7-98ce338de999"
+          })
+        ).error.message
+      ).toContain("NOT_FOUND");
+      expect(
+        (await rpc("resources/read", { uri: "onderwijsloket://regional_education_desks/invalid" }))
+          .error.code
+      ).toBe(-32602);
+    } finally {
+      directus.state.deskResponse = "";
+    }
+    for (const request of directus.requests.filter((url) =>
+      url.pathname.endsWith("/regional_education_desks")
+    ))
+      expect(request.search).not.toMatch(/status|last_sync|notes|reviewers/);
   });
 });

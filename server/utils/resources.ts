@@ -79,7 +79,13 @@ async function queueCatalogueRead<T>(read: () => Promise<T>): Promise<T> {
 export function listResources(collection: {
   name: Extract<
     keyof Schema,
-    "articles" | "faqs" | "sectors" | "testimonials" | "programs" | "educational_institutions"
+    | "articles"
+    | "faqs"
+    | "sectors"
+    | "testimonials"
+    | "programs"
+    | "educational_institutions"
+    | "regional_education_desks"
   >;
   getInput: { shape: { id: z.ZodType<string> } };
 }) {

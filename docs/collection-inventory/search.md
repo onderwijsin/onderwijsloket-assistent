@@ -60,3 +60,5 @@ Evidence: current `server/utils/search/schemas.ts`, `collection-search.ts`, `doc
 Testimonials now implement the seven documented plural-relation facet keys, with UUID identity and publication-date metadata. Read-only index/adapter checks and the precise public hit contract are recorded in [article evidence and testimonials](article-evidence-and-testimonials.md). No english filter or singular `topic.name` facet is exposed.
 
 Institutions and programs verifies `degrees` (display labels), `program_forms.track.name` and `school_subjects.name` among nine program facets, and type as the sole institution facet. These replace the earlier proposed singular-degree/plural-tracks paths. Native search hits retain partial providers/locations without invented descriptions or opening schedules. See [institutions and programs](institutions-and-programs.md).
+
+Regional desk source/index shapes and four supported facets are live-verified; index grids are not physical locations or exact eligibility. See [regional education desks](regional-education-desks.md).

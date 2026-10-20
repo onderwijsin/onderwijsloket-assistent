@@ -1,3 +1,4 @@
+import { deskRecord } from "./regional-education-desks";
 import { institutionRecord, programRecord } from "./institutions-and-programs";
 import { testimonialRecord } from "./article-evidence-and-testimonials";
 import { faqId, sectorId } from "./faqs-and-sectors";
@@ -59,7 +60,8 @@ export async function createAlgoliaFixture() {
         "sectors",
         "testimonials",
         "programs",
-        "educational_institutions"
+        "educational_institutions",
+        "regional_education_desks"
       ].includes(index ?? "") ||
       !request.url?.split("?")[0]?.endsWith("/query")
     ) {
@@ -70,52 +72,54 @@ export async function createAlgoliaFixture() {
       return;
     }
     const hits =
-      index === "programs"
-        ? [
-            {
-              ...programRecord,
-              educational_institutions: programRecord.educational_institutions.map(
-                (row) => row.educational_institutions_id
-              ),
-              objectID: programRecord.id,
-              topics: ["Teaching"],
-              english: false
-            }
-          ]
-        : index === "educational_institutions"
+      index === "regional_education_desks"
+        ? [{ ...deskRecord, objectID: deskRecord.id, topics: ["Teaching"], english: false }]
+        : index === "programs"
           ? [
               {
-                ...institutionRecord,
-                objectID: institutionRecord.id,
+                ...programRecord,
+                educational_institutions: programRecord.educational_institutions.map(
+                  (row) => row.educational_institutions_id
+                ),
+                objectID: programRecord.id,
                 topics: ["Teaching"],
                 english: false
               }
             ]
-          : index === "testimonials"
+          : index === "educational_institutions"
             ? [
                 {
-                  ...testimonialRecord,
-                  objectID: testimonialRecord.id,
+                  ...institutionRecord,
+                  objectID: institutionRecord.id,
                   topics: ["Teaching"],
                   english: false
                 }
               ]
-            : index === "articles"
-              ? articleHits
-              : [
+            : index === "testimonials"
+              ? [
                   {
-                    id: index === "faqs" ? faqId : sectorId,
-                    objectID: index === "faqs" ? faqId : sectorId,
-                    question: "Can I teach?",
-                    title: "Primary education",
-                    description: "Primary education guidance",
-                    slug: "primary",
-                    path: "/primary",
-                    status: "published",
-                    english: false,
-                    topics: ["Teaching"]
+                    ...testimonialRecord,
+                    objectID: testimonialRecord.id,
+                    topics: ["Teaching"],
+                    english: false
                   }
-                ];
+                ]
+              : index === "articles"
+                ? articleHits
+                : [
+                    {
+                      id: index === "faqs" ? faqId : sectorId,
+                      objectID: index === "faqs" ? faqId : sectorId,
+                      question: "Can I teach?",
+                      title: "Primary education",
+                      description: "Primary education guidance",
+                      slug: "primary",
+                      path: "/primary",
+                      status: "published",
+                      english: false,
+                      topics: ["Teaching"]
+                    }
+                  ];
     let body = "";
     for await (const chunk of request) body += chunk;
     const params = JSON.parse(body);
@@ -137,6 +141,19 @@ export async function createAlgoliaFixture() {
             const colon = filter.indexOf(":");
             const name = filter.slice(0, colon);
             const value = filter.slice(colon + 1).replace(/^\\-/, "-");
+            if (index === "regional_education_desks") {
+              const values =
+                name === "sectors.title"
+                  ? deskRecord.sectors.map((row) => row.sectors_id.title)
+                  : name === "has_consultation_service"
+                    ? [String(deskRecord.has_consultation_service)]
+                    : name === "content_types"
+                      ? deskRecord.content_types
+                      : name === "orientation_activity_types"
+                        ? deskRecord.orientation_activity_types
+                        : [];
+              return values.includes(value);
+            }
             return name === "english"
               ? String(hit.english) === value
               : name === "topics.name"
@@ -146,46 +163,63 @@ export async function createAlgoliaFixture() {
         )
     );
     const names = params.facets?.includes("*")
-      ? index === "programs"
+      ? index === "regional_education_desks"
         ? [
-            "type",
-            "level",
-            "degrees",
-            "roles.name",
             "sectors.title",
-            "qualifications.name",
-            "school_subjects.name",
-            "program_forms.track.name",
-            "educational_institutions.title"
+            "has_consultation_service",
+            "orientation_activity_types",
+            "content_types"
           ]
-        : index === "educational_institutions"
-          ? ["type"]
-          : index === "testimonials"
-            ? [
-                "audiences.title",
-                "authors.name",
-                "phases.title",
-                "roles.name",
-                "sectors.title",
-                "topics.name",
-                "tracks.name"
-              ]
-            : index === "sectors"
-              ? []
-              : index === "faqs"
-                ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
-                : ["english", "topics.name", "roles.name"]
+        : index === "programs"
+          ? [
+              "type",
+              "level",
+              "degrees",
+              "roles.name",
+              "sectors.title",
+              "qualifications.name",
+              "school_subjects.name",
+              "program_forms.track.name",
+              "educational_institutions.title"
+            ]
+          : index === "educational_institutions"
+            ? ["type"]
+            : index === "testimonials"
+              ? [
+                  "audiences.title",
+                  "authors.name",
+                  "phases.title",
+                  "roles.name",
+                  "sectors.title",
+                  "topics.name",
+                  "tracks.name"
+                ]
+              : index === "sectors"
+                ? []
+                : index === "faqs"
+                  ? ["english", "topics.name", "sectors.title", "audiences.title", "phases.title"]
+                  : ["english", "topics.name", "roles.name"]
       : (params.facets ?? []);
     const facets = Object.fromEntries(
       names.map((name: string) => {
         const counts: Record<string, number> = {};
         for (const hit of selected) {
           const values =
-            name === "english"
-              ? [String(hit.english)]
-              : name === "topics.name"
-                ? hit.topics
-                : ["Leraar"];
+            index === "regional_education_desks"
+              ? name === "sectors.title"
+                ? deskRecord.sectors.map((row) => row.sectors_id.title)
+                : name === "has_consultation_service"
+                  ? [String(deskRecord.has_consultation_service)]
+                  : name === "content_types"
+                    ? deskRecord.content_types
+                    : name === "orientation_activity_types"
+                      ? deskRecord.orientation_activity_types
+                      : []
+              : name === "english"
+                ? [String(hit.english)]
+                : name === "topics.name"
+                  ? hit.topics
+                  : ["Leraar"];
           for (const value of values) counts[value] = (counts[value] ?? 0) + 1;
         }
         return [

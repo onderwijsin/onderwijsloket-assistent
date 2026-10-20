@@ -1,3 +1,4 @@
+import desks from "./regional-education-desks";
 import institutions from "./educational-institutions";
 import programs from "./programs";
 import articles from "./articles";
@@ -13,5 +14,6 @@ export const collections = createCollectionRegistry([
   sectors,
   testimonials,
   institutions,
-  programs
+  programs,
+  desks
 ]);

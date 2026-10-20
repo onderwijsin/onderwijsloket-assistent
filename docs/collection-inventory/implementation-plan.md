@@ -1,6 +1,6 @@
 # Collection implementation plan
 
-Shared infrastructure supports the implemented articles, FAQs, sectors, testimonials, institutions and programs. See [FAQ and sector guidance](faqs-and-sectors.md), [article evidence and testimonials](article-evidence-and-testimonials.md) and [institutions and programs contracts and evidence](institutions-and-programs.md). This plan organizes work by shared data relationships and verified rendering behavior. Each collection domain may be delivered in smaller changes, with only completed collection/tool pairs added to the production allowlist. Tool names and record contracts follow [architecture](architecture.md) and [core contracts](core.md).
+Shared infrastructure supports the implemented articles, FAQs, sectors, testimonials, institutions, programs and regional education desks. See [FAQ and sector guidance](faqs-and-sectors.md), [article evidence and testimonials](article-evidence-and-testimonials.md) and [institutions and programs contracts and evidence](institutions-and-programs.md). This plan organizes work by shared data relationships and verified rendering behavior. Each collection domain may be delivered in smaller changes, with only completed collection/tool pairs added to the production allowlist. Tool names and record contracts follow [architecture](architecture.md) and [core contracts](core.md).
 
 ## Prepared in phase 3
 
@@ -69,9 +69,9 @@ All collections follow [data access responsibilities](../data-access.md): Direct
 4. Implement program registry-code/enum/taxonomy filters and per-form descriptions with nullable track. Add its resource/template with overview, providers, locations and separately named form sections. Preserve CROHO/CREBO as strings and keep forms ordered and separate.
 5. Verify search mappings before enabling them: documented `degree` versus generated `degrees`, and `program_forms.tracks.name` versus source `track`, must be resolved through actual permitted index evidence. Keep source list and search filters independent.
 
-**Resolved:** source projections and upstream access, GeoJSON/time encodings, form document rendering/ownership, bounded relationships and verified search keys; see [institutions and programs](institutions-and-programs.md). Degree filtering is search-only because source JSON filtering is unsupported. Degree labels and the live associate level override stale generated assumptions; unavailable location sync time remains null. **Regression focus:** distinct source provenance across nested references, null locations, multiple providers, ordered forms, leading-zero codes, declared enum boundaries and correct junction filters. No geo search tool is included.
+**Resolved:** source projections and upstream access, GeoJSON/time encodings, form document rendering/ownership, bounded relationships and verified search keys; see [institutions and programs](institutions-and-programs.md). Degree filtering is search-only because source JSON filtering is unsupported. Degree labels and the live associate level override stale generated assumptions; synchronization bookkeeping is excluded. **Regression focus:** distinct source provenance across nested references, null locations, multiple providers, ordered forms, leading-zero codes, declared enum boundaries and correct junction filters. No geo search tool is included.
 
-## Regional education desks and service coverage
+## Regional education desks and service coverage (implemented)
 
 **Collection:** `regional_education_desks`. **Embedded dependencies:** `areas`; reuse the implemented location, availability and asset projections from institutions and programs.
 
@@ -81,10 +81,10 @@ All collections follow [data access responsibilities](../data-access.md): Direct
 
 1. Verify required area expansion, serialized center/bounds/inner geometry formats, publication permissions and actual null cases. Do not fabricate a vendor field or expose internal notes.
 2. Implement list/detail and a resource/template with flattened area, optional physical location, public contacts, service links and distinct phone/opening availability. Render description and consultation-service description as separate named fields.
-3. Implement strict search using verified regions/cities/service facets. Keep the provider grid approximation separate from real physical location and exact coverage. Add enum-array discovery variants for actual service/activity filters.
+3. Implement strict search using verified regions/cities/service facets. Keep the provider grid approximation separate from real physical location and exact coverage. Keep activity/content filtering in search: source JSON containment is unsupported, so no unused source enum-array builder is added.
 4. Enable list/get/search as each contract is ready. Defer a geo-specific operation until coordinate order, units/radius bounds, matching semantics and approximation caveats have a dedicated tested contract.
 
-**Release gates:** required relation handling, geometry encodings, service descriptions, availability consistency and countable search fields. **Regression focus:** inaccessible area is not an empty service region; nullable location does not erase coverage; false booleans remain filters; no inference that area grid points are an address or proof of exact service eligibility.
+**Resolved:** live area encodings, public source projections, nullable relations/descriptions, source enum drift, source JSON-filter limitations and four search facets; see [regional education desks](regional-education-desks.md). **Regression focus:** inaccessible area is not an empty service region; nullable location does not erase coverage; false booleans remain filters; no inference that area grid points are an address or proof of exact service eligibility.
 
 ## Podcast series and episodes
 
@@ -105,6 +105,6 @@ All collections follow [data access responsibilities](../data-access.md): Direct
 
 The plan covers every requested core and supporting collection. Standalone supporting collections, videos, route/question/answer workflows, geocoding and exact geographic matching remain excluded or deferred as recorded in the inventory. Do not enable them as a side effect of reference expansion. Resources and URI templates are required deliverables for every core collection; their registration and tests belong in each collection implementation.
 
-No timeline or effort estimate is assumed before the live evidence gates are resolved. Implemented domains are listed first; regional education desks and podcasts remain planned. Each collection can release independently when its prerequisites and contracts pass. No additional generic tool factory, dependency, registry discovery mechanism or further article migration is required by this plan.
+No timeline or effort estimate is assumed before the live evidence gates are resolved. Implemented domains are listed first; podcast series and episodes remain planned. Each collection can release independently when its prerequisites and contracts pass. No additional generic tool factory, dependency, registry discovery mechanism or further article migration is required by this plan.
 
 Every future core implementation must follow the [shared missing-body contract](../collection-resources.md#missing-body-content): nullable JSON content, preserved metadata and a globally formatted Markdown notice for missing source content.

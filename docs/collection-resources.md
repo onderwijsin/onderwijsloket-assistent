@@ -10,7 +10,7 @@ Every core collection must ship a resource URI template, catalogue entries and r
 | testimonials             | Story Markdown with author/profile attribution                                   | Implemented                             |
 | educational_institutions | Institution description, contacts and locations                                  | Implemented                             |
 | programs                 | Program overview and separately named form descriptions, providers and locations | Implemented                             |
-| regional_education_desks | Desk description, consultation services, coverage and contacts                   | Required in regional education desks    |
+| regional_education_desks | Desk description, consultation services, coverage and contacts                   | Implemented                             |
 | podcast_shows            | Series description, hosts and platform links                                     | Required in podcast series and episodes |
 | podcast_episodes         | Episode metadata and available transcript; explicit null when absent             | Required in podcast series and episodes |
 
@@ -50,3 +50,5 @@ The shared resource handler renders absent content as:
 ```
 
 YAML front matter remains available and completeness warnings are preserved. Notices belong only to the Markdown representation; they are never stored in JSON content fields. Composite resources use the same formatter for missing component documents; programs without forms also include the notice alongside their generated overview. Sector resources render their native description and named text sections rather than requiring a rich-text body.
+
+Desk resources keep desk and consultation descriptions separate, with expanded coverage, contacts and independent schedules in front matter. See [regional education desks](collection-inventory/regional-education-desks.md).

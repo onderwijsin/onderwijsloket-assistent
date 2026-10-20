@@ -1,3 +1,4 @@
+import { deskRecord } from "./regional-education-desks";
 import { institutionRecord, programRecord } from "./institutions-and-programs";
 import { testimonialRecord, supportingRelations } from "./article-evidence-and-testimonials";
 import { faqRecord, sectorRecord } from "./faqs-and-sectors";
@@ -58,7 +59,8 @@ export async function createDirectusFixture() {
     articleResponse: "",
     extraArticles: 0,
     extraPrograms: 0,
-    missingInstitutionDescription: false
+    missingInstitutionDescription: false,
+    deskResponse: ""
   };
   const server = createServer((request, response) => {
     const url = new URL(request.url!, "http://fixture.local");
@@ -86,6 +88,48 @@ export async function createDirectusFixture() {
     }
     if (filter.title?._eq === "upstream-invalid") {
       response.end(JSON.stringify({ data: [{ id: "malformed" }] }));
+      return;
+    }
+    if (collection === "regional_education_desks") {
+      if (state.deskResponse === "unavailable") {
+        response.statusCode = 403;
+        response.end(JSON.stringify({ errors: [{ message: "fixture upstream secret" }] }));
+        return;
+      }
+      const fields = url.searchParams.get("fields");
+      const source =
+        state.deskResponse === "missing-content"
+          ? { ...deskRecord, description: null, consultation_service_description: null }
+          : state.deskResponse === "missing-area"
+            ? { ...deskRecord, area: null, location: null }
+            : deskRecord;
+      const rows =
+        state.deskResponse === "invalid"
+          ? [{ id: "malformed" }]
+          : [source].filter((row) =>
+              Object.entries(filter).every(([key, value]) => {
+                const operation = value as { _eq?: unknown };
+                return "_eq" in operation
+                  ? (row as Record<string, unknown>)[key] === operation._eq
+                  : key === "sectors" &&
+                      JSON.stringify(value).includes(deskRecord.sectors[0]!.sectors_id.id);
+              })
+            );
+      const offset = Number(url.searchParams.get("offset") ?? 0),
+        limit = Number(url.searchParams.get("limit") ?? 10);
+      const page = rows.slice(offset, offset + limit);
+      response.end(
+        JSON.stringify({
+          data:
+            fields === "id,title,date_updated"
+              ? page.map((row) => ({
+                  id: row.id,
+                  title: "title" in row ? row.title : undefined,
+                  date_updated: null
+                }))
+              : page
+        })
+      );
       return;
     }
     if (collection === "programs" && url.searchParams.get("fields") === "id,title,date_updated") {

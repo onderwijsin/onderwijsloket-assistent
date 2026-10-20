@@ -39,3 +39,5 @@ Article record entrypoints are `list-articles.ts`, `get-article.ts` and `search-
 Testimonials add `list_testimonials`, `get_testimonial`, `search_testimonials` and resource links. Shared filters/facets include testimonials. Person-ID list filters use explicit nested lookup paths, separate from search facet labels. See [article evidence and testimonials](../../../docs/collection-inventory/article-evidence-and-testimonials.md).
 
 Institutions and programs adds list/get/search tools for programs and educational institutions with resource links. Shared enum filter discovery describes source codes, while facets describe index labels. Institution programs remain a filtered program list instead of a recursive expansion. See [contracts](../../../docs/collection-inventory/institutions-and-programs.md).
+
+Regional desk entrypoints are `list_regional_education_desks`, `get_regional_education_desk` and `search_regional_education_desks`. Source booleans/sector IDs and search facets have distinct contracts. See [desk contracts](../../../docs/collection-inventory/regional-education-desks.md).

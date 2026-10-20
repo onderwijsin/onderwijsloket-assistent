@@ -29,7 +29,8 @@ describe("allowlisted collection discovery", () => {
       "sectors",
       "testimonials",
       "educational_institutions",
-      "programs"
+      "programs",
+      "regional_education_desks"
     ]);
     expect(registry.catalogue().map(({ name }) => name)).toEqual(["articles", "faqs"]);
     expect(z.toJSONSchema(articles.getOutput)).toEqual(before);

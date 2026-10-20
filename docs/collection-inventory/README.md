@@ -1,11 +1,12 @@
 # Collection inventory and MCP architecture
 
-Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; implemented domains enable articles, FAQs, sectors, testimonials, institutions and programs.
+Design inventory for [issue #1](https://github.com/onderwijsin/onderwijsloket-assistent/issues/1), inspected 2026-10-20. Scope follows the collection list supplied for this task, rather than treating the issue's approximate 25–30 count as a target. Phase 1 records contracts and evidence; phase 2 records the architecture decision. Phase 3 implemented shared preparation; implemented domains enable articles, FAQs, sectors, testimonials, institutions, programs and regional education desks.
 
 - [FAQ and sector guidance implementation](faqs-and-sectors.md): live FAQ/sector contracts, evidence, relation bounds and validation.
 - [Phase 3 preparation](phase-3.md): implemented boundaries, extension steps and verification limits.
 - [Institutions and programs implementation](institutions-and-programs.md): programs, institutions, locations, schedules, variants and verified search/resource contracts.
 - [Article evidence and testimonials implementation](article-evidence-and-testimonials.md): article evidence, authors, documents, featured profiles and testimonial resources.
+- [Regional education desks implementation](regional-education-desks.md): coverage geometry, public services, nullable relations, independent schedules and verified search.
 - [Collection implementation plan](implementation-plan.md): collection domains, prerequisites and release gates.
 - [Phase 2 architecture](architecture.md): contract comparison, hybrid tool surface, static schemas and the minimum phase 3 scope.
 - [Core contracts](core.md): nine intended public collections, including the existing articles contract.
@@ -45,11 +46,11 @@ These shared proposals are notation for comparing contracts, not a decision to u
 
 ## Resource contract
 
-Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs, sectors, testimonials, institutions and programs are implemented; the remaining three ship resources with their collection implementations. Supporting collections remain embedded.
+Every core collection includes a readable resource and URI template as part of its implementation. See [collection resources](../collection-resources.md) for the required representations, discovery, links and verification. Articles, FAQs, sectors, testimonials, institutions, programs and regional education desks are implemented; the remaining two ship resources with their collection implementations. Supporting collections remain embedded.
 
 ## Exposure and access
 
-Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs, sectors, testimonials, institutions and programs are implemented; desks and podcasts remain planned.
+Core means intended standalone discovery and retrieval. Supporting means included through core details; it does not imply standalone public tools. `sectors` intentionally has both roles. Articles, FAQs, sectors, testimonials, institutions, programs and regional education desks are implemented; podcasts remain planned.
 
 Directus owns record visibility for every collection and nested relation; see [data access responsibilities](../data-access.md). The MCP layer does not implement publication filters or guards. Documentation says Navigator datasets depend on vendor-specific policies; the current service account's grants are TBD. Retain `vendor` where present so callers can distinguish origin. The desk type has no vendor field: do not invent one.
 

@@ -1,6 +1,6 @@
 # Institutions and programs
 
-Institutions and programs enable `educational_institutions` and `programs`, with locations, weekly schedules, provider references and program forms embedded through their parents. The server now has six core collections, twenty-two tools and six Markdown resource templates. Existing article, FAQ, sector and testimonial contracts remain unchanged. Standalone location/availability/form tools, exact geographic matching and personalized eligibility decisions remain outside scope.
+Institutions and programs enable `educational_institutions` and `programs`, with locations, weekly schedules, provider references and program forms embedded through their parents. These additions brought the server to six core collections, twenty-two tools and six Markdown resource templates; regional education desks are documented separately. Existing article, FAQ, sector and testimonial contracts remain unchanged. Standalone location/availability/form tools, exact geographic matching and personalized eligibility decisions remain outside scope.
 
 ## Public operations and source filters
 

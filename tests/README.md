@@ -35,7 +35,7 @@ Local HTTP fixtures supply synthetic content and search responses:
 
 Runtime requests use these fixtures and synthetic credentials. The installed SDKs and application handlers run against real HTTP boundaries. Build-time module initialization still uses the normal configured environment.
 
-Assertions cover all twenty-two tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
+Assertions cover all twenty-five tools, collection discovery, schema portability, provider-independent MCP guidance, filtering, pagination, full Markdown content, resource templates and catalogues, front matter, resource links and cache reuse. Error cases verify invalid-input rejection and sanitized missing-record or upstream failures. Successful responses are checked for structured content and the JSON text fallback.
 
 These tests cover the Node server’s HTTP contracts. They do not verify browser hydration, live service permissions or a deployed Cloudflare Workers instance.
 
@@ -54,3 +54,5 @@ Coverage reports are written to ignored `coverage/`. Use them to investigate gap
 Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](../docs/collection-inventory/institutions-and-programs.md).
 
 Collection behavior lives in `articles.test.ts`, `faqs.test.ts`, `sectors.test.ts`, `testimonials.test.ts`, `educational-institutions.test.ts` and `programs.test.ts`. Shared projection validators remain in `supporting-content.test.ts` and `locations.test.ts`. Catalogue tests cover more than 1,500 records, lower upstream page caps, serialized reads and failed/incomplete responses.
+
+Regional desk tests use `tests/unit/regional-education-desks.test.ts` and synthetic `tests/fixtures/regional-education-desks.ts`, plus the HTTP suite, for coverage geometry, schedules, null content and strict search filters.

@@ -80,7 +80,7 @@ dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is di
 
 Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
 `fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all twenty-two
+build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all twenty-five
 MCP tools. It does not verify browser hydration.
 
 Server and build isolation does not replace upstream services: the app still loads
@@ -110,3 +110,5 @@ properties, optional query data, delivery behavior and attribution limitations.
 See [collection resources](collection-resources.md) for article, FAQ and sector resources/templates and the requirement for every future core collection.
 
 Navigator source/search/resource regressions use `fixtures/institutions-and-programs.ts` and `unit/educational-institutions.test.ts`, `unit/programs.test.ts` and `unit/locations.test.ts` plus the production HTTP suite. GeoJSON/schedules, source enum discovery, provider/form identity and unsupported source degree filtering are covered. See [institutions and programs](collection-inventory/institutions-and-programs.md).
+
+Regional desk tests use `tests/unit/regional-education-desks.test.ts` and synthetic `tests/fixtures/regional-education-desks.ts`, plus the HTTP suite, for coverage geometry, schedules, null content and strict search filters.

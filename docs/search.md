@@ -69,3 +69,5 @@ See [phase 3 preparation](collection-inventory/phase-3.md) for independent colle
 Testimonials expose `search_testimonials` and shared `get_facets` with seven verified facets and native publication-date metadata. See [article evidence and testimonials](collection-inventory/article-evidence-and-testimonials.md). They describe personal experiences, not factual eligibility rules.
 
 Programs and institutions have dedicated search tools and shared facet discovery. Program degrees are display labels and search filters use the verified singular `program_forms.track.name` path; institution search supports type only. Hits preserve native types and partial location/provider context without fabricated article descriptions. See [institutions and programs](collection-inventory/institutions-and-programs.md).
+
+Regional desk search uses four verified facets: `sectors.title`, `has_consultation_service`, `orientation_activity_types` and `content_types`. Regions/cities use the query; source JSON-array filtering is unsupported. Hits omit area geometry/grid points and full schedules. See [desk contracts](collection-inventory/regional-education-desks.md).
