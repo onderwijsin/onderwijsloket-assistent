@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { useSourceUrl } from "../use-source-url";
 import { nullableOutput } from "../mcp-schema";
 
 /** Collections supported by taxonomy lookups and relation normalization. */
@@ -22,11 +23,11 @@ export const taxonomySchema = z.object({
   id: z
     .guid()
     .describe(
-      "Opaque taxonomy identifier. Copy this id into the corresponding list_records filter array."
+      "Opaque taxonomy identifier. Copy this id into the corresponding collection list filter array."
     ),
   title: z.string().describe("Human-readable label to select the appropriate taxonomy value."),
-  slug: nullableOutput(z.string()).describe(
-    "Optional URL slug; not accepted in place of a filter ID."
+  source_url: nullableOutput(z.url()).describe(
+    "Canonical archive displaying content related to this taxonomy item; null for audiences and phases or an unavailable path. Use id, not this URL, in filters."
   ),
   description: nullableOutput(z.string()).describe("Optional explanation of this taxonomy value.")
 });
@@ -47,13 +48,22 @@ export function createTaxonomySourceSchema(collection: TaxonomyCollection) {
     .object({
       id: taxonomySchema.shape.id,
       [label]: z.string(),
-      slug: taxonomySchema.shape.slug.optional(),
+      slug: z.string().nullish(),
+      path: z.string().nullish(),
       description: taxonomySchema.shape.description.optional()
     })
     .transform((value) => ({
       id: value.id,
       title: value[label],
-      slug: value.slug ?? null,
+      source_url: ["audiences", "phases"].includes(collection)
+        ? null
+        : collection === "sectors"
+          ? value.slug && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug)
+            ? useSourceUrl(`/${value.slug}`)
+            : null
+          : value.path
+            ? useSourceUrl(value.path)
+            : null,
       description: value.description ?? null
     }))
     .pipe(taxonomySchema);

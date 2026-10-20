@@ -14,7 +14,9 @@ No dependency or API key is required. The integration uses ofetch to post JSON t
 ## Configuration
 
 `PLAUSIBLE_DOMAIN` supplies the site identifier. Missing domains disable delivery.
-The default enables events only in production when `DISABLE_TRACKING` is not true.
+The default enables events whenever `DISABLE_TRACKING` is not true, including
+development when a domain is configured. This is independent of browser tracking.
+Set `NUXT_TOOL_ANALYTICS_ENABLED=false` to disable MCP analytics locally.
 Server-only runtime config overrides are available at deployment:
 
 | Environment variable               | Purpose                                                                           |
@@ -29,19 +31,19 @@ Enable the custom properties below in Plausible to inspect their breakdowns.
 
 ## Properties
 
-| Property     | Meaning                                                                                                                           |
-| ------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| `tool`       | Executed tool name.                                                                                                               |
-| `collection` | Request collection validated against the registered tool's collection schema, otherwise `unknown` (including `list_collections`). |
-| `status`     | `error` when the MCP result has `isError`, otherwise `success`, independently of HTTP status.                                     |
-| `client`     | SDK initialization client name when available; otherwise `unknown`. Client names are self-reported, not authenticated identities. |
-| `data`       | Optional tool-specific context. Currently only the query of `search_collection` and `get_facets`, limited to 500 characters.      |
+| Property     | Meaning                                                                                                                                                                                                                                                                                                                                         |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tool`       | Executed tool name.                                                                                                                                                                                                                                                                                                                             |
+| `collection` | Static collection from the registered tool metadata, or a request collection validated against its collection schema; otherwise `unknown`.                                                                                                                                                                                                      |
+| `status`     | `error` when the MCP result has `isError`, otherwise `success`, independently of HTTP status.                                                                                                                                                                                                                                                   |
+| `client`     | SDK initialization client name when available; otherwise `unknown`. Client names are self-reported, not authenticated identities.                                                                                                                                                                                                               |
+| `data`       | Optional tool-specific context. Currently only the query of `search_articles`, `search_faqs`, `search_sectors`, `search_testimonials`, `search_programs`, `search_educational_institutions`, `search_regional_education_desks`, `search_podcast_shows`, `search_podcast_episodes`, `search_videos` and `get_facets`, limited to 500 characters. |
 
 `data` is an explicit allowlist, not an arbitrary argument dump. Query capture is
 opt-in because queries can contain personal information and create high-cardinality
 reports. Enabling it sends query text to Plausible. Other arguments, record contents,
 outputs and prompts are never included. Extend the allowlist deliberately for future tools.
-Collections are resolved from registered schemas, so new collections need no analytics calls.
+Dedicated collection tools declare `_meta["onderwijsloket.com/collection"]`; shared tools resolve collection arguments from registered schemas. Client-supplied metadata is never used for attribution. New collections need no analytics delivery calls.
 Input is captured before the SDK consumes the request stream. Web request bodies are
 cloned; Node bodies are cached by h3 and replayed to the SDK. The completion hook
 never reads the stream. If there is no matching single `tools/call` body, collection is
@@ -64,3 +66,12 @@ Plausible may discard bot clients, missing attribution or hosting IPs even with 
 `x-plausible-dropped: 1` produces a warning. SDK clients often identify as bots, so
 Plausible totals can undercount actual executions. Use event totals, not unique visitors,
 for usage reporting; this integration does not guarantee exhaustive operational counts.
+
+The dropped-event warning confirms rejection by Plausible's bot filtering; it does
+not identify the specific triggering header and does not indicate an MCP tool failure.
+Server-hosted MCP clients may legitimately originate from hosting-provider IPs.
+Behind a non-Cloudflare proxy, the direct peer fallback may instead be the proxy IP.
+Do not replace these with fabricated visitor IPs or browser User-Agents to bypass filtering.
+For targeted diagnostics, the [Events API](https://plausible.io/docs/events-api#debugging)
+supports `X-Debug-Request: true`, returning the IP Plausible would use. This integration
+does not send that header or log client attribution data by default.

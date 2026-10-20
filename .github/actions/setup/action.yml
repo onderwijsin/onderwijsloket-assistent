@@ -1,14 +1,11 @@
 name: Setup
-description: "Setup Node.js, pnpm, configure GitHub Packages authentication and install dependencies"
+description: "Setup Node.js, pnpm and install dependencies"
 
 inputs:
   node-version:
     description: Node.js version
     required: false
     default: "24"
-  gh-packages-token:
-    description: "GitHub Packages token with read:packages scope"
-    required: false
   proton-pass-personal-access-token:
     description: "Proton Pass personal access token for accessing sensitive environment variables"
     required: true

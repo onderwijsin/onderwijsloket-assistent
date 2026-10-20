@@ -5,6 +5,7 @@ import { version as packageVersion } from "./package.json";
 
 import { app } from "./config/head";
 import identity, { siteDescription, siteTitle } from "./config/identity";
+import { INSTRUCTIONS, MCP_SERVER } from "./config/mcp";
 
 import { resolveEnvironment } from "./config/helpers";
 const { environment, isDebug, isProd, isPreview, isDev, isTest } = resolveEnvironment(ENV.MODE);
@@ -15,13 +16,17 @@ export default defineNuxtConfig({
     enabled: true
   },
 
-  nitro: { experimental: { asyncContext: true } },
+  nitro: {
+    experimental: { asyncContext: true },
+    storage: {
+      "simple-rate-limiter:%2Fapi%2Fchat": { driver: "memory" }
+    }
+  },
 
   mcp: {
-    name: "Onderwijsloket Assistent (experimental)",
-    description: "Experimental read-only access to published Onderwijsloket articles.",
+    ...MCP_SERVER,
     version: packageVersion,
-    // instructions: '', TODO add good system instruction
+    instructions: INSTRUCTIONS,
     icons: [
       { src: "/mcp_icon.png", mimeType: "image/png", sizes: ["64x64"], theme: "light" },
       { src: "/mcp_icon.png", mimeType: "image/png", sizes: ["64x64"], theme: "dark" }
@@ -46,11 +51,12 @@ export default defineNuxtConfig({
     "@onderwijsin/nuxt-healthcheck",
     "@onderwijsin/nuxt-directus-config",
     "@onderwijsin/nuxt-directus-client",
-    "@onderwijsin/nuxt-newsletter-signup"
+    "@onderwijsin/nuxt-simple-rate-limiter"
   ],
 
+  piniaPluginPersistedstate: { storage: "localStorage" },
+
   routeRules: {
-    "/": { prerender: true },
     "/_nuxt/**": {
       cache: { maxAge: 31_536_000, swr: true },
       headers: { "cache-control": "public, max-age=31_536_000, s-maxage=31_536_000, immutable" }
@@ -166,18 +172,11 @@ export default defineNuxtConfig({
     }
   },
 
-  newsletterSignup: {
-    provider: "loops",
-    apiKey: ENV.LOOPS_API_KEY,
-    lists: { default: ENV.LOOPS_LIST_ID },
-    fields: {
-      firstName: { required: true },
-      lastName: { target: "lastName" },
-      organization: { target: "organisation" }
-    }
-  },
-
   runtimeConfig: {
+    chat: {
+      mistralApiKey: ENV.MISTRAL_API_KEY,
+      openaiApiKey: ENV.OPENAI_API_KEY
+    },
     apiToken: ENV.API_TOKEN,
     toolAnalytics: {
       enabled: ENV.DISABLE_TRACKING !== true,

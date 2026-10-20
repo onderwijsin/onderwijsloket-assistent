@@ -29,6 +29,10 @@ When multiple valid solutions exist, prefer:
 
 ### Hard Rules
 
+- **MUST** delegate record visibility to Directus for every collection and relation depth. Do not add
+  status filters, publication-status validators or local release-date gates. When changing source
+  queries, relations or search adapters, follow [data access responsibilities](docs/data-access.md).
+
 - **MUST NOT** introduce breaking UX or API-shape changes without explicit request
 - **MUST NOT** edit files under `.husky/**` unless explicitly requested in the current task
 - **MUST NOT** edit anything under `.agents/skills/**` unless explicitly requested

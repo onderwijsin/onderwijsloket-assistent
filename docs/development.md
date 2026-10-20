@@ -6,7 +6,7 @@ Use the Node version in `.nvmrc` and the Corepack-managed package manager pinned
 
 Use the existing Varlock environment profiles under `envs/`. Directus and Algolia schemas describe their configuration. Resolve credentials through the existing environment setup; do not put tokens in documentation, fixtures or public runtime configuration.
 
-For a fresh checkout, dependency installation is a human setup step or a separately authorized dependency task. No installation is needed for this scaffold.
+For a fresh checkout, run `corepack pnpm install` after configuring environment access. Installation initializes Nuxt modules and generates types. Existing checkouts do not need dependency installation for ordinary source or documentation changes.
 
 With dependencies and environment access available:
 
@@ -14,7 +14,7 @@ With dependencies and environment access available:
 corepack pnpm dev
 ```
 
-Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers five Directus article tools plus `search_collection` and `get_facets`. Exercise `/mcp` through an MCP client; the starter UI does not call these tools.
+Nuxt modules may require access to the configured secrets provider and Directus schema generation. The MCP Toolkit discovers thirty collection-specific record tools, four shared discovery tools and ten resource templates. Exercise `/mcp` through an MCP client; the [chat endpoint](chat.md) discovers and executes these tools through the same protocol.
 
 ## Checks
 
@@ -45,52 +45,27 @@ For documentation-only edits, formatting can target the changed Markdown files. 
 
 ## Testing
 
-Vitest runs two projects, following its [test projects configuration](https://vitest.dev/guide/projects).
-Both use Node; there is no Playwright, browser runner or separate integration suite.
+The reusable Code Quality workflow runs `corepack pnpm test` in a separate job
+alongside lint and typecheck for pull requests targeting `main`. This includes unit
+and HTTP e2e tests; the e2e suite builds and starts its own Node server, so no
+separate build step is needed. The job uses the configured runner and Proton Pass
+secret for build-time environment access. Like the other quality jobs, it skips
+Dependabot runs. Configure the test job as a required check in branch rules to
+block merges when tests fail.
 
-```sh
-corepack pnpm test            # unit and e2e tests, single run
-corepack pnpm test:unit       # unit tests only
-corepack pnpm test:watch      # unit tests, watch mode
-corepack pnpm test:coverage   # unit tests with V8 coverage
-```
+The pre-push hook runs `corepack pnpm test`, covering both unit and HTTP e2e
+projects. Test failures block the push. Existing typecheck and lint gates run
+first, with their existing opt-out flags; the test gate has no opt-out flag.
+The hook uses the project-pinned package manager through Corepack and requires
+the same build-time environment access as the e2e suite.
 
-Put isolated unit tests in `tests/unit/**/*.test.ts`. Import Vitest APIs explicitly.
-Use relative source imports; this lightweight setup does not boot Nuxt, resolve its
-virtual imports or provide a DOM. Mock environment and external service boundaries.
-The environment-mode tests exercise the existing configuration helper without loading secrets.
+Vitest runs unit and HTTP integration projects. Use `corepack pnpm test` for both, `corepack pnpm test:unit` for isolated behavior and `corepack pnpm test:e2e` for the built server’s HTTP contracts. Type checking remains a separate step.
 
-Run the HTTP e2e suite with one command:
+The [testing guide](../tests/README.md) owns test commands, fixture conventions, server isolation and verification boundaries. Runtime provider requests use synthetic HTTP fixtures; build-time module setup still requires the configured environment.
 
-```sh
-corepack pnpm test:e2e
-```
+## Architecture entry points
 
-`@nuxt/test-utils/e2e` builds the actual application with the Node server preset,
-starts its own server on an automatically selected free port, waits for readiness,
-and stops it after the suite. Each suite gets a unique build and output directory
-under ignored `.nuxt/test/`, removed during teardown. It does not reuse a running
-dev server or `.output/`, and requires no `TEST_BASE_URL`. Browser support is disabled.
-
-Put HTTP e2e tests in `tests/e2e/**/*.test.ts` and use `setup` plus the test-utils
-`fetch`/`$fetch` helpers to target the managed instance. Setup has a three-minute
-build/start timeout. The suite checks the root HTML response, the MCP schema catalogue, and all seven
-MCP tools. It does not verify browser hydration.
-
-Server and build isolation does not replace upstream services: the app still loads
-its existing Varlock environment and configured Nuxt modules. Their credentials
-and build-time service access must be available as for a normal build. Runtime article and taxonomy requests use a local HTTP Directus fixture with synthetic
-content and fixture credentials. This exercises the actual SDK, query serialization, collection
-logic, Markdown pipeline and MCP responses. No live content or provider credentials are needed
-for these runtime assertions. Build-time module setup still uses the normal environment.
-
-Coverage reports are written to ignored `coverage/`. No coverage thresholds are imposed.
-Use synthetic or sanitized fixtures and keep checks against live providers opt-in and bounded.
-See [the articles POC](articles-poc.md) for the implemented MCP contracts.
-
-## Current implementation entry point
-
-Follow [the articles POC](articles-poc.md). Article resources are described in [article resources](article-resources.md). Chat, prompts and additional collections remain deferred. Existing UI and optional module configuration are retained; their presence does not expand the scope.
+Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. [Education pathways](routes.md) use dedicated questionnaire, matching and detail tools. The [geocoding utility](geocoding.md) resolves location text for geographic searches of programs, institutions and regional education desks. [MCP prompts](mcp-prompts.md) provide program comparison, local support, related-content and route-questionnaire workflows. The [chat integration](chat.md) exposes these workflows to the assistant.
 
 ## Server JSDoc
 
@@ -100,3 +75,23 @@ MCP handlers, collection methods and their supporting server utilities document 
 
 See [server-side tool analytics](tool-analytics.md) for Plausible configuration,
 properties, optional query data, delivery behavior and attribution limitations.
+
+See [collection resources](collection-resources.md) for catalogue discovery and resource reads across all ten core collections.
+
+## Chat dashboard
+
+The website uses the Nuxt UI chat dashboard with our logo, collapsible navigation,
+local conversation history and search. The main panel retains the compact composer,
+model selection and color-mode toggle. Sidebar links point to Onderwijs in, GitHub
+and `https://onderwijsin.nl/nieuwsbrief` ("Blijf op de hoogte"). The old website header,
+footer and newsletter signup components have been removed.
+
+The light-mode page uses Onderwijs in’s `sand-main` token
+(`oklch(96% 0.011 76.6)`) around a `sand-light` conversation panel (`oklch(97.4% 0.006 75.4)`). Dark mode uses
+`neutral-950` for the page and a panel-scoped `bg-default` mapped to `zinc-900` at 50% opacity.
+The command palette includes new-chat and system/light/dark color-mode actions.
+
+The dashboard mounts client-side behind a loading skeleton. Pinia owns conversations,
+drafts and model settings, persisted in localStorage with the installed persisted-state
+plugin. Chat content is never written to cookies or a server conversation database.
+See [chat](chat.md) for hydration, retention, SDK state synchronization and MCP behavior.

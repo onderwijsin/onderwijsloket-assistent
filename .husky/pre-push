@@ -15,10 +15,13 @@ fi
 
 # Run typecheck unless explicitly disabled
 if [ "${DISABLE_PRE_PUSH_TYPECHECK:-false}" != "true" ]; then
-  pnpm typecheck
+  corepack pnpm typecheck
 fi
 
 # Run lint unless explicitly disabled
 if [ "${DISABLE_PRE_PUSH_LINT:-false}" != "true" ]; then
-  pnpm lint
+  corepack pnpm lint
 fi
+
+# Run all Vitest projects; any test failure blocks the push.
+corepack pnpm test

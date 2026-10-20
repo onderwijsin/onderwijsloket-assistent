@@ -51,8 +51,8 @@ beforeEach(() => {
   mocks.body = {
     method: "tools/call",
     params: {
-      name: "search_collection",
-      arguments: { collection: "articles", query: "teacher", token: "secret" }
+      name: "search_articles",
+      arguments: { query: "teacher", token: "secret" }
     }
   };
   mocks.readBody.mockReset().mockImplementation(async () => mocks.body);
@@ -80,7 +80,7 @@ afterEach(() => {
 async function complete(isError = false, configured = false) {
   if (!configured) await hooks["mcp:config:resolved"]!({ config: { tools: [] } as never, event });
   await hooks["mcp:tool:called"]!({
-    name: "search_collection",
+    name: "search_articles",
     result: { content: [], isError },
     durationMs: 1,
     event
@@ -91,7 +91,7 @@ async function complete(isError = false, configured = false) {
 it("sends one event with trusted collection and SDK client, omitting arguments by default", async () => {
   await hooks["mcp:config:resolved"]!({
     config: {
-      tools: [{ name: "search_collection", inputSchema: { collection: z.literal("articles") } }]
+      tools: [{ name: "search_articles", _meta: { "onderwijsloket.com/collection": "articles" } }]
     } as never,
     event
   });
@@ -105,7 +105,7 @@ it("sends one event with trusted collection and SDK client, omitting arguments b
     domain: "example.test",
     url: "https://example.test/mcp",
     props: {
-      tool: "search_collection",
+      tool: "search_articles",
       collection: "articles",
       status: "success",
       client: "test-client"
@@ -119,7 +119,7 @@ it("counts tool errors and includes only explicitly enabled query data", async (
   mocks.config.includeData = true;
   await complete(true);
   expect(JSON.parse(fetchMock.mock.calls[0]![1].body).props).toEqual({
-    tool: "search_collection",
+    tool: "search_articles",
     collection: "unknown",
     status: "error",
     client: "unknown",
@@ -151,7 +151,7 @@ it("does not await delivery in the execution hook", async () => {
     })
   );
   await hooks["mcp:tool:called"]!({
-    name: "search_collection",
+    name: "search_articles",
     result: { content: [] },
     durationMs: 1,
     event
@@ -176,7 +176,7 @@ it.each(["network", "timeout", "http", "dropped"])(
     await expect(
       sendToolAnalytics(
         mocks.config,
-        { tool: "get_record", collection: "articles", status: "error", client: "unknown" },
+        { tool: "get_article", collection: "articles", status: "error", client: "unknown" },
         {}
       )
     ).resolves.toBeUndefined();
@@ -234,4 +234,63 @@ it("clones web requests so the SDK can still consume the original body", async (
   await complete(false, true);
   expect(mocks.readBody).not.toHaveBeenCalled();
   expect(JSON.parse(fetchMock.mock.calls[0]![1].body).props.data).toBe("teacher");
+});
+
+it("uses configured collection metadata even when callers supply another collection", async () => {
+  mocks.body = {
+    method: "tools/call",
+    params: { name: "search_articles", arguments: { collection: "faqs" } }
+  };
+  await hooks["mcp:config:resolved"]!({
+    config: {
+      tools: [{ name: "search_articles", _meta: { "onderwijsloket.com/collection": "articles" } }]
+    } as never,
+    event
+  });
+  await complete(false, true);
+  expect(JSON.parse(fetchMock.mock.calls[0]![1].body).props.collection).toBe("articles");
+});
+
+it("retains schema-based collection attribution for shared discovery", async () => {
+  const { readToolCallDetails } = await import("../../server/utils/tool-analytics");
+  mocks.body = {
+    method: "tools/call",
+    params: { name: "get_facets", arguments: { collection: "articles", query: "teacher" } }
+  };
+  const tools = [{ name: "get_facets", inputSchema: { collection: z.literal("articles") } }];
+  expect(await readToolCallDetails(event, tools, true)).toEqual({
+    tool: "get_facets",
+    collection: "articles",
+    data: "teacher"
+  });
+  mocks.body = {
+    method: "tools/call",
+    params: { name: "get_facets", arguments: { collection: "unknown" } }
+  };
+  expect(await readToolCallDetails(event, tools, false)).toEqual({
+    tool: "get_facets",
+    collection: "unknown"
+  });
+});
+
+it.each([
+  "search_faqs",
+  "search_sectors",
+  "search_testimonials",
+  "search_programs",
+  "search_educational_institutions",
+  "search_regional_education_desks",
+  "search_podcast_shows",
+  "search_podcast_episodes",
+  "search_videos"
+])("captures query context for %s without a collection argument", async (name) => {
+  const { readToolCallDetails } = await import("../../server/utils/tool-analytics");
+  const collection = name.replace("search_", "");
+  mocks.body = { method: "tools/call", params: { name, arguments: { query: "teaching" } } };
+  const tools = [{ name, _meta: { "onderwijsloket.com/collection": collection } }];
+  expect(await readToolCallDetails(event, tools, true)).toEqual({
+    tool: name,
+    collection,
+    data: "teaching"
+  });
 });

@@ -50,9 +50,9 @@ export const snippetSchema = z.object({
     .describe("Whether some or all query terms matched this attribute; not a relevance score.")
 });
 
-/** Minimal discovery record; full content and taxonomy metadata come from get_record. */
+/** Minimal discovery record; full content and taxonomy metadata come from get_article. */
 export const searchRecordSchema = z.object({
-  id: z.uuid().describe("Record ID accepted by get_record."),
+  id: z.uuid().describe("Record ID accepted by get_article."),
   collection: z.string().describe("Collection name for subsequent tool calls."),
   title: z.string().describe("Record title from the search index."),
   slug: z.string().describe("Record URL slug from the search index."),
@@ -73,7 +73,7 @@ export const searchResultSchema = z.object({
     .array(searchRecordSchema)
     .max(25)
     .describe(
-      "Lightweight hits in index relevance order. Use get_record for full content and metadata."
+      "Lightweight hits in index relevance order. Use get_article for full content and metadata."
     ),
   page: z.number().int().positive(),
   page_size: z.number().int().min(1).max(25),
@@ -95,6 +95,25 @@ export const searchResultSchema = z.object({
     .datetime()
     .describe("UTC time when this response was assembled; not the source update time.")
 });
+
+/**
+ * Reuse count and pagination semantics with a collection-owned search-hit schema.
+ *
+ * @param record - Validated public hit projection; never an untyped provider record.
+ * @returns A result schema preserving the collection's exact hit fields.
+ */
+export function createSearchResultSchema<RecordSchema extends z.ZodObject>(record: RecordSchema) {
+  return searchResultSchema.extend({
+    records: z
+      .array(record)
+      .max(25)
+      .describe(
+        Object.is(record, searchRecordSchema)
+          ? searchResultSchema.shape.records.description!
+          : "Lightweight hits in index relevance order. Use the collection's detail tool for full content and metadata."
+      )
+  });
+}
 
 /** Optional facet selection and query/filter context for dynamic counts. */
 export const facetsOptionsSchema = searchOptionsSchema.pick({ query: true, filters: true }).extend({

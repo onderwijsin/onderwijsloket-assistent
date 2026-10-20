@@ -30,6 +30,7 @@
   "dependencies": {
     "@ai-sdk/mcp": "catalog:",
     "@ai-sdk/mistral": "catalog:",
+    "@ai-sdk/openai": "catalog:",
     "@ai-sdk/vue": "catalog:",
     "@comark/nuxt": "catalog:",
     "@iconify-json/lucide": "catalog:",
@@ -45,6 +46,7 @@
     "@onderwijsin/nuxt-directus-config": "catalog:",
     "@onderwijsin/nuxt-healthcheck": "catalog:",
     "@onderwijsin/nuxt-newsletter-signup": "catalog:",
+    "@onderwijsin/nuxt-simple-rate-limiter": "catalog:",
     "@pinia/nuxt": "catalog:",
     "@tailwindcss/typography": "catalog:",
     "@tiptap/core": "catalog:",

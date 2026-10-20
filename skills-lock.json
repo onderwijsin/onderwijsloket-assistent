@@ -80,6 +80,12 @@
       "skillPath": "skills/nuxt-sentry-config/SKILL.md",
       "computedHash": "df7cbf36ccaf7c02fb96efb5788b057327978a60c79de0f41761ca86bcf6733b"
     },
+    "nuxt-simple-rate-limiter": {
+      "source": "onderwijsin/nuxt-modules",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-simple-rate-limiter/SKILL.md",
+      "computedHash": "3f241d9ce257dbb684af2932a34aa7d2adb7dce4f275f05136d160c8f18db828"
+    },
     "nuxt-ui": {
       "source": "nuxt/ui",
       "sourceType": "github",

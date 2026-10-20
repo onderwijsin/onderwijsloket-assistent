@@ -1,5 +1,22 @@
+import { showRecord, episodeRecord, videoRecord } from "./podcasts-and-videos";
+import { routeFixtureRows } from "./routes";
+import { deskRecord } from "./regional-education-desks";
+import { institutionRecord, programRecord } from "./institutions-and-programs";
+import { testimonialRecord, supportingRelations } from "./article-evidence-and-testimonials";
+import { faqRecord, sectorRecord } from "./faqs-and-sectors";
 import { createServer } from "node:http";
 import { once } from "node:events";
+
+/** Distinct source records keep failure/null scenarios independent of previously cached details. */
+export function sourceVariantId(id: string, variant: string): string {
+  const suffix: Record<string, string> = {
+    "missing-content": "a",
+    "missing-area": "b",
+    invalid: "c",
+    unavailable: "d"
+  };
+  return suffix[variant] ? id.slice(0, -1) + suffix[variant] : id;
+}
 
 export const articleId = "00f81660-a2e4-48af-b8d7-98ce338de447";
 export const topicId = "00000000-0000-0000-0000-000000000001";
@@ -9,10 +26,12 @@ const taxonomy = {
   id: topicId,
   name: "Career paths",
   slug: "career-paths",
+  path: "/archive/career-paths",
   description: "Routes into education"
 };
 const baseArticle = {
   id: articleId,
+  ...supportingRelations,
   title: "Alpha",
   slug: "alpha",
   path: "/kennisbank/artikelen/alpha",
@@ -49,7 +68,15 @@ const articles = [
 /** Real HTTP boundary for the Directus SDK; intentionally implements only the queries under test. */
 export async function createDirectusFixture() {
   const requests: URL[] = [];
-  const state = { failingTaxonomy: "", articleResponse: "", extraArticles: 0 };
+  const state = {
+    failingTaxonomy: "",
+    articleResponse: "",
+    extraArticles: 0,
+    extraPrograms: 0,
+    missingInstitutionDescription: false,
+    deskResponse: "",
+    mediaResponse: ""
+  };
   const server = createServer((request, response) => {
     const url = new URL(request.url!, "http://fixture.local");
     requests.push(url);
@@ -65,6 +92,11 @@ export async function createDirectusFixture() {
     }
     const collection = url.pathname.split("/").pop();
     const filter = JSON.parse(url.searchParams.get("filter") ?? "{}");
+    const routeRows = routeFixtureRows(collection ?? "", Object.fromEntries(url.searchParams));
+    if (routeRows) {
+      response.end(JSON.stringify({ data: routeRows }));
+      return;
+    }
     if (
       filter.title?._eq === "upstream-error" ||
       collection === state.failingTaxonomy ||
@@ -76,6 +108,184 @@ export async function createDirectusFixture() {
     }
     if (filter.title?._eq === "upstream-invalid") {
       response.end(JSON.stringify({ data: [{ id: "malformed" }] }));
+      return;
+    }
+    if (["podcast_shows", "podcast_episodes", "videos"].includes(collection ?? "")) {
+      if (state.mediaResponse === "unavailable") {
+        response.statusCode = 403;
+        response.end(JSON.stringify({ errors: [{ message: "fixture media secret" }] }));
+        return;
+      }
+      const source =
+        collection === "podcast_shows"
+          ? showRecord
+          : collection === "podcast_episodes"
+            ? episodeRecord
+            : videoRecord;
+      const row: Record<string, unknown> =
+        state.mediaResponse === "missing-content"
+          ? {
+              ...source,
+              body: null,
+              description: null,
+              transcript_string: null,
+              transcript_string_with_speakers: null
+            }
+          : { ...source };
+      row.id = sourceVariantId(source.id, state.mediaResponse);
+      const rows =
+        state.mediaResponse === "invalid"
+          ? [{ id: "invalid" }]
+          : [row].filter((row) =>
+              Object.entries(filter).every(([key, condition]) => {
+                const operation = condition as { _eq?: unknown; id?: { _eq: unknown } };
+                if ("_eq" in operation) return row[key] === operation._eq;
+                if (operation.id)
+                  return (row[key] as { id?: string } | null)?.id === operation.id._eq;
+                const target =
+                  key === "hosts"
+                    ? "podcast_hosts_id"
+                    : key === "guests" || key === "profiles"
+                      ? "profiles_id"
+                      : key + "_id";
+                return (
+                  (row[key] as Record<string, { id: string }>[] | undefined)?.some((item) =>
+                    JSON.stringify(condition).includes(item[target]?.id ?? "missing")
+                  ) ?? false
+                );
+              })
+            );
+      const offset = Number(url.searchParams.get("offset") ?? 0),
+        limit = Number(url.searchParams.get("limit") ?? 10);
+      const page = rows.slice(offset, offset + limit);
+      response.end(
+        JSON.stringify({
+          data:
+            url.searchParams.get("fields") === "id,title,date_updated"
+              ? page.map((row) => ({
+                  id: row.id,
+                  title: "title" in row ? row.title : undefined,
+                  date_updated: null
+                }))
+              : page
+        })
+      );
+      return;
+    }
+    if (collection === "regional_education_desks") {
+      if (state.deskResponse === "unavailable") {
+        response.statusCode = 403;
+        response.end(JSON.stringify({ errors: [{ message: "fixture upstream secret" }] }));
+        return;
+      }
+      const fields = url.searchParams.get("fields");
+      const source =
+        state.deskResponse === "missing-content"
+          ? { ...deskRecord, description: null, consultation_service_description: null }
+          : state.deskResponse === "missing-area"
+            ? { ...deskRecord, area: null, location: null }
+            : deskRecord;
+      const variantSource = { ...source, id: sourceVariantId(source.id, state.deskResponse) };
+      const rows =
+        state.deskResponse === "invalid"
+          ? [{ id: "malformed" }]
+          : [variantSource].filter((row) =>
+              Object.entries(filter).every(([key, value]) => {
+                const operation = value as { _eq?: unknown };
+                return "_eq" in operation
+                  ? (row as Record<string, unknown>)[key] === operation._eq
+                  : key === "sectors" &&
+                      JSON.stringify(value).includes(deskRecord.sectors[0]!.sectors_id.id);
+              })
+            );
+      const offset = Number(url.searchParams.get("offset") ?? 0),
+        limit = Number(url.searchParams.get("limit") ?? 10);
+      const page = rows.slice(offset, offset + limit);
+      response.end(
+        JSON.stringify({
+          data:
+            fields === "id,title,date_updated"
+              ? page.map((row) => ({
+                  id: row.id,
+                  title: "title" in row ? row.title : undefined,
+                  date_updated: null
+                }))
+              : page
+        })
+      );
+      return;
+    }
+    if (collection === "programs" && url.searchParams.get("fields") === "id,title,date_updated") {
+      const rows = [
+        programRecord,
+        ...Array.from({ length: state.extraPrograms }, (_, i) => ({
+          id: `10000000-0000-4000-8000-${String(i).padStart(12, "0")}`,
+          title: `Program ${i}`,
+          date_updated: null
+        }))
+      ]
+        .map(({ id, title, date_updated }) => ({ id, title, date_updated }))
+        .sort((a, b) => a.id.localeCompare(b.id));
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? 10);
+      response.end(JSON.stringify({ data: rows.slice(offset, offset + limit) }));
+      return;
+    }
+    if (collection === "programs" || collection === "educational_institutions") {
+      const row =
+        collection === "programs"
+          ? programRecord
+          : {
+              ...institutionRecord,
+              ...(state.missingInstitutionDescription
+                ? {
+                    description: null,
+                    id: sourceVariantId(institutionRecord.id, "missing-content")
+                  }
+                : {})
+            };
+      const matches = Object.entries(filter).every(([key, value]) => {
+        const condition = value as { _eq?: unknown };
+        if ("_eq" in condition) return (row as Record<string, unknown>)[key] === condition._eq;
+        return key === "educational_institutions" || key === "location" || key === "locations";
+      });
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      response.end(JSON.stringify({ data: matches && offset === 0 ? [row] : [] }));
+      return;
+    }
+    if (
+      collection === "testimonials" ||
+      collection === "faqs" ||
+      (collection === "sectors" &&
+        (url.searchParams.get("fields")?.includes("code") ||
+          url.searchParams.get("fields") === "id,title,date_updated"))
+    ) {
+      const source =
+        collection === "testimonials"
+          ? testimonialRecord
+          : collection === "faqs"
+            ? faqRecord
+            : sectorRecord;
+      const catalogue = [source];
+      const rows = catalogue.filter((row) => {
+        const scalar = row as Record<string, unknown>;
+        return Object.entries(filter).every(([key, condition]) => {
+          const operation = condition as { _eq?: unknown; [key: string]: unknown };
+          if ("_eq" in operation) return scalar[key] === operation._eq;
+          if (collection === "testimonials" && key === "authors")
+            return JSON.stringify(operation).includes("author-1");
+          if (collection === "testimonials" && key === "profiles")
+            return JSON.stringify(operation).includes("profile-1");
+          if (key === "articles") return JSON.stringify(operation).includes(articleId);
+          return (
+            ["sectors", "topics", "phases", "audiences"].includes(key) &&
+            JSON.stringify(operation).includes(topicId)
+          );
+        });
+      });
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? 10);
+      response.end(JSON.stringify({ data: rows.slice(offset, offset + limit) }));
       return;
     }
     if (collection === "articles") {
@@ -127,7 +337,11 @@ export async function createDirectusFixture() {
           {
             id: topicId,
             [titleBased ? "title" : "name"]: "Career paths",
-            ...(!["audiences", "phases"].includes(collection!) ? { slug: "career-paths" } : {}),
+            ...(collection === "sectors"
+              ? { slug: "career-paths" }
+              : !["audiences", "phases"].includes(collection!)
+                ? { path: "/archive/career-paths" }
+                : {}),
             ...(collection !== "audiences" ? { description: "Routes into education" } : {})
           }
         ]

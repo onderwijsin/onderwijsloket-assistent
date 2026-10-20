@@ -45,7 +45,7 @@ describe("collection filter building blocks", () => {
     const value = {
       id: "550e8400-e29b-41d4-a716-446655440000",
       title: "Topic",
-      slug: null,
+      source_url: null,
       description: null
     };
     read.mockResolvedValue([value]);

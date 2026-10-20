@@ -1,21 +1,22 @@
+import { toolResult } from "../../utils/tool-result";
 import { defineMcpTool } from "@nuxtjs/mcp-toolkit/server";
-import articles from "../../collections/articles";
+import { collections } from "../../collections";
 
 /** Discover index-backed search filters and counts without retrieving document bodies. */
 export default defineMcpTool({
   name: "get_facets",
   description:
-    "Discover current article search facet names, values and counts for search. Pass returned names and values to search_collection.filters; these are search values, not the taxonomy IDs used by list_records. Omit facets to discover all countable facets. Optional query and filters scope counts to matching records, including a facet's own selected filters. max_values limits each facet's returned values, so the response is not a complete enumeration guarantee. Check counts_are_exact. For list_records filters use get_filters instead.",
+    "Discover current collection search facet names, values and counts for search. Pass returned names and values to the collection's search tool filters; these are search values, not the taxonomy IDs used by collection list tools. Omit facets to discover all countable facets. Optional query and filters scope counts to matching records, including a facet's own selected filters. max_values limits each facet's returned values, so the response is not a complete enumeration guarantee. Check counts_are_exact. For list filters use get_filters instead.",
   group: "search",
-  tags: ["articles", "readonly"],
+  tags: ["collections", "readonly"],
   annotations: {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: true
   },
-  inputSchema: articles.facetsInput.shape,
-  outputSchema: articles.facetsOutput.shape,
+  inputSchema: collections.facetsInput.shape,
+  outputSchema: collections.facetsOutput.shape,
   /**
    * Discover search facet values and counts.
    *
@@ -23,7 +24,7 @@ export default defineMcpTool({
    * @returns Facet discovery as structured content and a JSON text fallback.
    */
   handler: async (args) => {
-    const result = await articles.facets(args);
-    return { structuredContent: result, content: [{ type: "text", text: JSON.stringify(result) }] };
+    const result = await collections.facets(args);
+    return toolResult(result);
   }
 });

@@ -1,3 +1,18 @@
+import { sourceVariantId } from "../fixtures/directus";
+import { routeId, routeSelections, questionIds, answerIds } from "../fixtures/routes";
+import {
+  episodeRecord,
+  videoRecord,
+  showId,
+  seasonId,
+  episodeId,
+  videoId,
+  hostId
+} from "../fixtures/podcasts-and-videos";
+import { deskId, deskRecord, areaRecord } from "../fixtures/regional-education-desks";
+import { institutionId, programId, locationId } from "../fixtures/institutions-and-programs";
+import { testimonialId } from "../fixtures/article-evidence-and-testimonials";
+import { faqId, sectorId } from "../fixtures/faqs-and-sectors";
 import { createAlgoliaFixture } from "../fixtures/algolia";
 import { parse } from "yaml";
 import { articleId, topicId, longBody, createDirectusFixture } from "../fixtures/directus";
@@ -48,7 +63,7 @@ describe("application", async () => {
   afterAll(() => algolia.close());
   afterAll(() => directus.close());
   await setup({
-    rootDir: fileURLToPath(new URL("../../", import.meta.url)),
+    rootDir: fileURLToPath(new URL("../..", import.meta.url)),
     dev: false,
     build: true,
     server: true,
@@ -65,8 +80,94 @@ describe("application", async () => {
     },
     nuxtConfig: {
       devtools: { enabled: false },
-      nitro: { preset: "node-server" }
+      nitro: {
+        preset: "node-server",
+        handlers: [
+          {
+            route: "/__test__/chat-mcp",
+            method: "get",
+            handler: fileURLToPath(new URL("../fixtures/chat-mcp.get.ts", import.meta.url))
+          }
+        ]
+      }
     }
+  });
+
+  it("server-renders the dashboard loading state without private chat data or the old site shell", async () => {
+    const response = await fetch("/");
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain("Je gesprekken worden geladen");
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain("Schrijf je in voor onze");
+    expect(html).not.toContain("main-header");
+    expect(html).not.toContain('"conversations":');
+  });
+
+  it("connects the chat MCP adapter to the actual local server, including tools, workflows and resources", async () => {
+    const response = await fetch("/__test__/chat-mcp");
+    expect(response.status).toBe(200);
+    const result = await response.json();
+    expect(result.toolNames).toEqual(
+      expect.arrayContaining([
+        "get_route_questions",
+        "find_routes",
+        "get_route",
+        "search_articles",
+        "get_article",
+        "mcp_get_prompt",
+        "mcp_read_resource"
+      ])
+    );
+    expect(result.instructions).toContain("Use Onderwijsloket");
+    expect(result.questions).not.toMatchObject({ isError: true });
+    expect(result.prompt.messages[0].content.text).toContain("get_route_questions");
+    expect(result.resource.contents[0].text).toContain("Can I teach?");
+  });
+
+  it("publishes discovery catalogs matching the MCP definitions", async () => {
+    const cardResponse = await fetch("/.well-known/mcp/server-card.json");
+    const toolsResponse = await fetch("/api/tools");
+    expect(cardResponse.status).toBe(200);
+    expect(toolsResponse.status).toBe(200);
+    expect(cardResponse.headers.get("content-type")).toContain("application/json");
+    expect(toolsResponse.headers.get("content-type")).toContain("application/json");
+
+    const card = await cardResponse.json();
+    const catalog = await toolsResponse.json();
+    const initialization = await rpc("initialize", {
+      protocolVersion: "2025-11-25",
+      capabilities: {},
+      clientInfo: { name: "discovery-test", version: "1.0.0" }
+    });
+    expect(card.name).toBe(initialization.result.serverInfo.name);
+    for (const [key, method] of [
+      ["tools", "tools/list"],
+      ["resources", "resources/templates/list"],
+      ["prompts", "prompts/list"]
+    ] as const) {
+      const response = await rpc(method);
+      const definitions = response.result[key === "resources" ? "resourceTemplates" : key];
+      expect(card[key]).toEqual(
+        definitions.map(
+          (definition: { name: string; description?: string; uriTemplate?: string }) => ({
+            name: definition.name,
+            description: definition.description,
+            ...(key === "resources" ? { uri: definition.uriTemplate } : {})
+          })
+        )
+      );
+    }
+    const tools = Object.values(catalog).flat() as { name: string; group?: string }[];
+    expect(tools.map((tool) => tool.name).sort()).toEqual(
+      card.tools.map((tool: { name: string }) => tool.name).sort()
+    );
+    for (const [group, entries] of Object.entries(catalog)) {
+      for (const tool of entries as { group?: string }[]) {
+        expect(tool.group ?? "default").toBe(group);
+      }
+    }
+    expect(JSON.stringify(catalog)).not.toContain('"inputSchema"');
   });
 
   it("serves the application HTML", async () => {
@@ -77,7 +178,7 @@ describe("application", async () => {
     expect(await response.text()).toContain('id="__nuxt"');
   });
 
-  it("exposes the seven collection tools over MCP", async () => {
+  it("exposes collection-specific record tools and shared discovery over MCP", async () => {
     const response = await fetch("/mcp", {
       method: "POST",
       headers: {
@@ -104,22 +205,101 @@ describe("application", async () => {
       expect(tool.description.length).toBeGreaterThan(40);
     }
     const listTool = result.result.tools.find(
-      (tool: { name: string }) => tool.name === "list_records"
+      (tool: { name: string }) => tool.name === "list_articles"
     );
     expect(listTool.inputSchema.properties.filters.properties.topics.description).toContain(
       "get_filters"
     );
     expect(listTool.inputSchema.properties.filters.properties.title.description).toContain("Exact");
     expect(listTool.inputSchema.properties.page.default).toBe(1);
+    for (const name of [
+      "search_programs",
+      "search_educational_institutions",
+      "search_regional_education_desks"
+    ]) {
+      const tool = result.result.tools.find((entry: { name: string }) => entry.name === name);
+      expect(tool.inputSchema.properties.location.type).toBe("string");
+      expect(tool.inputSchema.properties.radius.type).toBe("integer");
+      expect(
+        tool.outputSchema.properties.geo.properties.matched_location.properties
+      ).toHaveProperty("fullAddress");
+      expect(tool.outputSchema.properties.records.items.properties.geo.properties).toHaveProperty(
+        "distance_meters"
+      );
+    }
+    for (const name of ["list_articles", "get_article", "search_articles"]) {
+      const tool = result.result.tools.find((entry: { name: string }) => entry.name === name);
+      expect(tool.inputSchema.properties).not.toHaveProperty("collection");
+      expect(tool._meta).toMatchObject({ "onderwijsloket.com/collection": "articles" });
+    }
     expect(result.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
       "describe_collection",
+      "find_routes",
+      "get_article",
+      "get_educational_institution",
       "get_facets",
+      "get_faq",
       "get_filters",
-      "get_record",
+      "get_podcast_episode",
+      "get_podcast_show",
+      "get_program",
+      "get_regional_education_desk",
+      "get_route",
+      "get_route_questions",
+      "get_sector",
+      "get_testimonial",
+      "get_video",
+      "list_articles",
       "list_collections",
-      "list_records",
-      "search_collection"
+      "list_educational_institutions",
+      "list_faqs",
+      "list_podcast_episodes",
+      "list_podcast_shows",
+      "list_programs",
+      "list_regional_education_desks",
+      "list_sectors",
+      "list_testimonials",
+      "list_videos",
+      "search_articles",
+      "search_educational_institutions",
+      "search_faqs",
+      "search_podcast_episodes",
+      "search_podcast_shows",
+      "search_programs",
+      "search_regional_education_desks",
+      "search_sectors",
+      "search_testimonials",
+      "search_videos"
     ]);
+  });
+
+  it("guides and matches pathways over MCP without exposing route source collections", async () => {
+    const start = await call("get_route_questions", {});
+    expect(start.result.structuredContent.next_question_id).toBe(questionIds[0]);
+    expect(start.result.structuredContent.complete).toBe(false);
+    const invalid = await call("find_routes", { selections: {} });
+    expect(invalid.result.isError).toBe(true);
+    expect(JSON.stringify(invalid)).toContain("INVALID_ROUTE_SELECTIONS");
+    const complete = await call("get_route_questions", { selections: routeSelections });
+    expect(complete.result.structuredContent.complete).toBe(true);
+    const matches = await call("find_routes", { selections: routeSelections });
+    expect(matches.result.structuredContent.records).toHaveLength(3);
+    expect(matches.result.structuredContent.has_more).toBe(true);
+    const detail = await call("get_route", { id: routeId });
+    expect(detail.result.structuredContent.record.steps[0].body).toContain("Step 1 body.");
+    expect(detail.result.structuredContent.record.duration_in_months).toBe(18);
+    const edited = await call("get_route_questions", {
+      selections: { ...routeSelections, [questionIds[0]!]: answerIds[2] }
+    });
+    expect(edited.result.structuredContent.removed_selections).toHaveLength(2);
+    const prompts = await rpc("prompts/list");
+    expect(prompts.result.prompts.map((prompt: { name: string }) => prompt.name)).toContain(
+      "find-education-routes"
+    );
+    const prompt = await rpc("prompts/get", { name: "find-education-routes", arguments: {} });
+    expect(prompt.result.messages[0].content.text).toContain("get_route_questions");
+    const catalogue = await call("list_collections", {});
+    expect(catalogue.result.structuredContent.collections).toHaveLength(10);
   });
 
   it("keeps MCP guidance and schemas independent of infrastructure providers", async () => {
@@ -141,13 +321,34 @@ describe("application", async () => {
     const catalogue = await call("list_collections", {});
     expect(
       catalogue.result.structuredContent.collections.map((item: { name: string }) => item.name)
-    ).toEqual(["articles"]);
+    ).toEqual([
+      "articles",
+      "faqs",
+      "sectors",
+      "testimonials",
+      "educational_institutions",
+      "programs",
+      "regional_education_desks",
+      "podcast_shows",
+      "podcast_episodes",
+      "videos"
+    ]);
     expect(catalogue.result.structuredContent.collections[0].capabilities).toMatchObject({
       list: true,
       get: true,
       filters: true,
       search: true,
       facets: true
+    });
+    expect(catalogue.result.structuredContent.collections[0]).toMatchObject({
+      operations: {
+        list: "list_articles",
+        get: "get_article",
+        filters: "get_filters",
+        search: "search_articles",
+        facets: "get_facets"
+      },
+      resources: [{ uri_template: "onderwijsloket://articles/{id}", mime_type: "text/markdown" }]
     });
     const description = await call("describe_collection", { collection: "articles" });
     expect(description.result.structuredContent.filterable_fields).toEqual([
@@ -167,11 +368,10 @@ describe("application", async () => {
   });
   it("lists filtered pages through MCP and the real Directus HTTP client", async () => {
     const args = {
-      collection: "articles",
       page_size: 1,
       filters: { english: false, topics: [topicId] }
     };
-    const first = (await call("list_records", args)).result;
+    const first = (await call("list_articles", args)).result;
     expect(first.isError).not.toBe(true);
     expect(first.structuredContent).toMatchObject({ page: 1, page_size: 1, has_more: true });
     expect(first.structuredContent.records[0]).toMatchObject({
@@ -180,7 +380,7 @@ describe("application", async () => {
     });
     expect(first.structuredContent.records[0]).not.toHaveProperty("content");
     expect(JSON.parse(first.content[0].text)).toEqual(first.structuredContent);
-    const second = (await call("list_records", { ...args, page: 2 })).result;
+    const second = (await call("list_articles", { ...args, page: 2 })).result;
     expect(second.structuredContent).toMatchObject({
       page: 2,
       has_more: false,
@@ -197,7 +397,7 @@ describe("application", async () => {
   });
 
   it("renders complete article Markdown and embedded relations through MCP", async () => {
-    const result = (await call("get_record", { collection: "articles", id: articleId })).result;
+    const result = (await call("get_article", { id: articleId })).result;
     expect(result.isError).not.toBe(true);
     const record = result.structuredContent.record;
     expect(record.content).toContain("# Alpha\n\nAn introduction");
@@ -224,6 +424,8 @@ describe("application", async () => {
     const result = (await call("get_filters", { collection: "articles" })).result;
     expect(result.isError).not.toBe(true);
     expect(result.structuredContent.filters).toHaveLength(10);
+    expect(result.structuredContent.instructions).toContain("Call list_articles and filters");
+    expect(result.structuredContent.instructions).not.toContain("with collection");
     expect(
       result.structuredContent.filters.find((field: { name: string }) => field.name === "topics")
     ).toMatchObject({ type: "array", values: [{ id: topicId, title: "Career paths" }] });
@@ -234,9 +436,9 @@ describe("application", async () => {
 
   it("rejects invalid MCP arguments before making upstream requests", async () => {
     for (const [name, args] of [
-      ["list_records", { collection: "articles", page_size: 26 }],
-      ["list_records", { collection: "articles", filters: { english: "false" } }],
-      ["get_record", { collection: "articles", id: "invalid" }]
+      ["list_articles", { page_size: 26 }],
+      ["list_articles", { filters: { english: "false" } }],
+      ["get_article", { id: "invalid" }]
     ] as const) {
       const count = directus.requests.length;
       const result = await call(name, args);
@@ -247,22 +449,20 @@ describe("application", async () => {
 
   it("returns safe MCP errors for absent, unavailable and malformed records", async () => {
     const missing = (
-      await call("get_record", {
-        collection: "articles",
+      await call("get_article", {
         id: "00f81660-a2e4-48af-b8d7-98ce338de999"
       })
     ).result;
     expect(missing.isError).toBe(true);
     expect(JSON.stringify(missing)).toContain("NOT_FOUND");
     for (const title of ["upstream-error", "upstream-invalid"]) {
-      const result = (await call("list_records", { collection: "articles", filters: { title } }))
-        .result;
+      const result = (await call("list_articles", { filters: { title } })).result;
       expect(result.isError).toBe(true);
       expect(JSON.stringify(result)).toContain("UPSTREAM_UNAVAILABLE");
       expect(JSON.stringify(result)).not.toContain("fixture upstream secret");
     }
   });
-  it("advertises the article resource template and resources capability", async () => {
+  it("advertises every enabled core resource template and resources capability", async () => {
     const initialized = await rpc("initialize", {
       protocolVersion: "2025-11-25",
       capabilities: {},
@@ -270,13 +470,27 @@ describe("application", async () => {
     });
     expect(initialized.result.capabilities.resources).toBeDefined();
     const templates = await rpc("resources/templates/list");
-    expect(templates.result.resourceTemplates).toEqual([
-      expect.objectContaining({
-        name: "articles",
-        uriTemplate: "onderwijsloket://articles/{id}",
-        mimeType: "text/markdown"
-      })
-    ]);
+    expect(templates.result.resourceTemplates).toHaveLength(10);
+    for (const name of [
+      "articles",
+      "faqs",
+      "sectors",
+      "testimonials",
+      "educational_institutions",
+      "programs",
+      "regional_education_desks",
+      "podcast_shows",
+      "podcast_episodes",
+      "videos"
+    ]) {
+      expect(templates.result.resourceTemplates).toContainEqual(
+        expect.objectContaining({
+          name,
+          uriTemplate: `onderwijsloket://${name}/{id}`,
+          mimeType: "text/markdown"
+        })
+      );
+    }
   });
 
   it("rejects invalid resource requests and returns sanitized protocol errors", async () => {
@@ -307,26 +521,58 @@ describe("application", async () => {
       directus.state.articleResponse = "";
     }
   });
-  it("lists the full resource catalogue through the template, fetching summaries in batches", async () => {
+  it("lists the full resource catalogue through the template, fetching root-only descriptors in batches", async () => {
     directus.state.extraArticles = 24;
+    directus.state.extraPrograms = 1500;
     try {
       const count = directus.requests.length;
       const result = (await rpc("resources/list")).result;
-      expect(result.resources).toHaveLength(27);
-      expect(new Set(result.resources.map((item: { uri: string }) => item.uri)).size).toBe(27);
+      expect(result.resources).toHaveLength(1536);
+      expect(new Set(result.resources.map((item: { uri: string }) => item.uri)).size).toBe(1536);
       expect(result.resources[0]).toMatchObject({
         uri: `onderwijsloket://articles/${articleId}`,
         title: "Alpha",
         mimeType: "text/markdown"
       });
-      const requests = directus.requests.slice(count);
+      expect(result.resources).toContainEqual(
+        expect.objectContaining({ uri: `onderwijsloket://faqs/${faqId}`, title: "Can I teach?" })
+      );
+      expect(result.resources).toContainEqual(
+        expect.objectContaining({
+          uri: `onderwijsloket://sectors/${sectorId}`,
+          title: "Primary education"
+        })
+      );
+      const requests = directus.requests
+        .slice(count)
+        .filter((url) => url.pathname.endsWith("/articles"));
       expect(requests).toHaveLength(2);
-      expect(requests.map((url) => url.searchParams.get("offset"))).toEqual(["0", "25"]);
-      for (const url of requests) expect(url.searchParams.get("fields")).not.toContain("body");
+      expect(requests.map((url) => url.searchParams.get("offset"))).toEqual(["0", "27"]);
+      const catalogueRequests = directus.requests.slice(count);
+      for (const url of catalogueRequests) {
+        expect(url.searchParams.get("fields")).toBe(
+          url.pathname.endsWith("/faqs") ? "id,question,date_updated" : "id,title,date_updated"
+        );
+        expect(url.searchParams.get("limit")).toBe("250");
+        expect(url.searchParams.has("deep")).toBe(false);
+      }
+      const programRequests = catalogueRequests.filter((url) => url.pathname.endsWith("/programs"));
+      expect(programRequests.map((url) => url.searchParams.get("offset"))).toEqual([
+        "0",
+        "250",
+        "500",
+        "750",
+        "1000",
+        "1250",
+        "1500",
+        "1501"
+      ]);
+      const afterListing = directus.requests.length;
       expect((await rpc("resources/list")).result.resources).toEqual(result.resources);
-      expect(directus.requests).toHaveLength(count + 2);
+      expect(directus.requests).toHaveLength(afterListing);
     } finally {
       directus.state.extraArticles = 0;
+      directus.state.extraPrograms = 0;
     }
   });
 
@@ -334,9 +580,9 @@ describe("application", async () => {
     const uri = `onderwijsloket://articles/${articleId}`;
     const readsBefore = directus.requests.length;
     const resource = (await rpc("resources/read", { uri })).result.contents[0];
-    const tool = (await call("get_record", { collection: "articles", id: articleId })).result;
+    const tool = (await call("get_article", { id: articleId })).result;
     expect(resource).toMatchObject({ uri, mimeType: "text/markdown" });
-    // The earlier get_record warmed the same article cache used by resource reads.
+    // The earlier get_article warmed the same article cache used by resource reads.
     expect(directus.requests).toHaveLength(readsBefore);
     const end = resource.text.indexOf("\n---\n", 4);
     expect(parse(resource.text.slice(4, end))).toMatchObject({
@@ -352,7 +598,7 @@ describe("application", async () => {
       uri,
       mimeType: "text/markdown"
     });
-    const list = (await call("list_records", { collection: "articles", page_size: 1 })).result;
+    const list = (await call("list_articles", { page_size: 1 })).result;
     expect(list.content[1]).toMatchObject({ type: "resource_link", uri });
   });
 
@@ -370,8 +616,7 @@ describe("application", async () => {
       "roles.name"
     ]);
     const result = (
-      await call("search_collection", {
-        collection: "articles",
+      await call("search_articles", {
         query: "classroom",
         page_size: 1,
         filters: { english: [false] }
@@ -410,8 +655,7 @@ describe("application", async () => {
     });
     expect(algolia.requests.at(-1)!.params.attributesToRetrieve).not.toContain("bodyString");
     const second = (
-      await call("search_collection", {
-        collection: "articles",
+      await call("search_articles", {
         query: "classroom",
         page_size: 1,
         page: 2,
@@ -432,7 +676,7 @@ describe("application", async () => {
 
   it("supports browsing, facet-filtered counts, AND/OR selection and empty results", async () => {
     const filters = { "topics.name": ["Salaris", "Career paths"], english: [false] };
-    const browse = (await call("search_collection", { collection: "articles", filters })).result;
+    const browse = (await call("search_articles", { filters })).result;
     expect(browse.structuredContent.records).toHaveLength(2);
     expect(
       browse.structuredContent.records.every(
@@ -451,8 +695,7 @@ describe("application", async () => {
         ]
       }
     ]);
-    const empty = (await call("search_collection", { collection: "articles", query: "no-results" }))
-      .result;
+    const empty = (await call("search_articles", { query: "no-results" })).result;
     expect(empty.structuredContent).toMatchObject({
       records: [],
       total: 0,
@@ -463,15 +706,15 @@ describe("application", async () => {
 
   it("validates search boundaries and does not leak provider failures or private config", async () => {
     for (const [name, args] of [
-      ["search_collection", { collection: "articles", page: 0 }],
-      ["search_collection", { collection: "articles", filters: { unknown: ["value"] } }],
+      ["search_articles", { page: 0 }],
+      ["search_articles", { filters: { unknown: ["value"] } }],
       ["get_facets", { collection: "articles", facets: ["unknown"] }]
     ] as const) {
       const failed = await call(name, args);
       expect(failed.result?.isError || failed.error).toBeTruthy();
     }
     for (const query of ["provider-error", "malformed"]) {
-      const failed = (await call("search_collection", { collection: "articles", query })).result;
+      const failed = (await call("search_articles", { query })).result;
       expect(failed.isError).toBe(true);
       expect(JSON.stringify(failed)).toContain("UPSTREAM_UNAVAILABLE");
       expect(JSON.stringify(failed)).not.toContain("fixture Algolia secret");
@@ -479,4 +722,621 @@ describe("application", async () => {
     }
     expect(await (await fetch("/")).text()).not.toContain("fixture-algolia-token");
   });
+  it("retrieves native FAQ content and source-provided related records through HTTP", async () => {
+    const listed = (await call("list_faqs", { filters: { english: false, sectors: [sectorId] } }))
+      .result;
+    expect(listed.isError).not.toBe(true);
+    expect(listed.structuredContent.records).toHaveLength(1);
+    expect(listed.structuredContent.records[0]).toMatchObject({
+      id: faqId,
+      question: "Can I teach?",
+      source_url: null
+    });
+    expect(listed.content).toHaveLength(2);
+    const detail = (await call("get_faq", { id: faqId })).result;
+    expect(detail.isError).not.toBe(true);
+    expect(detail.structuredContent.record).toMatchObject({
+      answer: "**Yes, with the required qualification.**",
+      truncated: false,
+      relations_truncated: []
+    });
+    expect(detail.structuredContent.record).not.toHaveProperty("title");
+    expect(detail.structuredContent.record.articles[0].source_url).toContain(
+      "/kennisbank/artikelen/"
+    );
+    expect(detail.content).toHaveLength(2);
+    const query = directus.requests.findLast(
+      (request) => request.searchParams.get("filter") === JSON.stringify({ id: { _eq: faqId } })
+    )!;
+    expect(query).toBeDefined();
+    expect(JSON.parse(query.searchParams.get("filter")!)).toEqual({ id: { _eq: faqId } });
+    expect(query.search).not.toContain("status");
+    const search = (await call("search_faqs", { query: "teach" })).result;
+    expect(search.isError).not.toBe(true);
+    expect(search.structuredContent.records[0]).toMatchObject({
+      id: faqId,
+      question: "Can I teach?",
+      source_url: null
+    });
+    expect(search.structuredContent.records[0]).not.toHaveProperty("slug");
+    expect(search.structuredContent.records[0].snippet).not.toBeNull();
+    const rules = (await call("get_filters", { collection: "faqs" })).result;
+    expect(
+      rules.structuredContent.filters.find((field: { name: string }) => field.name === "articles")
+    ).toMatchObject({ lookup: { collection: "articles", tool: "list_articles" } });
+    const facets = (await call("get_facets", { collection: "faqs" })).result;
+    expect(facets.isError).not.toBe(true);
+    expect(facets.structuredContent.facets.map((facet: { name: string }) => facet.name)).toContain(
+      "english"
+    );
+  });
+
+  it("reads FAQ and sector resources with native content, references and completeness metadata", async () => {
+    for (const [collection, id, tool] of [
+      ["faqs", faqId, "get_faq"],
+      ["sectors", sectorId, "get_sector"]
+    ]) {
+      const uri = `onderwijsloket://${collection}/${id}`;
+      const detail = (await call(tool!, { id })).result;
+      expect(detail.content).toContainEqual(
+        expect.objectContaining({ type: "resource_link", uri })
+      );
+      for (const operation of ["list", "search"]) {
+        const result = (await call(`${operation}_${collection}`, {})).result;
+        expect(result.content).toContainEqual(
+          expect.objectContaining({ type: "resource_link", uri })
+        );
+      }
+      const response = await rpc("resources/read", { uri });
+      expect(response.error).toBeUndefined();
+      const resource = response.result.contents[0];
+      expect(resource).toMatchObject({ uri, mimeType: "text/markdown" });
+      const end = resource.text.indexOf("\n---\n", 4);
+      const metadata = parse(resource.text.slice(4, end));
+      expect(metadata).toMatchObject({
+        collection,
+        id,
+        content_warnings: [],
+        relations_truncated: []
+      });
+      if (collection === "faqs") {
+        expect(resource.text.endsWith(detail.structuredContent.record.answer)).toBe(true);
+        expect(metadata).toMatchObject({
+          question: "Can I teach?",
+          source_url: null,
+          truncated: false
+        });
+        expect(metadata.articles).toHaveLength(1);
+        expect(metadata).not.toHaveProperty("title");
+      } else {
+        expect(resource.text).toContain("## Introduction\n\nTeach children.");
+        expect(resource.text).toContain("## Salary\n\nSalary guidance.");
+        expect(resource.text).not.toContain("## Routes");
+        expect(metadata.featured_media[0].collection).toBe("videos");
+        expect(metadata.salary_cards).toHaveLength(2);
+      }
+      const count = directus.requests.length;
+      expect(
+        (await rpc("resources/read", { uri: `onderwijsloket://${collection}/invalid` })).error.code
+      ).toBe(-32602);
+      expect(directus.requests).toHaveLength(count);
+      expect(
+        (
+          await rpc("resources/read", {
+            uri: `onderwijsloket://${collection}/00f81660-a2e4-48af-b8d7-98ce338de999`
+          })
+        ).error.message
+      ).toContain("NOT_FOUND");
+      const catalogue = (await call("describe_collection", { collection })).result;
+      expect(catalogue.structuredContent.resources).toEqual([
+        { uri_template: `onderwijsloket://${collection}/{id}`, mime_type: "text/markdown" }
+      ]);
+    }
+  });
+
+  it("reads sector guidance with taxonomy IDs and advertises no sector facets", async () => {
+    const listed = (await call("list_sectors", { filters: { code: "po" } })).result;
+    expect(listed.isError).not.toBe(true);
+    expect(listed.structuredContent.records[0]).toMatchObject({
+      id: sectorId,
+      source_url: "https://onderwijsloket.com/primary"
+    });
+    const detail = (await call("get_sector", { id: sectorId })).result;
+    expect(detail.isError).not.toBe(true);
+    expect(detail.structuredContent.record).toMatchObject({
+      introduction: "Teach children.",
+      routes_content: null,
+      relations_truncated: []
+    });
+    expect(detail.structuredContent.record.featured_media[0].collection).toBe("videos");
+    expect(detail.content).toHaveLength(2);
+    const searched = (await call("search_sectors", { query: "education" })).result;
+    expect(searched.isError).not.toBe(true);
+    expect(searched.structuredContent.records[0]).toMatchObject({
+      id: sectorId,
+      source_url: "https://onderwijsloket.com/primary"
+    });
+    const description = (await call("describe_collection", { collection: "sectors" })).result;
+    expect(description.structuredContent).toMatchObject({
+      capabilities: { facets: false },
+      operations: { facets: null },
+      resources: [{ uri_template: "onderwijsloket://sectors/{id}", mime_type: "text/markdown" }]
+    });
+    const invalid = await call("get_facets", { collection: "sectors" });
+    expect(invalid.result?.isError || invalid.error).toBeTruthy();
+  });
+  it("retrieves testimonial stories, attribution, discovery and resources through HTTP", async () => {
+    for (const operation of ["list", "get", "search"]) {
+      const name = operation === "get" ? "get_testimonial" : `${operation}_testimonials`;
+      const args =
+        operation === "get"
+          ? { id: testimonialId }
+          : operation === "list"
+            ? { filters: { authors: ["author-1"], profiles: ["profile-1"] } }
+            : { query: "teaching", filters: { "authors.name": ["Leraar"] } };
+      const result = (await call(name, args)).result;
+      expect(result.isError).not.toBe(true);
+      const record =
+        operation === "get" ? result.structuredContent.record : result.structuredContent.records[0];
+      expect(record).toMatchObject({
+        id: testimonialId,
+        collection: "testimonials",
+        publication_date: "2999-01-01T00:00:00"
+      });
+      expect(result.content).toContainEqual(
+        expect.objectContaining({
+          type: "resource_link",
+          uri: `onderwijsloket://testimonials/${testimonialId}`
+        })
+      );
+      if (operation === "get") {
+        expect(record.content).toContain("My personal story.");
+        expect(record.content).toContain("[Advice](<https://onderwijsloket.com/advies>)");
+        expect(record.authors[0].name).toBe("Editorial Author");
+        expect(record.profiles[0].first_name).toBe("Featured");
+        expect(record.content_warnings).toEqual([]);
+        expect(record).not.toHaveProperty("english");
+        expect(JSON.stringify(record)).not.toContain("private@example.test");
+      }
+    }
+    const filters = (await call("get_filters", { collection: "testimonials" })).result;
+    expect(
+      filters.structuredContent.filters.find((field: { name: string }) => field.name === "profiles")
+        .lookup
+    ).toEqual({ collection: "testimonials", tool: "list_testimonials", path: "profiles[].id" });
+    const facets = (await call("get_facets", { collection: "testimonials" })).result;
+    expect(facets.structuredContent.facets).toHaveLength(7);
+    const uri = `onderwijsloket://testimonials/${testimonialId}`;
+    const resource = (await rpc("resources/read", { uri })).result.contents[0];
+    expect(resource.text).toContain("My personal story.");
+    const end = resource.text.indexOf("\n---\n", 4);
+    expect(parse(resource.text.slice(4, end))).toMatchObject({
+      id: testimonialId,
+      truncated: false,
+      relations_truncated: [],
+      authors: [expect.objectContaining({ id: "author-1" })]
+    });
+    const article = (await call("get_article", { id: articleId })).result.structuredContent.record;
+    expect(article.sources[0].url).toBe("https://example.test/evidence");
+    expect(article.documents[0].asset.url).toContain("/image/upload/");
+    expect(article.authors[0].id).toBe("author-1");
+    expect(article.relations_truncated).toEqual([]);
+    for (const query of directus.requests) expect(query.search).not.toContain("status");
+    for (const tool of ["get_testimonial", "list_testimonials", "search_testimonials"]) {
+      const args =
+        tool === "get_testimonial"
+          ? { id: "invalid" }
+          : tool === "list_testimonials"
+            ? { filters: { english: true } }
+            : { filters: { "topic.name": ["x"] } };
+      const invalid = await call(tool, args);
+      expect(invalid.result?.isError || invalid.error).toBeTruthy();
+    }
+    expect(
+      (await rpc("resources/read", { uri: "onderwijsloket://testimonials/invalid" })).error.code
+    ).toBe(-32602);
+    expect(
+      (
+        await rpc("resources/read", {
+          uri: "onderwijsloket://testimonials/00f81660-a2e4-48af-b8d7-98ce338de999"
+        })
+      ).error.message
+    ).toContain("NOT_FOUND");
+  });
+  it("exposes Navigator source filters, distinct search contracts and native resource documents", async () => {
+    for (const [collection, id, getTool] of [
+      ["educational_institutions", institutionId, "get_educational_institution"],
+      ["programs", programId, "get_program"]
+    ] as const) {
+      const listed = (
+        await call(`list_${collection}`, {
+          filters:
+            collection === "programs"
+              ? { croho: "00123", educational_institutions: [institutionId], location: locationId }
+              : { code: "0010", type: "hogeschool", locations: [locationId] }
+        })
+      ).result;
+      expect(listed.isError).not.toBe(true);
+      expect(listed.structuredContent.records[0]).toMatchObject({ id, collection });
+      const detail = (await call(getTool, { id })).result;
+      expect(detail.isError).not.toBe(true);
+      const record = detail.structuredContent.record;
+      expect(record.relations_truncated).toEqual([]);
+      expect(record.content_warnings).toEqual([]);
+      if (collection === "programs") {
+        expect(record.degrees).toEqual(["Bachelor of Education"]);
+        expect(record.croho).toBe("00123");
+        expect(record.educational_institutions).toHaveLength(2);
+        expect(
+          record.program_forms.map((form: { description: string }) => form.description)
+        ).toEqual(["Part-time pathway.", "Full-time pathway."]);
+        expect(record.program_forms[1].track).toBeNull();
+      } else {
+        expect(record.description).toContain("Institution guidance.");
+        expect(record.main_location.opening_hours.monday_start).toBe("22:00:00");
+        expect(record.locations[0].location_geopoint.coordinates).toEqual([4.9, 52.3]);
+        expect(record.website.map((website: { lang: string }) => website.lang)).toEqual([
+          "Nederlands",
+          "Engels"
+        ]);
+      }
+      expect(JSON.stringify(record)).not.toMatch(
+        /private-source-id|internal@example|private-reverse-program|private-study-number/
+      );
+      const uri = `onderwijsloket://${collection}/${id}`;
+      for (const result of [listed, detail])
+        expect(result.content).toContainEqual(
+          expect.objectContaining({ type: "resource_link", uri })
+        );
+      const searched = (await call(`search_${collection}`, { query: "teaching" })).result;
+      expect(searched.isError).not.toBe(true);
+      expect(searched.structuredContent.records[0]).toMatchObject({ id });
+      expect(searched.structuredContent.records[0]).not.toHaveProperty("description");
+      expect(searched.content).toContainEqual(
+        expect.objectContaining({ type: "resource_link", uri })
+      );
+      const facets = (await call("get_facets", { collection })).result;
+      expect(facets.isError).not.toBe(true);
+      expect(facets.structuredContent.facets).toHaveLength(collection === "programs" ? 9 : 1);
+      const rules = (await call("get_filters", { collection })).result;
+      expect(rules.isError).not.toBe(true);
+      expect(
+        rules.structuredContent.filters.find((field: { name: string }) => field.name === "vendor")
+          .enum
+      ).toEqual(["onderwijsloket", "hovi", "kiesmbo"]);
+      const resource = (await rpc("resources/read", { uri })).result.contents[0];
+      expect(resource.mimeType).toBe("text/markdown");
+      expect(resource.text).toContain(
+        collection === "programs" ? "## Part-time" : "Institution guidance."
+      );
+      const end = resource.text.indexOf("\n---\n", 4);
+      expect(parse(resource.text.slice(4, end))).toMatchObject({
+        id,
+        vendor: collection === "programs" ? "onderwijsloket" : "hovi",
+        relations_truncated: []
+      });
+      expect(
+        (await rpc("resources/read", { uri: `onderwijsloket://${collection}/invalid` })).error.code
+      ).toBe(-32602);
+      expect(
+        (
+          await rpc("resources/read", {
+            uri: `onderwijsloket://${collection}/00f81660-a2e4-48af-b8d7-98ce338de999`
+          })
+        ).error.message
+      ).toContain("NOT_FOUND");
+    }
+    for (const query of directus.requests) expect(query.search).not.toContain("status");
+    const invalid = await call("list_programs", { filters: { degrees: ["b_ed"] } });
+    expect(invalid.result?.isError || invalid.error).toBeTruthy();
+  });
+  it("returns nullable JSON content and a metadata-preserving notice for bodyless resources", async () => {
+    directus.state.missingInstitutionDescription = true;
+    const id = sourceVariantId(institutionId, "missing-content");
+    try {
+      const result = (await call("get_educational_institution", { id })).result;
+      expect(result.isError).not.toBe(true);
+      expect(result.structuredContent.record.description).toBeNull();
+      const resource = (
+        await rpc("resources/read", {
+          uri: `onderwijsloket://educational_institutions/${id}`
+        })
+      ).result.contents[0];
+      expect(resource.text).toContain("> **Notice:** No body content is available.");
+      expect(resource.text).toContain(`id: ${id}`);
+      expect(resource.text).toContain("No content document is available.");
+      expect(resource.text.split("\n---\n")[1]).not.toContain("# ");
+    } finally {
+      directus.state.missingInstitutionDescription = false;
+    }
+  });
+  it("serves regional desks with independent coverage, service documents, contacts and schedules", async () => {
+    const listed = (
+      await call("list_regional_education_desks", {
+        filters: { appointment_for_visit: false, sectors: [sectorId] },
+        page_size: 1
+      })
+    ).result;
+    expect(listed.isError).not.toBe(true);
+    expect(listed.structuredContent.records[0]).toMatchObject({
+      id: deskId,
+      area: areaRecord,
+      appointment_for_visit: false
+    });
+    const uri = `onderwijsloket://regional_education_desks/${deskId}`;
+    expect(listed.content).toContainEqual(expect.objectContaining({ type: "resource_link", uri }));
+    const detail = (await call("get_regional_education_desk", { id: deskId })).result;
+    expect(detail.structuredContent.record.phone_availability.monday_start).toBe("09:00:00");
+    expect(detail.structuredContent.record.location.opening_hours.monday_start).toBe("22:00:00");
+    expect(detail.structuredContent.record.consultation_service_description).toBe(
+      "Book an advice conversation."
+    );
+    const search = (
+      await call("search_regional_education_desks", {
+        query: "region",
+        filters: { has_consultation_service: [true], content_types: ["podcasts"] }
+      })
+    ).result;
+    expect(search.isError).not.toBe(true);
+    expect(search.structuredContent.records[0].id).toBe(deskId);
+    expect(search.structuredContent.records[0]).not.toHaveProperty("area");
+    const facets = (await call("get_facets", { collection: "regional_education_desks" })).result;
+    expect(
+      facets.structuredContent.facets.map((facet: { name: string }) => facet.name).sort()
+    ).toEqual([
+      "content_types",
+      "has_consultation_service",
+      "orientation_activity_types",
+      "sectors.title"
+    ]);
+    const rules = (await call("get_filters", { collection: "regional_education_desks" })).result;
+    expect(
+      rules.structuredContent.filters.find(
+        (field: { name: string }) => field.name === "appointment_for_visit"
+      ).type
+    ).toBe("boolean");
+    const resource = (await rpc("resources/read", { uri })).result.contents[0];
+    expect(resource.text).toContain("## Consultation service");
+    expect(resource.text).toContain("Book an advice conversation.");
+    const end = resource.text.indexOf("\n---\n", 4);
+    expect(parse(resource.text.slice(4, end))).toMatchObject({
+      area: areaRecord,
+      id: deskId,
+      phone_availability: { monday_start: "09:00:00" },
+      relations_truncated: []
+    });
+    expect((await rpc("resources/list")).result.resources).toContainEqual(
+      expect.objectContaining({ uri, title: deskRecord.title })
+    );
+    expect(JSON.stringify(detail)).not.toMatch(/last_sync|reviewed_by|notes/);
+    const invalid = await call("list_regional_education_desks", {
+      filters: { regions: ["Region"] }
+    });
+    expect(invalid.result?.isError || invalid.error).toBeTruthy();
+  });
+  it("preserves nullable desk bodies and unavailable coverage, and sanitizes source failures", async () => {
+    let uri = `onderwijsloket://regional_education_desks/${sourceVariantId(deskId, "missing-content")}`;
+    try {
+      directus.state.deskResponse = "missing-content";
+      expect(
+        (
+          await call("get_regional_education_desk", {
+            id: sourceVariantId(deskId, directus.state.deskResponse)
+          })
+        ).result.structuredContent.record.description
+      ).toBeNull();
+      expect(
+        (await rpc("resources/read", { uri })).result.contents[0].text.match(/\*\*Notice:\*\*/g)
+      ).toHaveLength(2);
+      directus.state.deskResponse = "missing-area";
+      const record = (
+        await call("get_regional_education_desk", {
+          id: sourceVariantId(deskId, directus.state.deskResponse)
+        })
+      ).result.structuredContent.record;
+      expect(record.area).toBeNull();
+      expect(record.location).toBeNull();
+      expect(record.content_warnings.join()).toContain("coverage cannot be determined");
+      for (const mode of ["invalid", "unavailable"]) {
+        directus.state.deskResponse = mode;
+        const result = await call("get_regional_education_desk", {
+          id: sourceVariantId(deskId, directus.state.deskResponse)
+        });
+        expect(result.result.isError).toBe(true);
+        expect(JSON.stringify(result)).not.toContain("fixture upstream secret");
+        uri = `onderwijsloket://regional_education_desks/${sourceVariantId(deskId, mode)}`;
+        const resource = await rpc("resources/read", { uri });
+        expect(resource.error.code).toBe(-32603);
+      }
+      directus.state.deskResponse = "";
+      expect(
+        (
+          await rpc("resources/read", {
+            uri: "onderwijsloket://regional_education_desks/00f81660-a2e4-48af-b8d7-98ce338de999"
+          })
+        ).error.message
+      ).toContain("NOT_FOUND");
+      expect(
+        (await rpc("resources/read", { uri: "onderwijsloket://regional_education_desks/invalid" }))
+          .error.code
+      ).toBe(-32602);
+    } finally {
+      directus.state.deskResponse = "";
+    }
+    for (const request of directus.requests.filter((url) =>
+      url.pathname.endsWith("/regional_education_desks")
+    ))
+      expect(request.search).not.toMatch(/status|last_sync|notes|reviewers/);
+  });
+  it.each([
+    ["podcast_shows", "podcast_show", showId],
+    ["podcast_episodes", "podcast_episode", episodeId],
+    ["videos", "video", videoId]
+  ])(
+    "exposes native %s tools, discovery, transcripts and resources",
+    async (collection, singular, id) => {
+      const filters =
+        collection === "podcast_shows"
+          ? { hosts: [hostId], podcast_status: "ongoing" }
+          : collection === "podcast_episodes"
+            ? { show: showId, season: seasonId, episode_number: 0 }
+            : {};
+      const listed = (await call(`list_${collection}`, { filters, page_size: 1 })).result;
+      expect(listed.isError).not.toBe(true);
+      expect(listed.structuredContent.records[0].id).toBe(id);
+      const uri = `onderwijsloket://${collection}/${id}`;
+      expect(listed.content).toContainEqual(
+        expect.objectContaining({ type: "resource_link", uri })
+      );
+      const detail = (await call(`get_${singular}`, { id })).result;
+      expect(detail.isError).not.toBe(true);
+      const record = detail.structuredContent.record;
+      if (collection === "podcast_shows") {
+        expect(record.hosts[0].id).toBe(hostId);
+        expect(record.seasons[0].show_id).toBe(showId);
+        expect(record).not.toHaveProperty("episodes");
+      } else {
+        expect(record.transcript_string).toBe(
+          collection === "podcast_episodes"
+            ? episodeRecord.transcript_string
+            : videoRecord.transcript_string
+        );
+        expect(record.publication_date).toContain("2999");
+        expect(record.content).toContain("An education conversation.");
+      }
+      const searched = (
+        await call(`search_${collection}`, {
+          query: "Teaching",
+          filters: { "sectors.title": ["Teaching"] }
+        })
+      ).result;
+      expect(searched.isError).not.toBe(true);
+      expect(searched.structuredContent.records[0].id).toBe(id);
+      expect(searched.structuredContent.records[0]).not.toHaveProperty("transcript_string");
+      const facets = (await call("get_facets", { collection })).result;
+      expect(facets.structuredContent.facets).toHaveLength(
+        collection === "podcast_shows" ? 3 : collection === "podcast_episodes" ? 7 : 6
+      );
+      const rules = (await call("get_filters", { collection })).result;
+      expect(rules.isError).not.toBe(true);
+      const resource = (await rpc("resources/read", { uri })).result.contents[0];
+      expect(resource.text).toContain("An education conversation.");
+      const end = resource.text.indexOf("\n---\n", 4);
+      expect(parse(resource.text.slice(4, end))).toMatchObject({
+        collection,
+        id,
+        relations_truncated: []
+      });
+      if (collection !== "podcast_shows") expect(resource.text).toContain("## Transcript");
+      expect(JSON.stringify(detail)).not.toMatch(/private-host|transcript_raw|last_sync/);
+      expect((await rpc("resources/list")).result.resources).toContainEqual(
+        expect.objectContaining({ uri })
+      );
+      expect(
+        (await rpc("resources/read", { uri: `onderwijsloket://${collection}/invalid` })).error.code
+      ).toBe(-32602);
+      expect(
+        (
+          await rpc("resources/read", {
+            uri: `onderwijsloket://${collection}/00f81660-a2e4-48af-b8d7-98ce338de999`
+          })
+        ).error.message
+      ).toContain("NOT_FOUND");
+    }
+  );
+  it("preserves missing media text and sanitizes provider/validation failures through all media entrypoints", async () => {
+    try {
+      directus.state.mediaResponse = "missing-content";
+      for (const [collection, singular, id] of [
+        ["podcast_shows", "podcast_show", showId],
+        ["podcast_episodes", "podcast_episode", episodeId],
+        ["videos", "video", videoId]
+      ] as const) {
+        const result = (
+          await call(`get_${singular}`, { id: sourceVariantId(id, directus.state.mediaResponse) })
+        ).result;
+        expect(
+          result.structuredContent.record[
+            collection === "podcast_shows" ? "description" : "content"
+          ]
+        ).toBeNull();
+        const resource = (
+          await rpc("resources/read", {
+            uri: `onderwijsloket://${collection}/${sourceVariantId(id, directus.state.mediaResponse)}`
+          })
+        ).result.contents[0];
+        expect(resource.text).toContain("No body content is available.");
+        if (collection !== "podcast_shows")
+          expect(resource.text).toContain("No transcript is available.");
+      }
+      for (const mode of ["invalid", "unavailable"]) {
+        directus.state.mediaResponse = mode;
+        for (const [collection, singular, id] of [
+          ["podcast_shows", "podcast_show", showId],
+          ["podcast_episodes", "podcast_episode", episodeId],
+          ["videos", "video", videoId]
+        ] as const) {
+          const result = await call(`get_${singular}`, {
+            id: sourceVariantId(id, directus.state.mediaResponse)
+          });
+          expect(result.result.isError).toBe(true);
+          expect(JSON.stringify(result)).not.toContain("fixture media secret");
+          expect(
+            (
+              await rpc("resources/read", {
+                uri: `onderwijsloket://${collection}/${sourceVariantId(id, directus.state.mediaResponse)}`
+              })
+            ).error.code
+          ).toBe(-32603);
+        }
+      }
+    } finally {
+      directus.state.mediaResponse = "";
+    }
+    for (const request of directus.requests.filter((url) =>
+      ["podcast_shows", "podcast_episodes", "videos"].some((name) =>
+        url.pathname.endsWith("/" + name)
+      )
+    ))
+      expect(request.search).not.toMatch(/transcript_raw|last_sync|editor_nodes|status.*published/);
+  });
+  it("returns archive URLs instead of taxonomy slugs in filters and embedded metadata", async () => {
+    const result = (await call("get_filters", { collection: "articles" })).result.structuredContent;
+    const values = (name: string) =>
+      result.filters.find((field: { name: string }) => field.name === name).values;
+    expect(values("topics")[0]).toMatchObject({
+      source_url: "https://onderwijsloket.com/archive/career-paths"
+    });
+    expect(values("sectors")[0]).toMatchObject({
+      source_url: "https://onderwijsloket.com/career-paths"
+    });
+    for (const name of ["audiences", "phases"]) expect(values(name)[0].source_url).toBeNull();
+    for (const field of result.filters)
+      if (field.values) for (const value of field.values) expect(value).not.toHaveProperty("slug");
+    const record = (await call("get_article", { id: articleId })).result.structuredContent.record;
+    expect(record.topics[0].source_url).toBe("https://onderwijsloket.com/archive/career-paths");
+    expect(record.topics[0]).not.toHaveProperty("slug");
+    expect(record.slug).toBe("alpha");
+  });
+  it.each([
+    ["articles", "article", articleId],
+    ["faqs", "faq", faqId],
+    ["sectors", "sector", sectorId],
+    ["testimonials", "testimonial", testimonialId],
+    ["educational_institutions", "educational_institution", institutionId],
+    ["programs", "program", programId],
+    ["regional_education_desks", "regional_education_desk", deskId],
+    ["podcast_shows", "podcast_show", showId],
+    ["podcast_episodes", "podcast_episode", episodeId],
+    ["videos", "video", videoId]
+  ])(
+    "reuses %s detail cache between tool calls and resource reads",
+    async (collection, singular, id) => {
+      await call(`get_${singular}`, { id });
+      const count = directus.requests.length;
+      await call(`get_${singular}`, { id });
+      await rpc("resources/read", { uri: `onderwijsloket://${collection}/${id}` });
+      expect(directus.requests).toHaveLength(count);
+    }
+  );
 });

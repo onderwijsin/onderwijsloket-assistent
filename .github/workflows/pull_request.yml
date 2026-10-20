@@ -26,5 +26,4 @@ jobs:
       typecheck-command: pnpm typecheck
       lint-command: pnpm lint
     secrets:
-      GH_PACKAGES_TOKEN: ${{ secrets.GH_PACKAGES_TOKEN }}
       PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}

@@ -1,10 +1,10 @@
 # Content documents
 
-The utilities in `server/utils/content/` implement a collection-independent pipeline for Directus content documents. Articles currently use it for `body`; other collections can use the same pipeline for `description`, `answer` or another document field.
+The utilities in `server/utils/content/` implement a collection-independent pipeline for Directus content documents. Collections use it for native `body`, `description`, `answer` and separately described program/service documents. Only collections with an actual editor-node junction request that relation.
 
 ## Fetch, inject, render
 
-1. Include the document field and `{ editor_nodes: editorNodeFields }` in the Directus field selection. `editorNodeFields` lives in `content/editor-node-fields.ts` and uses scoped M2A projections for the actual Onderwijsloket node types.
+1. Select the native document field. For a collection with an editor-node junction, also select `{ editor_nodes: editorNodeFields }`. `editorNodeFields` lives in `content/editor-node-fields.ts` and uses scoped M2A projections for the actual Onderwijsloket node types.
 2. Pass the document and expanded editor-node rows to `renderContentDocument(document, editorNodes, { assetBaseUrl })`.
 3. The pipeline validates document structure, clones nodes, matches relations by junction ID and collection, and injects payloads into `attrs.data`. Nested callout documents use their own editor-node rows as well as the surrounding scope.
 4. Tiptap's `MarkdownManager`, StarterKit and custom node/mark extensions serialize the hydrated document. No DOM or editor instance is required.

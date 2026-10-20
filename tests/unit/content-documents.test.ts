@@ -55,7 +55,7 @@ describe("content documents", () => {
       ensureHeadingOne: true,
       metadata: { title: "Replacement", description: "Do not insert" }
     });
-    expect(result.markdown.trim()).toBe("# Existing\n\nBody");
+    expect(result.markdown?.trim()).toBe("# Existing\n\nBody");
   });
 
   it("prepends before an H2 or later H1, but cannot invent a missing title", () => {
@@ -82,7 +82,7 @@ describe("content documents", () => {
       metadata: { title: "Title" }
     });
     expect(result.markdown).toHaveLength(20008);
-    expect(result.markdown.startsWith("# Title\n\n")).toBe(true);
+    expect(result.markdown?.startsWith("# Title\n\n")).toBe(true);
     expect(result.truncated).toBe(false);
     expect(
       renderContentDocument(null, [], {
@@ -90,7 +90,24 @@ describe("content documents", () => {
         ensureHeadingOne: true,
         metadata: { title: "Title" }
       })
-    ).toMatchObject({ markdown: "# Title", warnings: ["No content document is available."] });
+    ).toMatchObject({ markdown: null, warnings: ["No content document is available."] });
+  });
+
+  it.each([
+    null,
+    undefined,
+    [],
+    { type: "doc", content: [] },
+    { type: "doc", content: [{ type: "paragraph" }] }
+  ])("does not fabricate a body from metadata for empty source content (%j)", (document) => {
+    const result = renderContentDocument(document, [], {
+      ...options,
+      ensureHeadingOne: true,
+      metadata: { title: "Title", description: "Description", summary: "Summary" }
+    });
+    expect(result.markdown).toBeNull();
+    expect(result.warnings).toContain("No content document is available.");
+    expect(result.truncated).toBe(false);
   });
 
   it("hydrates all seven Onderwijsloket relation types, including nested callout mentions", () => {
@@ -169,7 +186,7 @@ describe("content documents", () => {
     expect(result.markdown).toContain("[Audio: Podcast](<https://assets.example.test/audio-id>)");
     expect(result.markdown).toContain("1:05 Introduction");
     expect(result.markdown).toContain("audio-id#t=65");
-    expect(result.markdown.indexOf("First")).toBeLessThan(result.markdown.indexOf("Second"));
+    expect(result.markdown?.indexOf("First")).toBeLessThan(result.markdown!.indexOf("Second"));
     expect(result.markdown).toContain("[Primair](<https://onderwijsloket.com/primair-onderwijs>)");
     expect(result.markdown).toContain("A source");
     expect({ document, nodes }).toEqual(before);
@@ -305,7 +322,7 @@ describe("content documents", () => {
       options
     );
     expect(result.markdown).toContain("[Local mention](<https://onderwijsloket.com/local>)");
-    expect(result.markdown.match(/Custom mention/g)).toHaveLength(2);
+    expect(result.markdown?.match(/Custom mention/g)).toHaveLength(2);
     expect(result.warnings).toEqual([]);
   });
 
@@ -459,7 +476,7 @@ describe("content documents", () => {
       renderContentDocument(doc(paragraph(text("a".repeat(25000)))), [], options)
     ).toMatchObject({ truncated: false, markdown: "a".repeat(25000) });
     expect(renderContentDocument(null, [], options)).toMatchObject({
-      markdown: "",
+      markdown: null,
       truncated: false
     });
   });

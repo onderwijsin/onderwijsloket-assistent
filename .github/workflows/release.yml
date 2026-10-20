@@ -45,6 +45,8 @@ jobs:
   release:
     needs: preflight
     if: ${{ inputs.create_release }}
+    outputs:
+      commit_sha: ${{ steps.release-commit.outputs.commit_sha }}
     runs-on: ubuntu-latest
     steps:
       - name: Generate GitHub App token
@@ -60,10 +62,9 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - name: Setup node, pnpm, GitHub packages authentication and install dependencies
+      - name: Setup Node.js, pnpm and install dependencies
         uses: ./.github/actions/setup
         with:
-          gh-packages-token: ${{ secrets.GH_PACKAGES_TOKEN }}
           proton-pass-personal-access-token: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
 
       - name: Run semantic-release
@@ -71,15 +72,22 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: corepack pnpm exec semantic-release
 
+      - name: Capture release commit
+        id: release-commit
+        shell: bash
+        run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
   deploy:
     needs:
       - preflight
       - release
-    if: ${{ always() && inputs.create_deploy && (needs.release.result == 'success' ||
+    if:
+      ${{ always() && inputs.create_deploy && needs.preflight.result == 'success' && (needs.release.result == 'success' ||
       needs.release.result == 'skipped') }}
     uses: ./.github/workflows/deploy_coolify.yml
     with:
       environment: production
+      commit_sha: ${{ needs.release.outputs.commit_sha }}
     secrets:
       PROTON_PASS_PERSONAL_ACCESS_TOKEN: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
       PROTON_VAULT: ${{ secrets.PROTON_VAULT }}

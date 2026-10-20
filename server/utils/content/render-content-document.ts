@@ -18,7 +18,7 @@ export interface ContentDocumentOptions extends ContentMarkdownOptions {
  * @param document - Source document to hydrate or render.
  * @param editorNodes - Fetched editor-node junctions used to resolve embedded relations.
  * @param options - Asset URL and optional heading/record metadata settings.
- * @returns Rendered Markdown, combined hydration/rendering warnings and the truncation flag.
+ * @returns Nullable Markdown (before generated headings), combined hydration/rendering warnings and the truncation flag.
  */
 export function renderContentDocument(
   document: unknown,
@@ -35,13 +35,15 @@ export function renderContentDocument(
   const hydrated = injectContentData(source, editorNodes);
   const rendered = contentToMarkdown(hydrated.document, options);
   const warnings = [...hydrated.warnings, ...rendered.warnings];
-  if (document == null) {
+  if (!rendered.markdown.trim()) {
     warnings.push("No content document is available.");
   }
   // Apply once to the top-level result; nested editor blocks keep their own headings.
-  const markdown = options.ensureHeadingOne
-    ? ensureHeadingOne(rendered.markdown, options.metadata ?? {})
-    : rendered.markdown;
+  const markdown = !rendered.markdown.trim()
+    ? null
+    : options.ensureHeadingOne
+      ? ensureHeadingOne(rendered.markdown, options.metadata ?? {})
+      : rendered.markdown;
   return {
     markdown,
     warnings: [...new Set(warnings)],

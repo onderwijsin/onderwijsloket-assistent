@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { defineMcpCollection } from "../../server/utils/define-mcp-collection";
+import { defineMcpCollection } from "../../server/utils/collections/definition";
 
 const id = "00f81660-a2e4-48af-b8d7-98ce338de447";
 
@@ -13,6 +13,8 @@ function createCollection() {
   const collection = defineMcpCollection({
     name: "articles",
     description: "Example collection",
+    id: z.uuid(),
+    operations: { list: "list_articles", get: "get_article" },
     summary,
     detail: summary.extend({ content: z.string().min(1) }),
     filterSchema: z.strictObject({ slug: z.string().optional() }),
@@ -77,3 +79,5 @@ describe("defineMcpCollection", () => {
     expect(collection.metadata.capabilities).toMatchObject({ search: false, facets: false });
   });
 });
+
+vi.mock("nitropack/runtime", () => ({ defineCachedFunction: (fn: unknown) => fn }));

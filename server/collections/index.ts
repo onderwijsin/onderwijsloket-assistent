@@ -1,0 +1,25 @@
+import shows from "./podcast-shows";
+import episodes from "./podcast-episodes";
+import videos from "./videos";
+import desks from "./regional-education-desks";
+import institutions from "./educational-institutions";
+import programs from "./programs";
+import articles from "./articles";
+import faqs from "./faqs";
+import testimonials from "./testimonials";
+import sectors from "./sectors";
+import { createCollectionRegistry } from "../utils/collections/registry";
+
+/** Explicit production allowlist. Upstream collections and test fixtures are never auto-exposed. */
+export const collections = createCollectionRegistry([
+  articles,
+  faqs,
+  sectors,
+  testimonials,
+  institutions,
+  programs,
+  desks,
+  shows,
+  episodes,
+  videos
+]);

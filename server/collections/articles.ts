@@ -1,13 +1,25 @@
+import { collectionRelationBounds, collectionRelationSchema } from "../utils/collections/relations";
+import { readCollectionRecords } from "../utils/collections/read-records";
+import {
+  authorSchema,
+  sourceSchema as evidenceSchema,
+  documentSchema,
+  authorSourceSchema,
+  evidenceSourceSchema,
+  documentSourceSchema,
+  authorFields,
+  sourceFields,
+  documentFields
+} from "../utils/projections/supporting";
 import { defineCollectionSearch } from "../utils/search/collection-search";
 import { readItems } from "@directus/sdk";
 import type { Query } from "@directus/sdk";
 import type { Article, Schema } from "#directus";
-import { useDirectusServer } from "@onderwijsin/nuxt-directus-client/runtime/server";
 import { createError } from "h3";
 import { z } from "zod";
 import { nullableOutput } from "../utils/mcp-schema";
-import type { McpListOptions } from "../utils/define-mcp-collection";
-import { defineMcpCollection } from "../utils/define-mcp-collection";
+import type { McpListOptions } from "../utils/collections/definition";
+import { defineMcpCollection } from "../utils/collections/definition";
 import { createTaxonomyRelationSchema } from "../utils/taxonomy/create-taxonomy-relation-schema";
 import { taxonomySchema } from "../utils/taxonomy/taxonomy";
 import {
@@ -18,7 +30,7 @@ import {
 } from "../utils/taxonomy/collection-filters";
 import { useSourceUrl } from "../utils/use-source-url";
 import { cacheDurations } from "../../config/cache";
-import { defineCachedFunction, useRuntimeConfig } from "nitropack/runtime";
+import { useRuntimeConfig } from "nitropack/runtime";
 import { editorNodeFields } from "../utils/content/editor-node-fields";
 import { renderContentDocument } from "../utils/content/render-content-document";
 
@@ -31,21 +43,25 @@ const taxonomyNames = [
   "topics",
   "tracks"
 ] as const;
-const articleFilters = defineCollectionFilters("articles", {
-  title: exactTextFilter("Exact article title; not a keyword or full-text search."),
-  slug: exactTextFilter("Exact article slug, without a URL or path."),
-  english: booleanFilter(
-    "Match the language flag exactly: true for English, false for non-English. Omit for either."
-  ),
-  ...taxonomyFilters(taxonomyNames)
-});
+const articleFilters = defineCollectionFilters(
+  "articles",
+  {
+    title: exactTextFilter("Exact article title; not a keyword or full-text search."),
+    slug: exactTextFilter("Exact article slug, without a URL or path."),
+    english: booleanFilter(
+      "Match the language flag exactly: true for English, false for non-English. Omit for either."
+    ),
+    ...taxonomyFilters(taxonomyNames)
+  },
+  { listTool: "list_articles", collectionArgument: false }
+);
 
 const articleSchema = z.object({
-  id: z.uuid().describe("Article identifier; pass to get_record for full content."),
+  id: z.uuid().describe("Article identifier; pass to get_article for full content."),
   title: z.string().describe("Article title."),
   slug: z.string().describe("Article URL slug."),
   description: z.string().describe("Short article description."),
-  summary: z.string().describe("Article summary; full content is available through get_record."),
+  summary: z.string().describe("Article summary; full content is available through get_article."),
   date_updated: nullableOutput(z.string()).describe(
     "Source update timestamp, or null when unavailable."
   ),
@@ -83,6 +99,13 @@ const sourceSchema = articleSchema.extend({
   tracks: createTaxonomyRelationSchema("tracks")
 });
 
+const detailSourceSchema = sourceSchema.extend({
+  sources: collectionRelationSchema("sources_id", evidenceSourceSchema),
+  documents: collectionRelationSchema("documents_id", documentSourceSchema),
+  authors: collectionRelationSchema("authors_id", authorSourceSchema)
+});
+const supportingNames = ["sources", "documents", "authors"] as const;
+
 const sorts = ["title", "-title", "date_updated", "-date_updated"] as const;
 
 /**
@@ -118,13 +141,22 @@ function buildArticleQuery(
       "date_updated",
       "english",
       { sectors: [{ sectors_id: ["id", "title", "slug", "description"] }] },
-      { qualifications: [{ qualifications_id: ["id", "name", "slug", "description"] }] },
-      { roles: [{ roles_id: ["id", "name", "slug", "description"] }] },
-      { topics: [{ topics_id: ["id", "name", "slug", "description"] }] },
-      { tracks: [{ tracks_id: ["id", "name", "slug", "description"] }] },
+      { qualifications: [{ qualifications_id: ["id", "name", "path", "description"] }] },
+      { roles: [{ roles_id: ["id", "name", "path", "description"] }] },
+      { topics: [{ topics_id: ["id", "name", "path", "description"] }] },
+      { tracks: [{ tracks_id: ["id", "name", "path", "description"] }] },
       // List responses need metadata only; fetch documents and embedded blocks for detail reads.
-      ...(id ? ["body" as const, { editor_nodes: editorNodeFields }] : [])
+      ...(id
+        ? [
+            "body" as const,
+            { editor_nodes: editorNodeFields },
+            { sources: [{ sources_id: sourceFields }] },
+            { documents: [{ documents_id: documentFields }] },
+            { authors: [{ authors_id: authorFields }] }
+          ]
+        : [])
     ],
+    ...(id ? { deep: collectionRelationBounds(supportingNames) } : {}),
     filter,
     // The ID breaks ties so equal titles/dates do not shuffle between pages.
     sort: [args.sort, "id"],
@@ -132,24 +164,6 @@ function buildArticleQuery(
     limit: id ? 1 : args.page_size + 1,
     offset: id ? 0 : (args.page - 1) * args.page_size
   } satisfies Query<Schema, Article>;
-}
-
-/**
- * Fetch the article projection and validate the upstream response.
- *
- * @param query - Field projection, filters and pagination sent to the content API.
- * @returns Validated article source records; rejects unavailable or malformed responses.
- */
-async function readArticles(query: ReturnType<typeof buildArticleQuery>) {
-  try {
-    return z.array(sourceSchema).parse(await useDirectusServer(readItems("articles", query)));
-  } catch {
-    // Treat transport failures and invalid upstream data as the same public error contract.
-    throw createError({
-      statusCode: 502,
-      message: "UPSTREAM_UNAVAILABLE: Article data could not be retrieved or validated."
-    });
-  }
 }
 
 /**
@@ -169,11 +183,33 @@ function summarize(record: z.infer<typeof sourceSchema>) {
 /** Complete articles definition consumed by the MCP tools. */
 export default defineMcpCollection({
   name: "articles",
+  cache: cacheDurations.collections.articles,
+  id: z
+    .uuid()
+    .describe("Record ID returned by list_articles or search_articles; not a taxonomy ID or slug."),
+  operations: { list: "list_articles", get: "get_article", search: "search_articles" },
+  resources: [{ uri_template: "onderwijsloket://articles/{id}", mime_type: "text/markdown" }],
   description:
     "The articles collection contains long-form informational content about working in education. Articles explain topics such as qualifications, career paths, legislation, and practical considerations for entering the education sector. They combine detailed explanations with summaries and taxonomy metadata, helping advisers and prospective education professionals understand their options and next steps.",
   summary: summarySchema,
   detail: summarySchema.extend({
-    content: z.string().describe("Article body as Markdown, including resolved editor blocks."),
+    sources: z
+      .array(evidenceSchema)
+      .describe("Bounded factual citations with original external publication URLs."),
+    documents: z
+      .array(documentSchema)
+      .describe("Bounded download references; no document text is inferred."),
+    authors: z
+      .array(authorSchema)
+      .describe("Editorial attribution, distinct from featured people."),
+    relations_truncated: z
+      .array(z.string())
+      .describe(
+        "Supporting relation names limited to the first 100 records; independent of document truncated."
+      ),
+    content: nullableOutput(z.string()).describe(
+      "Article body as Markdown, including resolved editor blocks."
+    ),
     content_warnings: z
       .array(z.string())
       .describe(
@@ -213,7 +249,11 @@ export default defineMcpCollection({
    * @returns Record summaries and whether another page is available.
    */
   async list(options) {
-    const records = await readArticles(buildArticleQuery(options));
+    const records = await readCollectionRecords(
+      "articles",
+      readItems("articles", buildArticleQuery(options)),
+      sourceSchema
+    );
     return {
       records: records.slice(0, options.page_size).map(summarize),
       has_more: records.length > options.page_size
@@ -226,42 +266,38 @@ export default defineMcpCollection({
    * @param id - Record identifier.
    * @returns The article with normalized metadata and rendered Markdown, shared through the detail cache.
    */
-  get: defineCachedFunction(
-    async (id: string) => {
-      const [record] = await readArticles(
-        buildArticleQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)
-      );
-      if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Article not found." });
-      const rendered = renderContentDocument(record.body, record.editor_nodes, {
-        assetBaseUrl: useRuntimeConfig().public.directus.assetBaseUrl,
-        ensureHeadingOne: true,
-        metadata: record
-      });
-      return {
-        ...summarize(record),
-        content: rendered.markdown,
-        content_warnings: rendered.warnings,
-        truncated: rendered.truncated
-      };
-    },
-    {
-      name: "articles-get",
-      maxAge: cacheDurations.article,
-      swr: false /**
-       * Isolate cached data by its configured identifier.
-       *
-       * @param id - Record identifier.
-       * @returns The stable identifier used to isolate the cache entry.
-       */,
-      /**
-       * Isolate cached data by its configured identifier.
-       *
-       * @param id - Record identifier.
-       * @returns The stable identifier used to isolate the cache entry.
-       */
-      getKey: (id: string) => id
-    }
-  ),
+  get: async (id: string) => {
+    const [record] = await readCollectionRecords(
+      "articles",
+      readItems("articles", buildArticleQuery({ page: 1, page_size: 1, sort: sorts[0] }, id)),
+      detailSourceSchema
+    );
+    if (!record) throw createError({ statusCode: 404, message: "NOT_FOUND: Article not found." });
+    const rendered = renderContentDocument(record.body, record.editor_nodes, {
+      assetBaseUrl: useRuntimeConfig().public.directus.assetBaseUrl,
+      ensureHeadingOne: true,
+      metadata: record
+    });
+    return {
+      ...summarize(record),
+      content: rendered.markdown,
+      sources: record.sources.records,
+      documents: record.documents.records,
+      authors: record.authors.records,
+      relations_truncated: supportingNames.filter((name) => record[name].truncated),
+      content_warnings: [
+        ...rendered.warnings,
+        ...supportingNames.flatMap((name) => record[name].warnings),
+        ...(record.sources.records.some((source) => source.url === null)
+          ? ["Unavailable or invalid source URL."]
+          : []),
+        ...(record.documents.records.some((document) => document.asset?.url == null)
+          ? ["Unavailable document asset."]
+          : [])
+      ],
+      truncated: rendered.truncated
+    };
+  },
 
   /**
    * Fetch dynamic filter choices, preserving the collection's upstream error contract.

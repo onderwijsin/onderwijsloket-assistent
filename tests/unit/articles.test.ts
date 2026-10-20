@@ -1,3 +1,9 @@
+import {
+  author,
+  evidence,
+  document,
+  supportingRelations
+} from "../fixtures/article-evidence-and-testimonials";
 import { z } from "zod";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import articles from "../../server/collections/articles";
@@ -17,6 +23,9 @@ vi.mock("@onderwijsin/nuxt-directus-client/runtime/server", () => ({ useDirectus
 const article = {
   id: "00f81660-a2e4-48af-b8d7-98ce338de447",
   status: "published",
+  sources: [],
+  documents: [],
+  authors: [],
   title: "Title",
   slug: "title",
   path: "/kennisbank/artikelen/title",
@@ -170,6 +179,7 @@ describe("article boundaries", () => {
             id: article.id,
             name: "Zij-instroom",
             slug: "zij-instroom",
+            path: "/onderwerpen/zij-instroom",
             description: "Topic description"
           }
         }
@@ -181,10 +191,13 @@ describe("article boundaries", () => {
     expect(list.records[0]!.sectors[0]).toEqual({
       id: article.id,
       title: "Primair onderwijs",
-      slug: "po",
+      source_url: "https://onderwijsloket.com/po",
       description: "Sector description"
     });
     expect(detail.record.topics).toEqual(list.records[0]!.topics);
+    expect(detail.record.topics[0]?.source_url).toBe(
+      "https://onderwijsloket.com/onderwerpen/zij-instroom"
+    );
     const metadata = articles.resourceMetadata?.(detail.record);
     expect(metadata).toMatchObject({
       collection: "articles",
@@ -290,4 +303,105 @@ describe("article boundaries", () => {
     expect(result.truncated).toBe(false);
     expect(result.markdown).not.toContain("private");
   });
+});
+
+const articleWithEvidence = {
+  id: "00f81660-a2e4-48af-b8d7-98ce338de447",
+  title: "Guidance",
+  slug: "guidance",
+  description: "Factual guidance",
+  summary: "Summary",
+  path: "/kennisbank/artikelen/guidance",
+  body: {
+    type: "doc",
+    content: [{ type: "paragraph", content: [{ type: "text", text: "Article body" }] }]
+  },
+  editor_nodes: [],
+  ...supportingRelations
+};
+
+describe("article evidence and attribution", () => {
+  it("expands source URLs, document assets and authors only in detail, preserving existing content", async () => {
+    read.mockResolvedValue([articleWithEvidence]);
+    const listed = await articles.list();
+    expect(listed.records[0]).not.toHaveProperty("sources");
+    expect(JSON.stringify(read.mock.calls[0]![0]().params.fields)).not.toMatch(
+      /authors|documents|sources/
+    );
+    const { record } = await articles.get(articleWithEvidence.id);
+    expect(record.sources).toEqual([
+      { id: evidence.id, title: evidence.title, description: null, url: evidence.url }
+    ]);
+    expect(record.documents[0]?.asset).toEqual({
+      id: "file-1",
+      url: "https://res.cloudinary.com/onderwijsin/image/upload/onderwijsloket-directus/production/file-1"
+    });
+    expect(record.authors[0]).toMatchObject({
+      id: author.id,
+      first_name: "Editorial",
+      job_title: "Editor"
+    });
+    expect(record.content).toContain("Article body");
+    expect(record.relations_truncated).toEqual([]);
+    expect(record.truncated).toBe(false);
+    expect(record.content_warnings).toEqual([]);
+    expect(JSON.stringify(record)).not.toMatch(/team_member|private@example|storage|status/);
+    const query = read.mock.calls[1]![0]().params;
+    for (const name of ["sources", "documents", "authors"])
+      expect(query.deep[name]).toEqual({ _limit: 101, _sort: ["id"] });
+    expect(JSON.stringify(query)).not.toMatch(/status|user_created|team_member/);
+    expect(articles.resourceMetadata?.(record)).toMatchObject({
+      sources: record.sources,
+      documents: record.documents,
+      authors: record.authors,
+      relations_truncated: []
+    });
+  });
+  it("reports missing targets, unavailable downloads and unsafe evidence URLs without hiding them", async () => {
+    read.mockResolvedValue([
+      {
+        ...articleWithEvidence,
+        sources: [
+          { sources_id: { ...evidence, url: "javascript:alert(1)" } },
+          { sources_id: null }
+        ],
+        documents: [{ documents_id: { ...document, asset: null } }]
+      }
+    ]);
+    const { record } = await articles.get(articleWithEvidence.id);
+    expect(record.sources[0]?.url).toBeNull();
+    expect(record.documents[0]?.asset).toBeNull();
+    expect(record.content_warnings.join()).toMatch(/Unavailable related record/);
+    expect(record.content_warnings).toContain("Unavailable or invalid source URL.");
+    expect(record.content_warnings).toContain("Unavailable document asset.");
+  });
+  it("bounds each supporting relation independently of document traversal truncation", async () => {
+    read.mockResolvedValue([
+      {
+        ...articleWithEvidence,
+        sources: Array.from({ length: 101 }, () => ({ sources_id: evidence }))
+      }
+    ]);
+    const { record } = await articles.get(articleWithEvidence.id);
+    expect(record.sources).toHaveLength(100);
+    expect(record.relations_truncated).toEqual(["sources"]);
+    expect(record.truncated).toBe(false);
+  });
+  it("rejects missing projections and unexpanded supporting junctions with sanitized errors", async () => {
+    for (const row of [
+      { ...articleWithEvidence, sources: undefined },
+      { ...articleWithEvidence, documents: [document.id] },
+      { ...articleWithEvidence, authors: [{ authors_id: author.id }] }
+    ]) {
+      read.mockResolvedValueOnce([row]);
+      await expect(articles.get(articleWithEvidence.id)).rejects.toThrow("UPSTREAM_UNAVAILABLE");
+    }
+  });
+});
+
+it("preserves missing article bodies as null despite available title and summary metadata", async () => {
+  read.mockResolvedValue([{ ...articleWithEvidence, body: null }]);
+  const { record } = await articles.get(articleWithEvidence.id);
+  expect(record.content).toBeNull();
+  expect(record.content_warnings).toContain("No content document is available.");
 });

@@ -10,8 +10,8 @@ export default defineConfig({
       {
         test: {
           name: "unit",
-          // Allow cache tests to replace Nitro virtual runtime dependencies.
-          server: { deps: { inline: ["nitropack"] } },
+          // Allow cache and limiter tests to replace Nitro virtual runtime dependencies.
+          server: { deps: { inline: ["nitropack", "@onderwijsin/nuxt-simple-rate-limiter"] } },
           environment: "node",
           include: ["tests/unit/**/*.test.ts"]
         }
