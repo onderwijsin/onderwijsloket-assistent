@@ -232,3 +232,8 @@ Regenerate and retry are disabled whenever truncating that response would discar
 The AI accuracy disclaimer appears only in the welcome view, before the first message. It is hidden in transcript view.
 
 After submitting by Enter, button or suggested prompt, focus moves to the active composer, including the welcome-to-transcript transition. While a response is in progress the textarea is read-only instead of disabled, preserving focus; submission guards still prevent overlapping requests.
+
+OpenAI chat tool inputs omit the unsupported JSON Schema `propertyNames` keyword at the
+provider boundary. Original MCP schemas and local input validators remain unchanged,
+including UUID key constraints and defaults. Mistral schemas are unchanged. Other AI SDK
+compatibility warnings remain enabled.

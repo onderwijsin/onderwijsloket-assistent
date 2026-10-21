@@ -3,6 +3,31 @@ import { FeedbackError } from "../feedback/errors";
 import type { FeedbackReport, FeedbackStorage } from "../feedback/schemas";
 import type { NotionClient, NotionPageInput, NotionProperty } from "./client";
 import { NotionWriteError } from "./errors";
+import { compressFeedbackSnapshot } from "../feedback/snapshot";
+
+/** Package text into bounded Notion blocks without dropping fragments.
+ * @param text - Full JSON snapshot, envelope or readable conversation text.
+ * @param language - Rendering hint distinguishing snapshot JSON from readable text.
+ * @returns Ordered blocks with at most 100 rich-text fragments each.
+ */
+function codeBlocks(
+  text: string,
+  language: "json" | "plain text" = "json"
+): NotionPageInput["children"] {
+  const fragments = notionText(text);
+  const children: NotionPageInput["children"] = [];
+  for (let offset = 0; offset < fragments.length; offset += 100) {
+    children.push({
+      object: "block",
+      type: "code",
+      code: {
+        language,
+        rich_text: fragments.slice(offset, offset + 100)
+      }
+    });
+  }
+  return children;
+}
 
 /** Split text below Notion limits without splitting UTF-16 surrogate pairs.
  * @param value - Text to preserve, including non-BMP characters.
@@ -72,13 +97,10 @@ export function feedbackPage(report: FeedbackReport, dataSourceId: string): Noti
       }
     };
   // Attachments require multiple calls. Keep the complete snapshot inline instead.
-  const json = JSON.stringify(report);
   return {
     parent: { type: "data_source_id", data_source_id: dataSourceId },
     properties,
-    children: [
-      { object: "block", type: "code", code: { language: "json", rich_text: notionText(json) } }
-    ]
+    children: codeBlocks(JSON.stringify(report))
   };
 }
 
@@ -98,8 +120,41 @@ export function createNotionFeedbackStorage(
      */
     async create(report) {
       if (!z.uuid().safeParse(dataSourceId).success) throw new FeedbackError("NOT_CONFIGURED");
+      const page = feedbackPage(report, dataSourceId);
+      // Check the actual wire payload, including JSON escaping and duplicated
+      // property values, against Notion's 500 KB request limit.
+      let size = new TextEncoder().encode(JSON.stringify(page)).byteLength;
+      if (size > 500_000) {
+        try {
+          const compressed = await compressFeedbackSnapshot(report);
+          const transcript = report.input
+            .conversation!.messages.map((message) => {
+              const text = message.parts
+                .filter((part) => part.type === "text" && typeof part.text === "string")
+                .map((part) => part.text)
+                .join("\n\n");
+              return `${message.role}:\n${text}`;
+            })
+            .join("\n\n");
+          page.children = [
+            ...codeBlocks(
+              `Readable conversation (text only). Full structured snapshot is gzip+base64 in the JSON blocks below.\n\n${transcript}`,
+              "plain text"
+            ),
+            ...codeBlocks(JSON.stringify(compressed))
+          ];
+        } catch {
+          throw new FeedbackError("SNAPSHOT_ENCODING_FAILED");
+        }
+        size = new TextEncoder().encode(JSON.stringify(page)).byteLength;
+      }
+      if (size > 500_000)
+        throw new FeedbackError("REPORT_TOO_LARGE", {
+          size_bytes: size,
+          limit_bytes: 500_000
+        });
       try {
-        return await client.createPage(feedbackPage(report, dataSourceId));
+        return await client.createPage(page);
       } catch (error) {
         const code = error instanceof NotionWriteError ? error.code : "UNCERTAIN";
         throw new FeedbackError(

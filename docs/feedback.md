@@ -58,7 +58,7 @@ Required fields are `title` (1–120 characters), `category`
 (`incorrect_information`, `bug`, `other`), `message` (1–8,000 characters) and
 `user_consent: true`. Consent must follow review of the exact report and included
 context. Explain that the full current conversation and all information shared in
-it are sent to the Onderwijsloket team, together with available app/client name,
+it are sent to the team of [Stichting Onderwijs in](https://onderwijsin.nl), together with available app/client name,
 version and technical metadata. Other conversations are not sent and remain
 private. Do not name the storage provider unless asked.
 The boolean records the caller's assertion; the server cannot independently
@@ -82,7 +82,11 @@ inputs, outputs and states are preserved. Unknown conversation-level fields,
 including unsent `draft`, `titleSource`, `titleRequested` and UI state, are
 discarded. Only the selected approved conversation belongs in the payload.
 The web chat forwards its validated request history and settings through request-local
-Nitro context; these override any agent-supplied conversation or settings. This
+Nitro context; these override any agent-supplied conversation or settings. Nitro 2
+local dispatch promotes entries under `context._platform` into the inner H3 event;
+the bridge uses that envelope for allowlisted request metadata while preserving
+existing platform context. Passing plain `context` entries loses the snapshot.
+A real HTTP regression test covers this handoff. This
 captures every message and structured part received through the latest user turn,
 including consent, without asking the model to recreate them. The response being
 generated and its new tool calls are not yet part of that snapshot. Other chats
@@ -91,12 +95,21 @@ External MCP clients must supply full current history; missing history is reject
 The server cannot independently establish completeness of external-client history.
 System prompts and hidden provider reasoning are not part of the web chat snapshot.
 
-The normalized input and attribution together must fit within **80,000 UTF-8
-bytes**. Conversations have at most 100 messages with 100 parts each. Reports
+The actual encoded Notion request must fit within **500,000 UTF-8 bytes**,
+including properties, code blocks and JSON escaping. A short visible conversation
+can contain much larger structured tool inputs/results; these remain intact. Conversations have at most 100 messages with 100 parts each. Reports
 over the limit fail before persistence; nothing is silently truncated. There is
 no automatic secret or personal-data redaction: information already shared in the
 current conversation is included. Never select excerpts or silently shorten history
 to fit the limit; oversized reports fail without storage.
+
+If the normal JSON request exceeds the limit, the storage adapter losslessly gzips
+the entire snapshot and Base64-encodes it. It then rechecks the final request,
+including a separate readable conversation-text transcript and the existing report
+summary/metadata properties. Tool inputs/results remain complete in the compressed
+snapshot. If this fallback still exceeds 500 KB, submission fails without sending
+anything or truncating content. Compression is local preparation, not a second
+write or an automatic retry.
 
 The MCP adapter collects the observed HTTP User-Agent, SDK initialization client
 name/version when available, package version and deployment environment. Client
@@ -117,14 +130,36 @@ available metadata into existing database properties. Notion manages `Created`,
 `Last edited` and its `FB` report number. `Reported at` and `Consent recorded at`
 are the server receipt time; the latter records receipt of the consent assertion,
 not the precise moment the user clicked or spoke consent. `Consent version` is
-the workflow contract identifier `feedback-v2`.
+the workflow contract identifier `feedback-v3`.
 
-A JSON code block in the report body holds the complete versioned snapshot,
+JSON code blocks in the report body hold the complete versioned snapshot,
 including history and diagnostics. Rich-text fragments stay below Notion's
-2,000-character limit and preserve Unicode. This keeps report creation to one
+2,000-character limit and preserve Unicode, with at most 100 fragments per block.
+Concatenate fragments across code blocks in order to reconstruct the snapshot. This keeps report creation to one
 request. The existing `Conversation history` and `Diagnostics` file properties
 remain empty: producing native JSON attachments would require additional upload
 requests. The inline snapshot is the source of truth for this implementation.
+
+The compression fallback stores an envelope with `format: onderwijsloket-feedback`,
+`version: 1`, `encoding: gzip+base64`, `originalBytes` (the uncompressed UTF-8 JSON
+length) and `data`. A separate plain-text code block contains the visible transcript;
+the complete structured history is retained inside the envelope. Both compression
+and decompression use native Web Compression Streams, supported by
+[Node](https://nodejs.org/api/webstreams.html#class-compressionstream) and
+[Workers](https://developers.cloudflare.com/workers/runtime-apis/web-standards/#compression-streams),
+without a new dependency. The decoder validates the envelope, gzip integrity,
+UTF-8, byte count and snapshot format.
+
+To inspect a report, concatenate the fragments of its **JSON** code blocks in order
+into `snapshot.json`, excluding any readable plain-text blocks, then run with Node 24:
+
+```sh
+node scripts/decode-feedback.mjs snapshot.json > report.json
+```
+
+The command accepts both existing uncompressed snapshots and compressed envelopes.
+It performs no network requests or environment-secret loading. The runtime utility
+is `server/utils/feedback/snapshot.ts`; it is not exposed as a public endpoint.
 
 Success returns only `{ report_id, received_at }`. `report_id` is the storage's
 opaque identifier (currently the Notion page UUID), not the Notion-generated
@@ -133,7 +168,19 @@ opaque identifier (currently the Notion page UUID), not the Notion-generated
 ## Failures and verification
 
 Errors return `isError: true` and a text JSON object with a safe `code` and
-`message`. Input validation fails before persistence. Missing configuration is
+`message`. Agents must display the exact error code alongside the localized
+explanation. Validation details contain field paths or byte counts, never submitted
+values or raw provider errors:
+
+- `MISSING_CONVERSATION`: no current history was attached.
+- `INVALID_CHAT_CONTEXT`: the attached web chat snapshot failed schema validation.
+- `INVALID_METADATA`: app/client attribution failed validation.
+- `INVALID_INPUT`: report fields or serialization are invalid.
+- `REPORT_TOO_LARGE`: the encoded storage request exceeds 500,000 UTF-8 bytes; details include
+  `size_bytes` and `limit_bytes`. Do not truncate history to bypass the limit.
+- `SNAPSHOT_ENCODING_FAILED`: local compression failed; no request was sent.
+
+These failures happen before persistence. Missing configuration is
 `NOT_CONFIGURED`. Known rejection responses (400/401/403/404/413/429) become
 `SUBMISSION_REJECTED`. Network failures, 5xx responses, unexpected errors and
 malformed success receipts become `SUBMISSION_UNCERTAIN`: the report may already
@@ -152,7 +199,9 @@ is outside its query-data allowlist.
 
 Unit tests mock the ofetch boundary to verify mapping, receipt validation,
 consent, payload limits, absent metadata, sanitized failures and no automatic
-retries. MCP protocol tests verify the production handler's schema and safe
+retries. A test-only HTTP route exercises web chat history attachment through the
+real local MCP dispatcher, including history above the former 80 KB cap. Storage tests cover multi-block JSON
+and verify that encoding overhead is counted before sending a request. MCP protocol tests verify the production handler's schema and safe
 results over an in-memory SDK connection. Live Notion permissions and deployed
 Cloudflare behavior require separate verification; no real report is created by
 the test suite.

@@ -15,7 +15,11 @@ export type NotionProperty =
 export interface NotionPageInput {
   parent: { type: "data_source_id"; data_source_id: string };
   properties: Record<string, NotionProperty>;
-  children: { object: "block"; type: "code"; code: { language: "json"; rich_text: RichText[] } }[];
+  children: {
+    object: "block";
+    type: "code";
+    code: { language: "json" | "plain text"; rich_text: RichText[] };
+  }[];
 }
 
 /** Fixed-origin, single-operation Notion client; no SDK, arbitrary URLs or caller headers.

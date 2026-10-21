@@ -93,6 +93,11 @@ describe("application", async () => {
         plugins: [fileURLToPath(new URL("../fixtures/scheduling-plugin.ts", import.meta.url))],
         handlers: [
           {
+            route: "/__test__/chat-feedback",
+            method: "post",
+            handler: fileURLToPath(new URL("../fixtures/chat-feedback.post.ts", import.meta.url))
+          },
+          {
             route: "/__test__/chat-mcp",
             method: "get",
             handler: fileURLToPath(new URL("../fixtures/chat-mcp.get.ts", import.meta.url))
@@ -432,6 +437,8 @@ describe("application", async () => {
       "Je andere gesprekken worden niet meegestuurd",
       "de app die je gebruikt, de versie en technische metadata",
       "Do not name Notion",
+      "[Stichting Onderwijs in](https://onderwijsin.nl)",
+      "always display its exact error code",
       "Interpret replies to your feedback questions as report content",
       "ask which I mean before switching workflows",
       "Do not call scheduling, booking or other original-task tools",
@@ -446,6 +453,46 @@ describe("application", async () => {
     expect(
       (await rpc("prompts/get", { name: "report-feedback", arguments: { issue: " " } })).error
     ).toBeTruthy();
+  });
+
+  it("attaches full web chat history through real local MCP dispatch, including history above the former 80 KB limit", async () => {
+    const feedback = {
+      title: "Fixture",
+      category: "bug",
+      message: "Synthetic report",
+      user_consent: true
+    };
+    for (const [text, expected] of [
+      ["Earlier conversation", "NOT_CONFIGURED"],
+      ["a".repeat(30000), "NOT_CONFIGURED"]
+    ]) {
+      const response = await fetch("/__test__/chat-feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          feedback,
+          chat: {
+            messages: [
+              ...[0, 1, 2].map((i) => ({
+                id: `a${i}`,
+                role: "assistant",
+                parts: [{ type: "text", text }]
+              })),
+              {
+                id: "consent",
+                role: "user",
+                parts: [{ type: "text", text: "Send the report with this full conversation" }]
+              }
+            ]
+          }
+        })
+      });
+      expect(response.status).toBe(200);
+      const result = await response.json();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(expected);
+      expect(result.content[0].text).not.toContain("MISSING_CONVERSATION");
+    }
   });
 
   it("discovers and retrieves the scheduling workflow without calling SavvyCal", async () => {

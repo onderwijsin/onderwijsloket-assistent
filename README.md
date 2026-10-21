@@ -97,7 +97,7 @@ When personal consultation is explicitly requested or a complex question remains
 ## Feedback
 
 `submit_feedback` sends reports about incorrect information, bugs or other issues to
-the Onderwijsloket team. The `report-feedback` prompt guides issue collection,
+the team of [Stichting Onderwijs in](https://onderwijsin.nl). The `report-feedback` prompt guides issue collection,
 review and explicit consent before submission. The chat dashboard's bug-icon action
 starts this workflow for a selected answer; clicking it does not submit a report.
 

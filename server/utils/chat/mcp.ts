@@ -35,7 +35,21 @@ export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
       type: "http",
       url: "http://mcp.internal/mcp",
       // Always dispatch the fixed local route; never use a client-supplied host or endpoint.
-      fetch: (_url, init) => localFetch("/mcp", { ...init, context: event.context })
+      // Nitro 2 localFetch places context on req.__unenv__ and promotes only
+      // _platform entries to the inner H3 event.context. Forward the allowlisted
+      // request metadata there; plain context entries do not reach MCP handlers.
+      fetch: (_url, init) =>
+        localFetch("/mcp", {
+          ...init,
+          context: {
+            _platform: {
+              ...event.context._platform,
+              clientAddress: event.context.clientAddress,
+              schedulingClientName: event.context.schedulingClientName,
+              feedbackChatSnapshot: event.context.feedbackChatSnapshot
+            }
+          }
+        })
     }
   });
   let closed = false;

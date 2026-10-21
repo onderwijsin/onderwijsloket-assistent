@@ -69,6 +69,24 @@ async function withClient(action: (client: Client) => Promise<void>) {
 }
 
 describe("feedback MCP contract", () => {
+  it("identifies invalid attached history separately from missing history without leaking values", async () => {
+    state.context.feedbackChatSnapshot = {
+      conversation: {
+        messages: [
+          { role: "private-invalid-role", parts: [{ type: "text", text: "private transcript" }] }
+        ]
+      }
+    };
+    await withClient(async (client) => {
+      const result = await client.callTool({ name: "submit_feedback", arguments: args });
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result)).toContain("INVALID_CHAT_CONTEXT");
+      expect(JSON.stringify(result)).toContain("conversation.messages.0.role");
+      expect(JSON.stringify(result)).not.toContain("private-invalid-role");
+      expect(JSON.stringify(result)).not.toContain("private transcript");
+      expect(createPage).not.toHaveBeenCalled();
+    });
+  });
   it("attaches the complete request-local web chat instead of agent-supplied excerpts", async () => {
     const conversation = {
       messages: [
@@ -114,7 +132,7 @@ describe("feedback MCP contract", () => {
       expect(report.input.conversation).toEqual(conversation);
       expect(report.input.settings).toEqual(settings);
       expect(report.context.source).toBe("Web chat");
-      expect(report.consentVersion).toBe("feedback-v2");
+      expect(report.consentVersion).toBe("feedback-v3");
     });
   });
 
@@ -134,7 +152,7 @@ describe("feedback MCP contract", () => {
       const { conversation: _conversation, ...withoutHistory } = args;
       const result = await client.callTool({ name: "submit_feedback", arguments: withoutHistory });
       expect(result.isError).toBe(true);
-      expect(JSON.stringify(result)).toContain("INVALID_INPUT");
+      expect(JSON.stringify(result)).toContain("MISSING_CONVERSATION");
       expect(createPage).not.toHaveBeenCalled();
     });
   });

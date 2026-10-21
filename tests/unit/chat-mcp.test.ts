@@ -18,8 +18,8 @@ beforeEach(() => {
   calls.length = 0;
   localFetch.mockReset().mockImplementation(async (path, init) => {
     expect(path).toBe("/mcp");
-    expect(init.context).toBe(event.context);
-    expect(init.context.schedulingClientName).toBe("onderwijsloket-chat");
+    expect(init.context._platform.clientAddress).toBe(event.context.clientAddress);
+    expect(init.context._platform.schedulingClientName).toBe("onderwijsloket-chat");
     const rpc = JSON.parse(init.body);
     calls.push(rpc.method);
     if (rpc.id == null) return new Response(null, { status: 202 });
@@ -152,7 +152,9 @@ it("forwards only the current request history and settings, without retaining th
       }
     });
     for (const call of localFetch.mock.calls)
-      expect(call[1].context.feedbackChatSnapshot).toBe(event.context.feedbackChatSnapshot);
+      expect(call[1].context._platform.feedbackChatSnapshot).toBe(
+        event.context.feedbackChatSnapshot
+      );
   } finally {
     await session.close();
   }

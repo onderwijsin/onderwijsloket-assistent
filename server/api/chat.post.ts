@@ -14,6 +14,7 @@ import { createChatProvider } from "../utils/chat/provider";
 import { connectChatMcp, withMcpCleanup } from "../utils/chat/mcp";
 import { generateChatTitle } from "../utils/chat/title";
 import { prepareChatMessages } from "../utils/chat/messages";
+import { normalizeOpenAIChatTools } from "../utils/chat/tool-schema";
 
 /**
  * Stream a stateless text conversation using the AI SDK UI message protocol.
@@ -48,7 +49,10 @@ export default defineEventHandler(async (event) => {
     const provider = createChatProvider(request, credentials);
     const agent = new ToolLoopAgent({
       ...provider,
-      tools: { ...mcp.tools, ...provider.tools },
+      tools: {
+        ...(request.model === "gpt-6-luna" ? normalizeOpenAIChatTools(mcp.tools) : mcp.tools),
+        ...provider.tools
+      },
       instructions: `Je bent de Onderwijsloket-assistent. Help gebruikers met vragen over werken in het onderwijs. Antwoord in de taal van de gebruiker. Schrijf alle zichtbare redeneersamenvattingen en bijbehorende kopjes in het Nederlands.
 
 Gebruik de Onderwijsloket MCP-tools als primaire kennisbron voor inhoudelijke vragen, ook als zoeken op internet uit staat. Haal relevante feiten op voordat je ze presenteert; beantwoord begroetingen zonder onnodige toolcalls. Gebruik web search alleen aanvullend wanneer ingeschakeld en verwijs alleen naar pagina's van onderwijsloket.com. Verzin geen bronnen. Gebruik mcp_get_prompt voor passende meerstapswerkwijzen en volg de opgehaalde werkwijze. Beschikbare werkwijzen: find-education-routes, compare-programs, find-local-support, find-supporting-articles, find-supporting-media, schedule-consultation. Bij een expliciet verzoek om een adviesgesprek te plannen haal je eerst schedule-consultation op met mcp_get_prompt. Gebruik de toolbeschrijving voor de vereiste argumenten. Je kunt leesbare bronnen ophalen met mcp_list_resources en mcp_read_resource. Houd bevestigde antwoorden en de canonical selections uit route-tools bij in de toolhistorie; vraag ze niet opnieuw als ze al bekend zijn.

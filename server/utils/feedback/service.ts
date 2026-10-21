@@ -15,15 +15,18 @@ export function createFeedbackService(storage: FeedbackStorage) {
     async submit(input: unknown, context: unknown) {
       const parsed = feedbackInput.safeParse(input);
       const attribution = feedbackContext.safeParse(context);
-      if (!parsed.success || !attribution.success || !parsed.data.conversation) {
-        throw new FeedbackError("INVALID_INPUT");
-      }
+      if (!parsed.success)
+        throw new FeedbackError("INVALID_INPUT", {
+          fields: parsed.error.issues.slice(0, 10).map((issue) => issue.path.join("."))
+        });
+      if (!attribution.success)
+        throw new FeedbackError("INVALID_METADATA", {
+          fields: attribution.error.issues.slice(0, 10).map((issue) => issue.path.join("."))
+        });
+      if (!parsed.data.conversation) throw new FeedbackError("MISSING_CONVERSATION");
       let serialized: string;
       try {
         serialized = JSON.stringify({ input: parsed.data, context: attribution.data });
-        if (new TextEncoder().encode(serialized).byteLength > 80_000) {
-          throw new FeedbackError("INVALID_INPUT");
-        }
       } catch {
         throw new FeedbackError("INVALID_INPUT");
       }
@@ -36,7 +39,7 @@ export function createFeedbackService(storage: FeedbackStorage) {
       try {
         id = await storage.create({
           schemaVersion: 1,
-          consentVersion: "feedback-v2",
+          consentVersion: "feedback-v3",
           receivedAt,
           ...snapshot
         });

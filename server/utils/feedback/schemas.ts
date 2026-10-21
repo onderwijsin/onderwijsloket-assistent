@@ -42,7 +42,7 @@ export const feedbackInput = z.object({
   user_consent: z
     .literal(true)
     .describe(
-      "Set only after explicit user permission to share this report and all included context with Onderwijsloket."
+      "Set only after explicit user permission to share this report and all included context with Stichting Onderwijs in (https://onderwijsin.nl)."
     ),
   occurred_at: timestamp.optional(),
   message_id: shortText.optional(),
@@ -93,7 +93,7 @@ export type FeedbackContext = z.infer<typeof feedbackContext>;
 /** Validated, detached report passed to any storage implementation. */
 export interface FeedbackReport {
   schemaVersion: 1;
-  consentVersion: "feedback-v2";
+  consentVersion: "feedback-v3";
   receivedAt: string;
   input: FeedbackInput;
   context: FeedbackContext;

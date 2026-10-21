@@ -7,6 +7,8 @@ import {
 } from "../../server/utils/notion/feedback-storage";
 import type { NotionPageInput } from "../../server/utils/notion/client";
 import type { FeedbackReport } from "../../server/utils/feedback/schemas";
+import { decodeFeedbackSnapshot } from "../../server/utils/feedback/snapshot";
+import { randomBytes } from "node:crypto";
 
 const { request, create } = vi.hoisted(() => ({
   request:
@@ -43,11 +45,20 @@ function fixture(token = "fixture-token") {
 }
 
 describe("feedback submission", () => {
+  it("identifies metadata validation fields without including their values", async () => {
+    const create = vi.fn();
+    const error = await createFeedbackService({ create })
+      .submit(input, { ...context, environment: "private-value" })
+      .catch((failure: unknown) => failure);
+    expect(error).toMatchObject({ code: "INVALID_METADATA", details: { fields: ["environment"] } });
+    expect(JSON.stringify(error)).not.toContain("private-value");
+    expect(create).not.toHaveBeenCalled();
+  });
   it("rejects reports without a conversation before writing", async () => {
     const create = vi.fn();
     await expect(
       createFeedbackService({ create }).submit({ ...input, conversation: undefined }, context)
-    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    ).rejects.toMatchObject({ code: "MISSING_CONVERSATION" });
     expect(create).not.toHaveBeenCalled();
   });
   it.each([false, undefined, "true"])(
@@ -87,25 +98,145 @@ describe("feedback submission", () => {
     expect(JSON.stringify(report)).not.toContain("unsent secret");
     expect(report).toMatchObject({
       schemaVersion: 1,
-      consentVersion: "feedback-v2",
+      consentVersion: "feedback-v3",
       receivedAt: receipt.received_at
     });
   });
 
-  it("rejects oversized multibyte history instead of silently truncating it", async () => {
-    const create = vi.fn();
-    await expect(
-      createFeedbackService({ create }).submit(
-        {
-          ...input,
-          conversation: {
-            messages: [{ role: "assistant", parts: [{ type: "text", text: "😀".repeat(22000) }] }]
+  it.each([98_360, 250_000])(
+    "preserves tool-heavy reports of %s bytes across bounded code blocks",
+    async (length) => {
+      const output = { result: "x".repeat(length) };
+      const conversation = {
+        messages: [
+          { role: "user", parts: [{ type: "text", text: "Please help me book a conversation." }] },
+          {
+            role: "assistant",
+            parts: [
+              { type: "dynamic-tool", toolName: "get_scheduling_link", output },
+              { type: "text", text: "Which day works?" }
+            ]
           }
-        },
-        context
-      )
-    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
-    expect(create).not.toHaveBeenCalled();
+        ]
+      };
+      await expect(fixture().submit({ ...input, conversation }, context)).resolves.toMatchObject({
+        report_id: pageId
+      });
+      expect(request).toHaveBeenCalledOnce();
+      const page = request.mock.calls[0]![1].body;
+      expect(new TextEncoder().encode(JSON.stringify(page)).byteLength).toBeLessThan(500_000);
+      for (const block of page.children) {
+        expect(block.code.rich_text.length).toBeLessThanOrEqual(100);
+        for (const part of block.code.rich_text)
+          expect(part.text.content.length).toBeLessThanOrEqual(2000);
+      }
+      if (length === 250_000) expect(page.children.length).toBeGreaterThan(1);
+      const snapshot = JSON.parse(
+        page.children
+          .flatMap((block) => block.code.rich_text)
+          .map((part) => part.text.content)
+          .join("")
+      );
+      expect(snapshot.input.conversation).toEqual(conversation);
+    }
+  );
+
+  it("compresses only when JSON escaping pushes a request over the limit, keeping readable text", async () => {
+    const report = {
+      ...input,
+      conversation: {
+        messages: [{ role: "assistant", parts: [{ type: "text", text: '"'.repeat(150_000) }] }]
+      }
+    };
+    expect(new TextEncoder().encode(JSON.stringify(report)).byteLength).toBeLessThan(500_000);
+    await expect(fixture().submit(report, context)).resolves.toMatchObject({ report_id: pageId });
+    expect(request).toHaveBeenCalledOnce();
+    const page = request.mock.calls[0]![1].body;
+    expect(new TextEncoder().encode(JSON.stringify(page)).byteLength).toBeLessThan(500_000);
+    const readable = page.children
+      .filter((block) => block.code.language === "plain text")
+      .flatMap((block) => block.code.rich_text)
+      .map((part) => part.text.content)
+      .join("");
+    expect(readable).toContain('"'.repeat(150_000));
+    const envelope = JSON.parse(
+      page.children
+        .filter((block) => block.code.language === "json")
+        .flatMap((block) => block.code.rich_text)
+        .map((part) => part.text.content)
+        .join("")
+    );
+    expect(envelope).toMatchObject({ version: 1, encoding: "gzip+base64" });
+    expect((await decodeFeedbackSnapshot(envelope)).input.conversation).toEqual(
+      report.conversation
+    );
+  });
+
+  it("compresses oversized tool results while retaining the visible conversation separately", async () => {
+    const conversation = {
+      messages: [
+        {
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "get_scheduling_link",
+              output: { data: "Full tool payload".repeat(50_000) }
+            },
+            { type: "text", text: "Which day works for you?" }
+          ]
+        }
+      ]
+    };
+    await fixture().submit({ ...input, conversation }, context);
+    expect(request).toHaveBeenCalledOnce();
+    const page = request.mock.calls[0]![1].body;
+    expect(page.properties["User message"]).toEqual({
+      rich_text: [{ type: "text", text: { content: input.message } }]
+    });
+    const readable = page.children
+      .filter((block) => block.code.language === "plain text")
+      .flatMap((block) => block.code.rich_text)
+      .map((part) => part.text.content)
+      .join("");
+    expect(readable).toContain("Which day works for you?");
+    expect(readable).not.toContain("Full tool payload");
+    const envelope = JSON.parse(
+      page.children
+        .filter((block) => block.code.language === "json")
+        .flatMap((block) => block.code.rich_text)
+        .map((part) => part.text.content)
+        .join("")
+    );
+    expect((await decodeFeedbackSnapshot(envelope)).input.conversation).toEqual(conversation);
+  });
+
+  it("rejects requests that remain oversized after compression without sending or truncating", async () => {
+    const report = {
+      ...input,
+      conversation: {
+        messages: [
+          {
+            role: "assistant",
+            parts: [
+              { type: "dynamic-tool", output: randomBytes(500_000).toString("base64") },
+              { type: "text", text: "A short visible answer" }
+            ]
+          }
+        ]
+      }
+    };
+    const error = await fixture()
+      .submit(report, context)
+      .catch((failure: unknown) => failure);
+    expect(error).toMatchObject({
+      code: "REPORT_TOO_LARGE",
+      details: { limit_bytes: 500_000, size_bytes: expect.any(Number) }
+    });
+    expect((error as { details: { size_bytes: number } }).details.size_bytes).toBeGreaterThan(
+      500_000
+    );
+    expect(request).not.toHaveBeenCalled();
   });
 
   it.each([
