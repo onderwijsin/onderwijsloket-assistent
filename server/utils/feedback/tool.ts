@@ -20,7 +20,7 @@ const messages: Record<FeedbackErrorCode, string> = {
   INVALID_INPUT:
     "Report validation failed. No report was sent. Check the reported field paths without discarding conversation messages.",
   MISSING_CONVERSATION:
-    "The full current conversation was not attached. No report was sent. Do not invent or summarize history.",
+    "The authoritative web chat conversation was not attached. No report was sent. Do not replace it with model-reconstructed history.",
   INVALID_CHAT_CONTEXT:
     "The attached web chat snapshot failed validation. No report was sent. This is not a missing-history error; check the reported field paths.",
   INVALID_METADATA:

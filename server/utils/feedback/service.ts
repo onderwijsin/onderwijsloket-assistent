@@ -1,5 +1,11 @@
 import { FeedbackError } from "./errors";
-import { feedbackContext, feedbackInput, feedbackOutput, type FeedbackStorage } from "./schemas";
+import {
+  feedbackContext,
+  feedbackInput,
+  feedbackOutput,
+  feedbackConversationSchema,
+  type FeedbackStorage
+} from "./schemas";
 
 /** Bind submission to a storage port without depending on Nitro, MCP or Notion.
  * @param storage - Persistence implementation; an HTTP transport can reuse the same service.
@@ -13,7 +19,13 @@ export function createFeedbackService(storage: FeedbackStorage) {
      * @returns Minimal receipt after confirmed storage success.
      */
     async submit(input: unknown, context: unknown) {
-      const parsed = feedbackInput.safeParse(input);
+      let parsed: ReturnType<typeof feedbackInput.safeParse>;
+      try {
+        parsed = feedbackInput.safeParse(input);
+      } catch {
+        // Non-JSON in-process values (including cyclic structures) must fail safely too.
+        throw new FeedbackError("INVALID_INPUT");
+      }
       const attribution = feedbackContext.safeParse(context);
       if (!parsed.success)
         throw new FeedbackError("INVALID_INPUT", {
@@ -23,7 +35,12 @@ export function createFeedbackService(storage: FeedbackStorage) {
         throw new FeedbackError("INVALID_METADATA", {
           fields: attribution.error.issues.slice(0, 10).map((issue) => issue.path.join("."))
         });
-      if (!parsed.data.conversation) throw new FeedbackError("MISSING_CONVERSATION");
+      if (attribution.data.source === "Web chat") {
+        if (parsed.data.conversation === undefined) throw new FeedbackError("MISSING_CONVERSATION");
+        const chat = feedbackConversationSchema.safeParse(parsed.data.conversation);
+        if (!chat.success) throw new FeedbackError("INVALID_CHAT_CONTEXT");
+        parsed.data.conversation = chat.data;
+      }
       let serialized: string;
       try {
         serialized = JSON.stringify({ input: parsed.data, context: attribution.data });
@@ -39,7 +56,7 @@ export function createFeedbackService(storage: FeedbackStorage) {
       try {
         id = await storage.create({
           schemaVersion: 1,
-          consentVersion: "feedback-v3",
+          consentVersion: "feedback-v4",
           receivedAt,
           ...snapshot
         });

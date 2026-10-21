@@ -24,6 +24,12 @@ export const feedbackConversationSchema = z.object({
     .max(100)
 });
 
+/** Validate JSON without adopting Zod's parsed object, which can discard special keys. */
+const externalConversationSchema = z.unknown().superRefine((value, context) => {
+  if (!z.json().safeParse(value).success)
+    context.addIssue({ code: "custom", message: "Conversation must be a valid JSON value." });
+});
+
 /** Transport-independent feedback contract; optional context must be user-approved. */
 export const feedbackInput = z.object({
   title: z.string().trim().min(1).max(120).describe("Short summary of the issue."),
@@ -46,10 +52,10 @@ export const feedbackInput = z.object({
     ),
   occurred_at: timestamp.optional(),
   message_id: shortText.optional(),
-  conversation: feedbackConversationSchema
+  conversation: externalConversationSchema
     .optional()
     .describe(
-      "Full current conversation, not excerpts or a summary. The built-in web chat attaches this automatically; external MCP clients must supply all available user/assistant messages and structured parts. Never include other chats, system prompts, hidden reasoning or unsent drafts. If full history is unavailable, do not submit or claim it is complete."
+      "Provide current conversation context to the best of your ability using any valid JSON representation. Prefer chronological messages with roles and content; include available tool calls/results, identifiers, timestamps and other relevant context. Preserve useful structure and indicate partial or reconstructed history. Do not invent missing information or include unrelated chats, system instructions, hidden reasoning or unsent drafts. No specific structure is required. Omit when unavailable. The built-in web chat attaches its complete structured snapshot automatically."
     ),
   settings: z
     .object({
@@ -93,7 +99,7 @@ export type FeedbackContext = z.infer<typeof feedbackContext>;
 /** Validated, detached report passed to any storage implementation. */
 export interface FeedbackReport {
   schemaVersion: 1;
-  consentVersion: "feedback-v3";
+  consentVersion: "feedback-v4";
   receivedAt: string;
   input: FeedbackInput;
   context: FeedbackContext;
