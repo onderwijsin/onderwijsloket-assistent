@@ -80,6 +80,10 @@ describe("chat viewport contracts", () => {
       expect(html).not.toContain("fixed inset-x-0");
       expect(html).toContain("overflow-y-auto");
       if (showTranscript) expect(html).toContain("shrink-0 bg-sand-light");
+      const disclaimer =
+        "AI kan fouten maken. Controleer belangrijke informatie bij een opleider of adviseur.";
+      if (showTranscript) expect(html).not.toContain(disclaimer);
+      else expect(html).toContain(disclaimer);
     }
   );
 
@@ -141,6 +145,27 @@ describe("chat viewport contracts", () => {
       expect(html).toContain(`data-rows="${compact ? 1 : 2}"`);
       expect(html).toContain(`data-maxrows="${compact ? 5 : 8}"`);
       expect(html).toContain(`data-autofocus="${!compact}"`);
+    }
+  );
+  it.each(["ready", "submitted", "streaming"])(
+    "keeps the composer focusable while status=%s",
+    async (status) => {
+      const app = createSSRApp({ render: () => h(Composer, { status, compact: true }) });
+      app.component(
+        "UChatPrompt",
+        defineComponent({
+          inheritAttrs: false,
+          props: ["readonly", "disabled"],
+          setup: (props) => () =>
+            h("textarea", {
+              readonly: props.readonly,
+              disabled: props.disabled
+            })
+        })
+      );
+      const html = await renderToString(app);
+      expect(html).not.toContain("disabled");
+      expect(html.includes("readonly")).toBe(status !== "ready");
     }
   );
 });

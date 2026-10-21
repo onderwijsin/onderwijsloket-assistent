@@ -20,12 +20,16 @@ const actions: Record<string, string> = {
   get_route_questions: "Vragen voor jouw onderwijsroute ophalen",
   find_routes: "Passende onderwijsroutes zoeken",
   get_route: "Onderwijsroute bekijken",
+  get_scheduling_link: "Gegevens voor het adviesgesprek ophalen",
+  get_scheduling_slots: "Beschikbare gesprekstijden zoeken",
+  book_appointment: "Adviesgesprek boeken",
   mcp_list_resources: "Beschikbare bronteksten bekijken",
   mcp_read_resource: "Brontekst lezen",
   mcp_get_prompt: "Aanpak voor je vraag ophalen"
 };
 
 const workflows: Record<string, string> = {
+  "schedule-consultation": "Telefonisch adviesgesprek voorbereiden",
   "find-education-routes": "Aanpak voor jouw onderwijsroute ophalen",
   "compare-programs": "Opleidingsvergelijking voorbereiden",
   "find-local-support": "Zoeken naar advies in jouw regio voorbereiden",

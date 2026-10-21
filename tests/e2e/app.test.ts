@@ -1,3 +1,5 @@
+import { schedulingChoices, type SchedulingLanguage } from "../../server/utils/scheduling/config";
+import { createSchedulingFixture } from "../fixtures/scheduling";
 import { sourceVariantId } from "../fixtures/directus";
 import { routeId, routeSelections, questionIds, answerIds } from "../fixtures/routes";
 import {
@@ -60,6 +62,8 @@ function call(name: string, args: Record<string, unknown>) {
 describe("application", async () => {
   const directus = await createDirectusFixture();
   const algolia = await createAlgoliaFixture();
+  const scheduling = await createSchedulingFixture();
+  afterAll(() => scheduling.close());
   afterAll(() => algolia.close());
   afterAll(() => directus.close());
   await setup({
@@ -71,6 +75,8 @@ describe("application", async () => {
     setupTimeout: 180_000,
     // Runtime overrides keep article calls local while retaining normal build-time schema setup.
     env: {
+      NUXT_SCHEDULING_API_KEY: "fixture-savvycal-token",
+      SCHEDULING_FIXTURE_URL: scheduling.baseUrl,
       NUXT_ALGOLIA_APPLICATION_ID: "fixture-app",
       NUXT_ALGOLIA_TOKEN: "fixture-algolia-token",
       NUXT_ALGOLIA_HOST: algolia.baseUrl,
@@ -82,6 +88,7 @@ describe("application", async () => {
       devtools: { enabled: false },
       nitro: {
         preset: "node-server",
+        plugins: [fileURLToPath(new URL("../fixtures/scheduling-plugin.ts", import.meta.url))],
         handlers: [
           {
             route: "/__test__/chat-mcp",
@@ -170,6 +177,115 @@ describe("application", async () => {
     expect(JSON.stringify(catalog)).not.toContain('"inputSchema"');
   });
 
+  it("exposes safe scheduling contracts and books only validated confirmed phone consultations", async () => {
+    const tools = (await rpc("tools/list")).result.tools;
+    const booking = tools.find((tool: { name: string }) => tool.name === "book_appointment");
+    expect(booking.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false });
+    expect(booking.inputSchema.properties).not.toHaveProperty("link_id");
+    expect(booking.inputSchema.properties).not.toHaveProperty("client_name");
+    const form = (await call("get_scheduling_link", { language: "nl" })).result;
+    expect(form.structuredContent).toMatchObject({ booking_ready: true, default_duration: 20 });
+    expect(form.structuredContent.fields.map((field: { id: string }) => field.id)).toEqual(
+      expect.arrayContaining(["field_topic", "field_qd8z7G9q", "field_RTHt4B8s"])
+    );
+    const availability = (await call("get_scheduling_slots", { language: "nl" })).result;
+    expect(availability.structuredContent.slots[0]).toMatchObject({
+      start_at: scheduling.startAt,
+      end_at: scheduling.endAt
+    });
+    const answersFor = (language: SchedulingLanguage) => [
+      { field_id: "field_topic", values: ["Teaching routes"] },
+      ...Object.entries(schedulingChoices[language]).map(([field_id, field]) => ({
+        field_id,
+        values: [...field.values.slice(0, field.type === "checkboxes" ? 2 : 1)]
+      }))
+    ];
+    const args = {
+      language: "nl",
+      start_at: scheduling.startAt,
+      end_at: scheduling.endAt,
+      display_name: "Fixture User",
+      email: "person@example.test",
+      phone_number: "+31612345678",
+      time_zone: "Europe/Amsterdam",
+      answers: answersFor("nl"),
+      confirmed: true
+    };
+    expect((await call("book_appointment", { ...args, answers: [] })).result.isError).toBe(true);
+    expect(scheduling.requests.filter(({ method }) => method === "POST")).toHaveLength(0);
+    const result = (await call("book_appointment", args)).result;
+    expect(result.isError).not.toBe(true);
+    expect(result.structuredContent).toMatchObject({
+      id: "event_fixture",
+      organizer: "Fixture Adviser"
+    });
+    expect(result.structuredContent.message).toContain(
+      "Je boeking bij het Onderwijsloket is gelukt!"
+    );
+    const written = scheduling.requests.find(({ method }) => method === "POST")!.body!;
+    expect(written).not.toHaveProperty("metadata");
+    expect(written.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "hidden", value: "Unknown MCP Client" }),
+        expect.objectContaining({
+          id: "field_RTHt4B8s",
+          value: "Primair onderwijs\nVoortgezet onderwijs"
+        })
+      ])
+    );
+    const replay = (await call("book_appointment", args)).result;
+    expect(replay.structuredContent).toEqual(result.structuredContent);
+    expect(scheduling.requests.filter(({ method }) => method === "POST")).toHaveLength(1);
+    // Both language links share the same creation quota; distinct bookings consume quota.
+    for (const language of ["en", "nl"] as const) {
+      const next = (
+        await call("book_appointment", {
+          ...args,
+          email: `${language}@example.test`,
+          language,
+          answers: answersFor(language)
+        })
+      ).result;
+      expect(next.isError).not.toBe(true);
+      if (language === "en") expect(next.structuredContent.message).toContain("Your booking");
+    }
+    const blocked = (
+      await call("book_appointment", {
+        ...args,
+        email: "blocked@example.test",
+        language: "en",
+        answers: answersFor("en")
+      })
+    ).result;
+    expect(blocked.isError).toBe(true);
+    expect(JSON.parse(blocked.content[0].text)).toMatchObject({
+      code: "RATE_LIMITED",
+      retry_at: expect.any(String)
+    });
+    expect(scheduling.requests.filter(({ method }) => method === "POST")).toHaveLength(3);
+    expect((await call("get_scheduling_link", { language: "en" })).result.isError).not.toBe(true);
+    expect((await call("get_scheduling_slots", { language: "en" })).result.isError).not.toBe(true);
+    scheduling.state.missingChoices = true;
+    try {
+      const incomplete = (await call("get_scheduling_link", { language: "en" })).result;
+      expect(incomplete.structuredContent).toMatchObject({
+        booking_ready: false,
+        blocking_field_ids: ["field_education"]
+      });
+      const rejected = (
+        await call("book_appointment", {
+          ...args,
+          email: "incomplete@example.test",
+          language: "en"
+        })
+      ).result;
+      expect(JSON.parse(rejected.content[0].text).code).toBe("FORM_NOT_CONFIGURED");
+      expect(scheduling.requests.filter(({ method }) => method === "POST")).toHaveLength(3);
+    } finally {
+      scheduling.state.missingChoices = false;
+    }
+  });
+
   it("serves the application HTML", async () => {
     const response = await fetch("/");
 
@@ -233,6 +349,7 @@ describe("application", async () => {
       expect(tool._meta).toMatchObject({ "onderwijsloket.com/collection": "articles" });
     }
     expect(result.result.tools.map((tool: { name: string }) => tool.name).sort()).toEqual([
+      "book_appointment",
       "describe_collection",
       "find_routes",
       "get_article",
@@ -246,6 +363,8 @@ describe("application", async () => {
       "get_regional_education_desk",
       "get_route",
       "get_route_questions",
+      "get_scheduling_link",
+      "get_scheduling_slots",
       "get_sector",
       "get_testimonial",
       "get_video",
@@ -271,6 +390,50 @@ describe("application", async () => {
       "search_testimonials",
       "search_videos"
     ]);
+  });
+
+  it("discovers and retrieves the scheduling workflow without calling SavvyCal", async () => {
+    const before = scheduling.requests.length;
+    const prompts = (await rpc("prompts/list")).result.prompts;
+    expect(prompts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "schedule-consultation" })])
+    );
+    const request = "English consultation next week about teaching routes";
+    const response = await rpc("prompts/get", {
+      name: "schedule-consultation",
+      arguments: { request }
+    });
+    const message = response.result.messages[0];
+    expect(message.role).toBe("user");
+    for (const text of [
+      JSON.stringify(request),
+      "get_scheduling_link",
+      "get_scheduling_slots",
+      "book_appointment",
+      "explicit confirmation",
+      "otherwise use Europe/Amsterdam",
+      "Do not ask me for my time zone",
+      "one clear question on its own line in bold",
+      "Dutch 0612345678 becomes +31612345678",
+      "Never request an international format",
+      "never bold",
+      "RATE_LIMITED",
+      "BOOKING_UNCERTAIN"
+    ]) {
+      expect(message.content.text).toContain(text);
+    }
+    expect(message.content.text).not.toMatch(/known limitation|issue #13|silently dropping/i);
+    const defaultPrompt = await rpc("prompts/get", {
+      name: "schedule-consultation",
+      arguments: {}
+    });
+    expect(defaultPrompt.result.messages[0].content.text).toContain("Use the conversation context");
+    const invalid = await rpc("prompts/get", {
+      name: "schedule-consultation",
+      arguments: { request: "   " }
+    });
+    expect(invalid.error).toBeDefined();
+    expect(scheduling.requests.length).toBe(before);
   });
 
   it("guides and matches pathways over MCP without exposing route source collections", async () => {

@@ -42,7 +42,7 @@ Enable the custom properties below in Plausible to inspect their breakdowns.
 `data` is an explicit allowlist, not an arbitrary argument dump. Query capture is
 opt-in because queries can contain personal information and create high-cardinality
 reports. Enabling it sends query text to Plausible. Other arguments, record contents,
-outputs and prompts are never included. Extend the allowlist deliberately for future tools.
+outputs and prompts are never included. Scheduling contact details and form answers are outside this allowlist and are never included. Extend the allowlist deliberately for future tools.
 Dedicated collection tools declare `_meta["onderwijsloket.com/collection"]`; shared tools resolve collection arguments from registered schemas. Client-supplied metadata is never used for attribution. New collections need no analytics delivery calls.
 Input is captured before the SDK consumes the request stream. Web request bodies are
 cloned; Node bodies are cached by h3 and replayed to the SDK. The completion hook

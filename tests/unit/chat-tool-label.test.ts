@@ -22,6 +22,9 @@ describe("chat tool activity labels", () => {
     expect(chatToolLabel("mcp_get_prompt", { name: "toString" })).toBe(
       "Aanpak voor je vraag ophalen"
     );
+    expect(chatToolLabel("mcp_get_prompt", { name: "schedule-consultation" })).toBe(
+      "Telefonisch adviesgesprek voorbereiden"
+    );
     expect(chatToolLabel("future_tool")).toBe("Kennisbron raadplegen");
     expect(chatToolLabel("web_search")).toBe("Zoeken op internet");
   });

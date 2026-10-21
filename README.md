@@ -17,7 +17,7 @@ Onderwijsloket Assistent lets AI assistants find guidance, compare education pro
 - **Source attribution** through canonical website links and explicit indicators for missing content or bounded relationships.
 - **Self-describing contracts** with collection descriptions, input/output schemas, supported filters, sorting and pagination.
 
-All operations are read-only. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
+Knowledge operations are read-only. Scheduling can create a telephone appointment after explicit user confirmation. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
 
 ## Connect
 
@@ -90,6 +90,10 @@ and each hit's distance in metres. Regional desk distances approximate service-a
 coverage using indexed grid points. See [geographic search](docs/search.md#geographic-search)
 for the contract and [geocoding](docs/geocoding.md) for Mapbox environment configuration.
 
+## Scheduling
+
+When personal consultation is explicitly requested or a complex question remains unresolved, `get_scheduling_link`, `get_scheduling_slots` and `book_appointment` provide a guided Dutch/English telephone-booking flow. The server validates fresh form requirements and availability, supplies MCP client attribution and limits event creation to three attempts per hour per IP. No UI is included. Dutch and English form choices are configured; provider option validation and checkbox serialization still need a manual API check. See [scheduling](docs/scheduling.md).
+
 ## Education pathways
 
 Route data is exposed through a guided workflow rather than generic collection tools.
@@ -109,13 +113,14 @@ provide guidance rather than admission or qualification guarantees. See
 
 In clients that support MCP prompts, select a workflow to guide the assistant through relevant tools and resources.
 
-| Prompt                     | Description                                                                                                                                         |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `compare-programs`         | Compare education programs or find alternatives to a known program, using your priorities and current program-form details.                         |
-| `find-local-support`       | Find regional education desks near a location and check their advice services, contact options and stated coverage.                                 |
-| `find-supporting-articles` | Find articles that explain or complement a previously discussed FAQ, article or other item, using relevant topics, qualifications, roles or tracks. |
-| `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                     |
-| `find-education-routes`    | Guide the source-defined questionnaire one question at a time, then present matching pathways and explain their steps.                              |
+| Prompt                     | Description                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `compare-programs`         | Compare education programs or find alternatives to a known program, using your priorities and current program-form details.                                  |
+| `find-local-support`       | Find regional education desks near a location and check their advice services, contact options and stated coverage.                                          |
+| `find-supporting-articles` | Find articles that explain or complement a previously discussed FAQ, article or other item, using relevant topics, qualifications, roles or tracks.          |
+| `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                              |
+| `find-education-routes`    | Guide the source-defined questionnaire one question at a time, then present matching pathways and explain their steps.                                       |
+| `schedule-consultation`    | Guide a requested telephone consultation through availability, intake and explicit confirmation, with a website alternative for the known intake limitation. |
 
 See [MCP prompts](docs/mcp-prompts.md) for arguments and workflow details.
 

@@ -39,7 +39,7 @@ const features = computed<DropdownMenuItem[]>(() => [
   }
 ]);
 
-/** Focus the composer after choosing a suggested prompt. */
+/** Keep keyboard input available after submitting or choosing a suggested prompt. */
 function focus() {
   prompt.value?.textareaRef?.focus();
 }
@@ -52,7 +52,7 @@ defineExpose({ focus });
     v-model="input"
     placeholder="Stel je vraag aan de Onderwijsloket Assistent…"
     aria-label="Je vraag aan de Onderwijsloket-assistent"
-    :disabled="busy"
+    :readonly="busy"
     :rows="compact ? 1 : 2"
     :autofocus="!compact"
     :maxrows="compact ? 5 : 8"

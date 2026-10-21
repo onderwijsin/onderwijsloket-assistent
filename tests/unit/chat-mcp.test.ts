@@ -8,7 +8,7 @@ import { chatRequestSchema } from "../../server/utils/chat/request";
 
 const { localFetch, calls } = vi.hoisted(() => ({ localFetch: vi.fn(), calls: [] as string[] }));
 vi.mock("nitropack/runtime", () => ({ useNitroApp: () => ({ localFetch }) }));
-const event = { context: { fixture: true } } as unknown as H3Event;
+const event = { context: { fixture: true, clientAddress: "192.0.2.10" } } as unknown as H3Event;
 const selections = { question: "answer" };
 
 beforeEach(() => {
@@ -16,6 +16,7 @@ beforeEach(() => {
   localFetch.mockReset().mockImplementation(async (path, init) => {
     expect(path).toBe("/mcp");
     expect(init.context).toBe(event.context);
+    expect(init.context.schedulingClientName).toBe("onderwijsloket-chat");
     const rpc = JSON.parse(init.body);
     calls.push(rpc.method);
     if (rpc.id == null) return new Response(null, { status: 202 });

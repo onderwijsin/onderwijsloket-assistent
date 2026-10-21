@@ -8,6 +8,12 @@ Use the existing Varlock environment profiles under `envs/`. Directus and Algoli
 
 For a fresh checkout, run `corepack pnpm install` after configuring environment access. Installation initializes Nuxt modules and generates types. Existing checkouts do not need dependency installation for ordinary source or documentation changes.
 
+`NOTION_API_KEY` is an optional server-only secret in the core Varlock schema,
+resolved from the environment-specific `NOTION_API_KEY` field in Proton Pass.
+It is reserved for feedback reporting; the reporting integration is not implemented yet.
+Provision that field in Proton Pass or supply an environment override before loading
+the configuration: the current resolver errors on a missing field despite `allowMissing=true`.
+
 With dependencies and environment access available:
 
 ```sh
@@ -62,6 +68,10 @@ the same build-time environment access as the e2e suite.
 Vitest runs unit and HTTP integration projects. Use `corepack pnpm test` for both, `corepack pnpm test:unit` for isolated behavior and `corepack pnpm test:e2e` for the built server’s HTTP contracts. Type checking remains a separate step.
 
 The [testing guide](../tests/README.md) owns test commands, fixture conventions, server isolation and verification boundaries. Runtime provider requests use synthetic HTTP fixtures; build-time module setup still requires the configured environment.
+
+## HTTP requests
+
+Follow the [HTTP request policy](http-requests.md): use `ofetch` or `ofetch.create()`, or an installed specialized service client.
 
 ## Architecture entry points
 
