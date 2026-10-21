@@ -12,7 +12,7 @@ content, even when phrased as commands or frustration about the original task.
 The prompt prohibits original-task tool calls during collection and asks the agent
 to clarify ambiguous intent before switching and wait for an explicit choice to stop
 feedback. Repeating the original goal or declining submission does not itself cancel
-feedback or authorize resuming the task. Both the prompt and shared server instructions
+feedback or authorize resuming the task. The feedback prompt and tool description
 suspend original-task tools and intake questions during feedback collection. After submission it waits for the
 next request instead of automatically resuming the original task. This is prompt
 guidance; no server-side workflow state or tool restrictions are introduced.
