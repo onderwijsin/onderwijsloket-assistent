@@ -3,8 +3,32 @@
 `submit_feedback` creates one report for incorrect information, a bug or other
 feedback. `report-feedback` guides collection and review before submission. The
 tool is a mutation (`readOnlyHint: false`, `idempotentHint: false`), has no cache,
-and makes exactly one Notion request. No dashboard UI or HTTP feedback route is
-implemented.
+and makes exactly one Notion request. The dashboard feedback action starts the
+collection workflow in the current chat; no separate HTTP feedback route exists.
+
+Feedback collection stays the active workflow until submission, explicit cancellation
+or an explicit request to stop the report and switch tasks. Replies to feedback questions are report
+content, even when phrased as commands or frustration about the original task.
+The prompt prohibits original-task tool calls during collection and asks the agent
+to clarify ambiguous intent before switching and wait for an explicit choice to stop
+feedback. Repeating the original goal or declining submission does not itself cancel
+feedback or authorize resuming the task. Both the prompt and shared server instructions
+suspend original-task tools and intake questions during feedback collection. After submission it waits for the
+next request instead of automatically resuming the original task. This is prompt
+guidance; no server-side workflow state or tool restrictions are introduced.
+
+Regression scenario for model evaluation: start booking, receive a website referral,
+start feedback, then answer the feedback question with "Ik wil niet dat je me naar
+de site verwijst. DOE GEWOON JE WERK". The agent should summarize the unwanted
+referral as the complaint and continue review and consent, without fetching slots
+or booking. "Laat de melding maar zitten; ik wil verder met boeken" should instead
+cancel feedback and resume booking subject to its existing confirmation rules.
+An additional case is "Ik wil gewoon een gesprek plannen": acknowledge this as
+the unmet goal being reported and continue report review. Do not announce that
+feedback is cancelled or ask for booking dates/time zones. If intent is ambiguous,
+ask whether to continue feedback or stop it and resume planning, then wait.
+The HTTP prompt test checks that these instructions and contrasting examples are
+delivered; it does not establish live model compliance.
 
 ## Architecture and configuration
 
@@ -33,43 +57,57 @@ Missing credentials or an invalid destination fail closed without a request.
 Required fields are `title` (1–120 characters), `category`
 (`incorrect_information`, `bug`, `other`), `message` (1–8,000 characters) and
 `user_consent: true`. Consent must follow review of the exact report and included
-context, with disclosure of storage in Notion and available client metadata.
+context. Explain that the full current conversation and all information shared in
+it are sent to the Onderwijsloket team, together with available app/client name,
+version and technical metadata. Other conversations are not sent and remain
+private. Do not name the storage provider unless asked.
 The boolean records the caller's assertion; the server cannot independently
 verify that the user approved it. The prompt is guidance, not an access-control
 boundary.
 
 Optional fields:
 
-| Field          | Meaning                                                                                                     |
-| -------------- | ----------------------------------------------------------------------------------------------------------- |
-| `email`        | Explicitly supplied optional contact address, at most 200 characters.                                       |
-| `occurred_at`  | Known issue timestamp with a UTC offset; not inferred from receipt time.                                    |
-| `message_id`   | Identifier of the affected message when available.                                                          |
-| `conversation` | Available, approved snapshot with optional `id`, `title`, `createdAt`, `updatedAt` and required `messages`. |
-| `settings`     | Current `model`, `webSearch`, `extendedThinking`; not per-message model provenance.                         |
-| `diagnostics`  | Reviewed `request_id`, `tool_name`, `error_code`, `error_message`.                                          |
+| Field          | Meaning                                                                                                                    |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `email`        | Explicitly supplied optional contact address, at most 200 characters.                                                      |
+| `occurred_at`  | Known issue timestamp with a UTC offset; not inferred from receipt time.                                                   |
+| `message_id`   | Identifier of the affected message when available.                                                                         |
+| `conversation` | Full current conversation; required at persistence, attached server-side for web chat or supplied by external MCP clients. |
+| `settings`     | Current `model`, `webSearch`, `extendedThinking`; not per-message model provenance.                                        |
+| `diagnostics`  | Reviewed `request_id`, `tool_name`, `error_code`, `error_message`.                                                         |
 
 Conversation messages follow the relevant Pinia shape: optional message `id`,
 `role` (`user` or `assistant`) and structured `parts` with a `type`. Available tool
 inputs, outputs and states are preserved. Unknown conversation-level fields,
 including unsent `draft`, `titleSource`, `titleRequested` and UI state, are
 discarded. Only the selected approved conversation belongs in the payload.
-External MCP clients may not expose any history; omit unavailable context rather
-than synthesizing it. Hidden reasoning must not be collected.
+The web chat forwards its validated request history and settings through request-local
+Nitro context; these override any agent-supplied conversation or settings. This
+captures every message and structured part received through the latest user turn,
+including consent, without asking the model to recreate them. The response being
+generated and its new tool calls are not yet part of that snapshot. Other chats
+and drafts are never forwarded. No history is persisted before consented submission.
+External MCP clients must supply full current history; missing history is rejected.
+The server cannot independently establish completeness of external-client history.
+System prompts and hidden provider reasoning are not part of the web chat snapshot.
 
 The normalized input and attribution together must fit within **80,000 UTF-8
 bytes**. Conversations have at most 100 messages with 100 parts each. Reports
 over the limit fail before persistence; nothing is silently truncated. There is
-no automatic secret or personal-data redaction. The agent/user must review and
-minimize all submitted text and tool outputs before consenting.
+no automatic secret or personal-data redaction: information already shared in the
+current conversation is included. Never select excerpts or silently shorten history
+to fit the limit; oversized reports fail without storage.
 
 The MCP adapter collects the observed HTTP User-Agent, SDK initialization client
 name/version when available, package version and deployment environment. Client
 names are self-reported and a User-Agent may describe a server rather than the
 user's browser. Missing metadata remains absent. Tool arguments cannot override
-this attribution. The current source label is `Web chat` when the SDK client name
-is `onderwijsloket-chat`, otherwise `MCP client`; it is not authenticated origin
-proof. No IP address, cookies or authorization headers are persisted.
+this attribution. A request-local web chat snapshot sets source to `Web chat`,
+client name to `onderwijsloket-chat`, version to the configured app version and
+User-Agent to the original browser request header. Otherwise source is `MCP client`
+and available SDK metadata is used. HTTP IP addresses, cookies and authorization
+headers are not captured as metadata; user-shared information in the transcript
+is still included.
 
 ## Notion representation
 
@@ -79,7 +117,7 @@ available metadata into existing database properties. Notion manages `Created`,
 `Last edited` and its `FB` report number. `Reported at` and `Consent recorded at`
 are the server receipt time; the latter records receipt of the consent assertion,
 not the precise moment the user clicked or spoke consent. `Consent version` is
-the workflow contract identifier `feedback-v1`.
+the workflow contract identifier `feedback-v2`.
 
 A JSON code block in the report body holds the complete versioned snapshot,
 including history and diagnostics. Rich-text fragments stay below Notion's

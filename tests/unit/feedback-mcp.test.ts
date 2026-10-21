@@ -15,11 +15,14 @@ const { createPage, config, state } = vi.hoisted(() => ({
     },
     public: { mode: { value: "development" } }
   },
-  state: { server: undefined as unknown }
+  state: { server: undefined as unknown, context: {} as Record<string, unknown> }
 }));
 vi.mock("nitropack/runtime", () => ({
   useRuntimeConfig: () => config,
-  useEvent: () => ({ context: {}, node: { req: { headers: { "user-agent": "Fixture UA" } } } })
+  useEvent: () => ({
+    context: state.context,
+    node: { req: { headers: { "user-agent": "Fixture UA" } } }
+  })
 }));
 vi.mock("@nuxtjs/mcp-toolkit/server", () => ({
   useMcpServer: () => ({ server: state.server }),
@@ -31,9 +34,13 @@ const args = {
   title: "Bug report",
   category: "bug",
   message: "The answer failed.",
-  user_consent: true
+  user_consent: true,
+  conversation: {
+    messages: [{ id: "u1", role: "user", parts: [{ type: "text", text: "Current conversation" }] }]
+  }
 };
 beforeEach(() => {
+  state.context = {};
   createPage.mockReset().mockResolvedValue("400b66e1-be69-805d-9625-000cfde4b019");
 });
 
@@ -62,6 +69,75 @@ async function withClient(action: (client: Client) => Promise<void>) {
 }
 
 describe("feedback MCP contract", () => {
+  it("attaches the complete request-local web chat instead of agent-supplied excerpts", async () => {
+    const conversation = {
+      messages: [
+        {
+          id: "u1",
+          role: "user",
+          parts: [{ type: "text", text: "Personal information shared earlier" }]
+        },
+        {
+          id: "a1",
+          role: "assistant",
+          parts: [
+            {
+              type: "dynamic-tool",
+              toolName: "get_faq",
+              input: { id: "faq-1" },
+              output: { answer: "Full tool result" }
+            },
+            { type: "text", text: "Answer" }
+          ]
+        },
+        {
+          id: "u2",
+          role: "user",
+          parts: [{ type: "text", text: "Yes, send this conversation and metadata" }]
+        }
+      ]
+    };
+    const settings = { model: "actual-model", webSearch: false, extendedThinking: true };
+    state.context.feedbackChatSnapshot = { conversation, settings };
+    await withClient(async (client) => {
+      const result = await client.callTool({
+        name: "submit_feedback",
+        arguments: { ...args, settings: { ...settings, model: "invented" } }
+      });
+      expect(result.isError).not.toBe(true);
+      const body = createPage.mock.calls[0]![0];
+      const report = JSON.parse(
+        body.children[0].code.rich_text
+          .map((part: { text: { content: string } }) => part.text.content)
+          .join("")
+      );
+      expect(report.input.conversation).toEqual(conversation);
+      expect(report.input.settings).toEqual(settings);
+      expect(report.context.source).toBe("Web chat");
+      expect(report.consentVersion).toBe("feedback-v2");
+    });
+  });
+
+  it("does not attach or persist a conversation without consent", async () => {
+    state.context.feedbackChatSnapshot = { conversation: args.conversation };
+    const result = await submitFeedbackTool({
+      ...args,
+      category: "bug",
+      user_consent: false
+    } as unknown as Parameters<typeof submitFeedbackTool>[0]);
+    expect(result).toMatchObject({ isError: true });
+    expect(createPage).not.toHaveBeenCalled();
+  });
+
+  it("rejects external submissions without history instead of saving an incomplete report", async () => {
+    await withClient(async (client) => {
+      const { conversation: _conversation, ...withoutHistory } = args;
+      const result = await client.callTool({ name: "submit_feedback", arguments: withoutHistory });
+      expect(result.isError).toBe(true);
+      expect(JSON.stringify(result)).toContain("INVALID_INPUT");
+      expect(createPage).not.toHaveBeenCalled();
+    });
+  });
   it("advertises explicit consent and returns a minimal receipt with request attribution", async () => {
     await withClient(async (client) => {
       const tools = await client.listTools();

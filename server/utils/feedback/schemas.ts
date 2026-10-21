@@ -4,7 +4,7 @@ const shortText = z.string().trim().min(1).max(256);
 const timestamp = z.iso.datetime({ offset: true });
 
 /** Selected Pinia conversation snapshot; exclude drafts and unrelated UI state. */
-const conversationSchema = z.object({
+export const feedbackConversationSchema = z.object({
   id: shortText.optional(),
   title: z.string().max(256).optional(),
   createdAt: timestamp.optional(),
@@ -46,10 +46,10 @@ export const feedbackInput = z.object({
     ),
   occurred_at: timestamp.optional(),
   message_id: shortText.optional(),
-  conversation: conversationSchema
+  conversation: feedbackConversationSchema
     .optional()
     .describe(
-      "Only the available, reviewed conversation context the user agreed to share. Never fabricate missing history or include hidden reasoning, credentials or unsent drafts."
+      "Full current conversation, not excerpts or a summary. The built-in web chat attaches this automatically; external MCP clients must supply all available user/assistant messages and structured parts. Never include other chats, system prompts, hidden reasoning or unsent drafts. If full history is unavailable, do not submit or claim it is complete."
     ),
   settings: z
     .object({
@@ -93,7 +93,7 @@ export type FeedbackContext = z.infer<typeof feedbackContext>;
 /** Validated, detached report passed to any storage implementation. */
 export interface FeedbackReport {
   schemaVersion: 1;
-  consentVersion: "feedback-v1";
+  consentVersion: "feedback-v2";
   receivedAt: string;
   input: FeedbackInput;
   context: FeedbackContext;

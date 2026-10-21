@@ -67,7 +67,9 @@ an explicit memory storage mount, reset on process restart and are independent
 per server instance. They are best effort under concurrency. Forwarded IP headers
 are not trusted; deployment behind a proxy needs a separately reviewed IP policy.
 
-The server retains no chat history. The browser persists conversations, drafts, model
+The server retains no chat history for ordinary generation. Explicitly consented
+[feedback submissions](feedback.md) send the full current request conversation to the team;
+other conversations and unsent drafts are excluded. The browser persists conversations, drafts, model
 settings and sidebar collapse state in Pinia via localStorage, never chat cookies. OpenAI requests set `store: false` and
 the installed Mistral Conversations adapter also sets `store: false`. This does
 not override either provider's separate abuse-monitoring retention policy.
@@ -112,7 +114,22 @@ Draft-only conversations stay out of sidebar history and search until the first 
 message is submitted. Typing alone does not add a navigation item.
 The sidebar provides new conversations, grouped local history, title search and links to
 Onderwijs in, the GitHub repository and the newsletter page. The conversation title menu
-supports rename and delete; the toolbar retains the color-mode toggle. In a conversation,
+supports pin/unpin, rename and delete. History and search groups use creation dates,
+newest first; opening, continuing or renaming a conversation never changes its position
+or creation-date group. Pinned conversations appear only in a separate “Vastgezet” group
+above date groups, most recently pinned first. Unpinning restores the creation-date
+position; pinning again assigns a new pin timestamp. Pins persist locally alongside
+conversation data, and existing saved conversations without a pin timestamp remain unpinned;
+the toolbar retains the color-mode toggle. Sidebar rows expose pin/unpin and archive
+buttons on hover or keyboard focus. On devices with hover, actions overlay the title
+with a gradient fade rather than reserving title space; the title shifts subtly on reveal.
+Reduced-motion preferences disable this movement and transitions. Touch devices keep
+the buttons visible with space reserved for them. Archiving
+clears the pin and moves the conversation into the collapsed “Gearchiveerd” group at
+the bottom, ordered by creation date and included in search. Archiving the active chat
+opens an empty chat. Archived chats can be opened, restored or deleted; restoring
+returns them to their original creation-date position without a pin. Archive timestamps
+persist locally and older saved conversations remain compatible. In a conversation,
 an Experimenteel badge follows the title at the `sm` breakpoint and above; the header
 badge is hidden on mobile. The welcome view
 omits the redundant new-chat title and keeps its badge above the greeting. The command
@@ -122,7 +139,8 @@ panel uses `sand-light` in light mode and a scoped `bg-default` → `zinc-900` a
 The composer dock and loading skeleton match the panel.
 Navigation icons use a compact size and optical alignment with the labels. Mobile navigation
 uses the dashboard sidebar menu. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
-Cmd/Ctrl+K for search. Dashboard component persistence is disabled: Pinia owns its state.
+Cmd/Ctrl+K for search. The desktop sidebar can be resized by dragging its edge between 12 and 24 rem (default 17 rem).
+Its width resets on reload. Dashboard component persistence is disabled: Pinia owns its state.
 
 The dashboard mounts only on the client, after the persisted-state plugin is installed.
 Skeleton backgrounds use `sand-dark` in light mode via `app.config.ts`, retaining
@@ -186,9 +204,16 @@ without waiting for the animation. The welcome view retains the Dutch greeting a
 experimental badge; its greeting is calculated when the client dashboard mounts.
 The built-in floating scroll button is disabled to avoid overlap with the composer;
 automatic scrolling during generation remains enabled. Completed assistant
-responses show copy and regenerate actions, without voting controls. Copy includes
+responses show copy, regenerate and feedback actions, without voting controls. Copy includes
 only answer text. Regenerating uses the selected message ID and current model
 settings; as in the SDK, retrying an earlier answer discards the later conversation.
+
+The bug-icon feedback action sends a Dutch request into the current chat, identifying
+the selected answer by a text excerpt of at most 600 characters. It uses the existing
+submission flow and preserves the composer draft. The agent follows the
+[`report-feedback` workflow](feedback.md), collects the issue and obtains explicit
+consent before submitting. Clicking the action is not consent to send a report.
+The action is disabled while a response is being generated.
 
 Eight Dutch starters cover routes, programme comparison, local advice,
 required teaching qualifications, salaries, lateral entry, telephone consultations and personal experiences.

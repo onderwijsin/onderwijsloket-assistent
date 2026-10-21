@@ -15,7 +15,9 @@ export function createFeedbackService(storage: FeedbackStorage) {
     async submit(input: unknown, context: unknown) {
       const parsed = feedbackInput.safeParse(input);
       const attribution = feedbackContext.safeParse(context);
-      if (!parsed.success || !attribution.success) throw new FeedbackError("INVALID_INPUT");
+      if (!parsed.success || !attribution.success || !parsed.data.conversation) {
+        throw new FeedbackError("INVALID_INPUT");
+      }
       let serialized: string;
       try {
         serialized = JSON.stringify({ input: parsed.data, context: attribution.data });
@@ -34,7 +36,7 @@ export function createFeedbackService(storage: FeedbackStorage) {
       try {
         id = await storage.create({
           schemaVersion: 1,
-          consentVersion: "feedback-v1",
+          consentVersion: "feedback-v2",
           receivedAt,
           ...snapshot
         });

@@ -1,33 +1,25 @@
 <script setup lang="ts">
-import type { DropdownMenuItem, NavigationMenuItem, CommandPaletteItem } from "@nuxt/ui";
+import type { DropdownMenuItem } from "@nuxt/ui";
+
+import { groupConversations } from "../../utils/chat-history";
 
 const store = useChatStore();
 if (!store.active) store.newConversation();
 const renaming = ref(false);
 const renameTitle = ref("");
 const renameId = ref("");
-const groups = computed(() => {
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86_400_000).toDateString();
-  const buckets = new Map<string, (NavigationMenuItem & CommandPaletteItem)[]>();
-  for (const chat of [...store.conversations]
-    .filter((chat) => chat.messages.some((message) => message.role === "user"))
-    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))) {
-    const day = new Date(chat.updatedAt).toDateString();
-    const label = day === today ? "Vandaag" : day === yesterday ? "Gisteren" : "Eerder";
-    const items = buckets.get(label) ?? [];
-    items.push({
+const groups = computed(() =>
+  groupConversations(store.conversations).map((group) => ({
+    ...group,
+    items: group.items.map((chat) => ({
       id: chat.id,
       label: chat.title,
+      pinnedAt: chat.pinnedAt,
+      archivedAt: chat.archivedAt,
       active: chat.id === store.activeId,
       onSelect: () => store.selectConversation(chat.id)
-    });
-    buckets.set(label, items);
-  }
-  return [...buckets].map(([label, items]) => ({ id: label, label, items }));
-});
-const history = computed<NavigationMenuItem[]>(() =>
-  groups.value.flatMap((group) => [{ type: "label", label: group.label }, ...group.items])
+    }))
+  }))
 );
 const links = [
   { label: "Onderwijs in", to: "https://onderwijsin.nl", icon: "i-lucide-external-link" },
@@ -39,6 +31,21 @@ const links = [
   { label: "Blijf op de hoogte", to: "https://onderwijsin.nl/nieuwsbrief", icon: "i-lucide-mail" }
 ];
 const actions = computed<DropdownMenuItem[]>(() => [
+  {
+    disabled: !!store.active?.archivedAt,
+    label: store.active?.pinnedAt ? "Losmaken" : "Vastzetten",
+    icon: store.active?.pinnedAt ? "i-lucide-pin-off" : "i-lucide-pin",
+    onSelect: () => {
+      if (store.activeId) store.togglePin(store.activeId);
+    }
+  },
+  {
+    label: store.active?.archivedAt ? "Terugzetten" : "Archiveren",
+    icon: store.active?.archivedAt ? "i-lucide-archive-restore" : "i-lucide-archive",
+    onSelect: () => {
+      if (store.activeId) store.toggleArchive(store.activeId);
+    }
+  },
   {
     label: "Naam wijzigen",
     icon: "i-lucide-pencil",
@@ -85,9 +92,10 @@ defineShortcuts({
       v-model:open="store.sidebarOpen"
       v-model:collapsed="store.sidebarCollapsed"
       :default-size="17"
-      :min-size="12"
-      :max-size="20"
+      :min-size="16"
+      :max-size="28"
       :collapsed-size="4"
+      resizable
       collapsible
       :menu="{ inset: true, title: 'Gesprekken', description: 'Jouw lokaal opgeslagen gesprekken' }"
       class="border-r-0 py-3"
@@ -118,12 +126,65 @@ defineShortcuts({
           ]"
           orientation="vertical"
         />
-        <UNavigationMenu
-          v-if="!collapsed"
-          :items="history"
-          orientation="vertical"
-          :ui="{ linkLabel: 'truncate' }"
-        />
+        <nav v-if="!collapsed" aria-label="Gespreksgeschiedenis" class="space-y-3">
+          <component
+            :is="group.id === 'Gearchiveerd' ? 'details' : 'section'"
+            v-for="group in groups"
+            :key="group.id"
+          >
+            <component
+              :is="group.id === 'Gearchiveerd' ? 'summary' : 'h2'"
+              class="px-2.5 py-1.5 text-xs font-semibold text-muted"
+              :class="{ 'cursor-pointer': group.id === 'Gearchiveerd' }"
+              >{{ group.label }}</component
+            >
+            <ul>
+              <li
+                v-for="item in group.items"
+                :key="item.id"
+                class="history-row relative flex items-center overflow-hidden rounded-md hover:bg-elevated focus-within:bg-elevated"
+                :class="{ 'bg-elevated': item.active }"
+                :style="{ '--history-actions-width': item.archivedAt ? '2rem' : '3.75rem' }"
+              >
+                <UButton
+                  :label="item.label"
+                  color="neutral"
+                  variant="ghost"
+                  class="history-link min-w-0 flex-1 justify-start hover:bg-transparent"
+                  size="sm"
+                  :ui="{ label: 'history-label truncate' }"
+                  :aria-current="item.active ? 'page' : undefined"
+                  @click="store.selectConversation(item.id!)"
+                />
+                <div
+                  class="history-actions absolute inset-y-0 end-0 flex items-center bg-elevated pe-1"
+                >
+                  <UButton
+                    v-if="!item.archivedAt"
+                    :icon="item.pinnedAt ? 'i-lucide-pin-off' : 'i-lucide-pin'"
+                    :aria-label="item.pinnedAt ? 'Gesprek losmaken' : 'Gesprek vastzetten'"
+                    :title="item.pinnedAt ? 'Losmaken' : 'Vastzetten'"
+                    color="neutral"
+                    variant="soft"
+                    size="xs"
+                    :ui="{ leadingIcon: 'size-3.5!' }"
+                    @click="store.togglePin(item.id!)"
+                  />
+                  <UButton
+                    :icon="item.archivedAt ? 'i-lucide-archive-restore' : 'i-lucide-archive'"
+                    :aria-label="item.archivedAt ? 'Gesprek terugzetten' : 'Gesprek archiveren'"
+                    :title="item.archivedAt ? 'Terugzetten' : 'Archiveren'"
+                    color="neutral"
+                    variant="soft"
+                    size="xs"
+                    :ui="{ leadingIcon: 'size-3.5!' }"
+                    @click="store.toggleArchive(item.id!)"
+                  />
+                </div>
+              </li>
+            </ul>
+          </component>
+        </nav>
       </template>
       <template #footer="{ collapsed }">
         <UNavigationMenu
@@ -212,3 +273,61 @@ defineShortcuts({
     </UModal>
   </UDashboardGroup>
 </template>
+
+<style scoped>
+.history-actions {
+  transition: opacity 150ms ease;
+}
+
+.history-actions::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 100%;
+  width: 1.5rem;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--ui-bg-elevated));
+}
+
+.history-link {
+  padding-inline-end: var(--history-actions-width);
+}
+
+.history-link :deep(.history-label) {
+  transition: transform 150ms ease;
+}
+
+@media (hover: hover) {
+  .history-link {
+    padding-inline-end: 0.625rem;
+  }
+
+  .history-actions {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .history-row:hover .history-actions,
+  .history-row:focus-within .history-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .history-row:hover :deep(.history-label),
+  .history-row:focus-within :deep(.history-label) {
+    transform: translateX(0.125rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-actions,
+  .history-link :deep(.history-label) {
+    transition: none;
+  }
+
+  .history-row:hover :deep(.history-label),
+  .history-row:focus-within :deep(.history-label) {
+    transform: none;
+  }
+}
+</style>

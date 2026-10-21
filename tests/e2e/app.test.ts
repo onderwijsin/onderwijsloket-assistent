@@ -400,7 +400,14 @@ describe("application", async () => {
     const tool = tools.find((entry: { name: string }) => entry.name === "submit_feedback");
     expect(tool.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false });
     expect(tool.inputSchema.required).toContain("user_consent");
-    const args = { title: "Fixture feedback", category: "bug", message: "Synthetic issue" };
+    const args = {
+      title: "Fixture feedback",
+      category: "bug",
+      message: "Synthetic issue",
+      conversation: {
+        messages: [{ role: "user", parts: [{ type: "text", text: "Synthetic conversation" }] }]
+      }
+    };
     expect((await call("submit_feedback", args)).result.isError).toBe(true);
     expect((await call("submit_feedback", { ...args, user_consent: false })).result.isError).toBe(
       true
@@ -421,8 +428,19 @@ describe("application", async () => {
       "explicit consent",
       "submit_feedback",
       "SUBMISSION_UNCERTAIN",
-      "Notion",
-      "Do not include hidden chain of thought"
+      "dit hele gesprek en alle informatie",
+      "Je andere gesprekken worden niet meegestuurd",
+      "de app die je gebruikt, de versie en technische metadata",
+      "Do not name Notion",
+      "Interpret replies to your feedback questions as report content",
+      "ask which I mean before switching workflows",
+      "Do not call scheduling, booking or other original-task tools",
+      "Ik wil niet dat je me naar de site verwijst. DOE GEWOON JE WERK",
+      "Ik wil gewoon een gesprek plannen",
+      "Never invent a cancellation on my behalf",
+      "Do not resume original-task intake in text either",
+      "Only an explicit choice to stop feedback permits switching",
+      "Laat de melding maar zitten; ik wil verder met boeken"
     ])
       expect(message.content.text).toContain(text);
     expect(

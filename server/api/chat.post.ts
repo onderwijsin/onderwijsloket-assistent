@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   }
   let mcp: Awaited<ReturnType<typeof connectChatMcp>>;
   try {
-    mcp = await connectChatMcp(event);
+    mcp = await connectChatMcp(event, request);
   } catch {
     throw createError({
       statusCode: 503,

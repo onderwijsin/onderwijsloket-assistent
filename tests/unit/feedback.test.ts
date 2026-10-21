@@ -25,7 +25,10 @@ const input = {
   title: "Wrong answer",
   category: "incorrect_information",
   message: "The qualification is incorrect.",
-  user_consent: true
+  user_consent: true,
+  conversation: {
+    messages: [{ id: "u1", role: "user", parts: [{ type: "text", text: "Current conversation" }] }]
+  }
 };
 const context = { source: "MCP client", clientName: "fixture", clientVersion: "1" };
 
@@ -40,6 +43,13 @@ function fixture(token = "fixture-token") {
 }
 
 describe("feedback submission", () => {
+  it("rejects reports without a conversation before writing", async () => {
+    const create = vi.fn();
+    await expect(
+      createFeedbackService({ create }).submit({ ...input, conversation: undefined }, context)
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(create).not.toHaveBeenCalled();
+  });
   it.each([false, undefined, "true"])(
     "requires explicit boolean consent before any write (%s)",
     async (consent) => {
@@ -77,7 +87,7 @@ describe("feedback submission", () => {
     expect(JSON.stringify(report)).not.toContain("unsent secret");
     expect(report).toMatchObject({
       schemaVersion: 1,
-      consentVersion: "feedback-v1",
+      consentVersion: "feedback-v2",
       receivedAt: receipt.received_at
     });
   });

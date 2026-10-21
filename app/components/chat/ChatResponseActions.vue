@@ -2,7 +2,10 @@
 import { isTextUIPart, type UIMessage } from "ai";
 
 const props = defineProps<{ message: UIMessage; busy: boolean; canRegenerate?: boolean }>();
-const emit = defineEmits<{ regenerate: [messageId: string] }>();
+const emit = defineEmits<{
+  regenerate: [messageId: string];
+  feedback: [messageId: string];
+}>();
 const text = computed(() =>
   props.message.parts
     .filter(isTextUIPart)
@@ -56,6 +59,18 @@ async function copyResponse() {
         :disabled="busy || canRegenerate === false"
         :ui="{ leadingIcon: 'size-4!' }"
         @click="emit('regenerate', message.id)"
+      />
+    </UTooltip>
+    <UTooltip text="Een probleem met dit antwoord melden">
+      <UButton
+        icon="i-lucide-bug"
+        aria-label="Een probleem met dit antwoord melden"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        :disabled="busy"
+        :ui="{ leadingIcon: 'size-4!' }"
+        @click="emit('feedback', message.id)"
       />
     </UTooltip>
     <span class="sr-only" role="status">{{ copied ? "Antwoord gekopieerd" : "" }}</span>

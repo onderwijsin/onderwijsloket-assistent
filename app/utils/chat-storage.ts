@@ -18,6 +18,8 @@ const conversationSchema = z.object({
   titleRequested: z.boolean().default(true),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  pinnedAt: z.iso.datetime().nullable().optional(),
+  archivedAt: z.iso.datetime().nullable().optional(),
   draft: z.string(),
   messages: z.array(messageSchema)
 });

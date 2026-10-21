@@ -11,6 +11,8 @@ export interface Conversation {
   titleRequested: boolean;
   createdAt: string;
   updatedAt: string;
+  pinnedAt?: string | null;
+  archivedAt?: string | null;
   draft: string;
   messages: UIMessage[];
 }
@@ -33,7 +35,9 @@ export const useChatStore = defineStore(
 
     /** Create or reuse an empty conversation and select it. @returns The selected local conversation. */
     function newConversation() {
-      const empty = conversations.value.find((chat) => !chat.messages.length && !chat.draft);
+      const empty = conversations.value.find(
+        (chat) => !chat.archivedAt && !chat.messages.length && !chat.draft
+      );
       if (empty) {
         activeId.value = empty.id;
         return empty;
@@ -79,6 +83,23 @@ export const useChatStore = defineStore(
       }
     }
 
+    /** Toggle a conversation's persisted pin timestamp. @param id - Local chat ID. */
+    function togglePin(id: string) {
+      const chat = conversations.value.find((item) => item.id === id);
+      if (chat && !chat.archivedAt) chat.pinnedAt = chat.pinnedAt ? null : new Date().toISOString();
+    }
+
+    /** Archive or restore a local chat without discarding its content. @param id - Local chat ID. */
+    function toggleArchive(id: string) {
+      const chat = conversations.value.find((item) => item.id === id);
+      if (!chat) return;
+      chat.archivedAt = chat.archivedAt ? null : new Date().toISOString();
+      if (chat.archivedAt) {
+        chat.pinnedAt = null;
+        if (activeId.value === id) newConversation();
+      }
+    }
+
     /** Rename a conversation. @param id - Local chat ID. @param title - User supplied title. */
     function renameConversation(id: string, title: string) {
       const chat = conversations.value.find((item) => item.id === id);
@@ -115,6 +136,8 @@ export const useChatStore = defineStore(
       selectConversation,
       saveMessages,
       renameConversation,
+      togglePin,
+      toggleArchive,
       applyGeneratedTitle,
       deleteConversation
     };
