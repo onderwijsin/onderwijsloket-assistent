@@ -100,6 +100,9 @@ The light-mode page uses Onderwijs in’s `sand-main` token
 (`oklch(96% 0.011 76.6)`) around a `sand-light` conversation panel (`oklch(97.4% 0.006 75.4)`). Dark mode uses
 `neutral-950` for the page and a panel-scoped `bg-default` mapped to `zinc-900` at 50% opacity.
 The command palette includes new-chat and system/light/dark color-mode actions.
+`UDashboardSearch` owns the Cmd+K (Ctrl+K on other platforms) shortcut, including
+when the composer is focused. Do not register a second handler for this shortcut:
+both handlers would run and immediately close the palette again.
 
 The dashboard mounts client-side behind a loading skeleton. Pinia owns conversations,
 drafts and model settings, persisted in localStorage with the installed persisted-state

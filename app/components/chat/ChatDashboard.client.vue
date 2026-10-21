@@ -78,10 +78,7 @@ function saveTitle() {
   renaming.value = false;
 }
 defineShortcuts({
-  meta_o: newChat,
-  meta_k: () => {
-    store.searchOpen = true;
-  }
+  meta_o: newChat
 });
 </script>
 
@@ -115,7 +112,11 @@ defineShortcuts({
         <UNavigationMenu
           :collapsed="collapsed"
           :items="[
-            { label: 'Nieuw gesprek', icon: 'i-lucide-circle-plus', onSelect: newChat },
+            {
+              label: 'Nieuw gesprek',
+              icon: 'i-lucide-circle-plus',
+              onSelect: newChat
+            },
             {
               label: 'Gesprekken zoeken',
               icon: 'i-lucide-search',
