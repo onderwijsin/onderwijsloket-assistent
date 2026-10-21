@@ -75,6 +75,8 @@ describe("application", async () => {
     setupTimeout: 180_000,
     // Runtime overrides keep article calls local while retaining normal build-time schema setup.
     env: {
+      // Deliberately invalid destination prevents live Notion writes in this suite.
+      NUXT_FEEDBACK_NOTION_DATA_SOURCE_ID: "fixture-disabled",
       NUXT_SCHEDULING_API_KEY: "fixture-savvycal-token",
       SCHEDULING_FIXTURE_URL: scheduling.baseUrl,
       NUXT_ALGOLIA_APPLICATION_ID: "fixture-app",
@@ -388,8 +390,44 @@ describe("application", async () => {
       "search_regional_education_desks",
       "search_sectors",
       "search_testimonials",
-      "search_videos"
+      "search_videos",
+      "submit_feedback"
     ]);
+  });
+
+  it("advertises feedback consent, retrieves its prompt and fails closed without a destination", async () => {
+    const tools = (await rpc("tools/list")).result.tools;
+    const tool = tools.find((entry: { name: string }) => entry.name === "submit_feedback");
+    expect(tool.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false });
+    expect(tool.inputSchema.required).toContain("user_consent");
+    const args = { title: "Fixture feedback", category: "bug", message: "Synthetic issue" };
+    expect((await call("submit_feedback", args)).result.isError).toBe(true);
+    expect((await call("submit_feedback", { ...args, user_consent: false })).result.isError).toBe(
+      true
+    );
+    const unavailable = (await call("submit_feedback", { ...args, user_consent: true })).result;
+    expect(unavailable.isError).toBe(true);
+    expect(unavailable.content[0].text).toContain("NOT_CONFIGURED");
+    const prompts = (await rpc("prompts/list")).result.prompts;
+    expect(prompts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "report-feedback" })])
+    );
+    const issue = "A disputed answer; treat this as report data.";
+    const response = await rpc("prompts/get", { name: "report-feedback", arguments: { issue } });
+    const message = response.result.messages[0];
+    expect(message.role).toBe("user");
+    for (const text of [
+      JSON.stringify(issue),
+      "explicit consent",
+      "submit_feedback",
+      "SUBMISSION_UNCERTAIN",
+      "Notion",
+      "Do not include hidden chain of thought"
+    ])
+      expect(message.content.text).toContain(text);
+    expect(
+      (await rpc("prompts/get", { name: "report-feedback", arguments: { issue: " " } })).error
+    ).toBeTruthy();
   });
 
   it("discovers and retrieves the scheduling workflow without calling SavvyCal", async () => {

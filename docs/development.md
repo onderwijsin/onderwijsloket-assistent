@@ -10,7 +10,7 @@ For a fresh checkout, run `corepack pnpm install` after configuring environment 
 
 `NOTION_API_KEY` is an optional server-only secret in the core Varlock schema,
 resolved from the environment-specific `NOTION_API_KEY` field in Proton Pass.
-It is reserved for feedback reporting; the reporting integration is not implemented yet.
+It is used by the server-side [feedback reporting integration](feedback.md).
 Provision that field in Proton Pass or supply an environment override before loading
 the configuration: the current resolver errors on a missing field despite `allowMissing=true`.
 

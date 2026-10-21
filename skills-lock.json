@@ -50,6 +50,12 @@
       "skillPath": "skills/nitro/SKILL.md",
       "computedHash": "ab59b74e7ca03aa5565f810f7a162f31522648ba5252c3ab6ad1c6ad0d8d3c95"
     },
+    "notion-cli": {
+      "source": "makenotion/skills",
+      "sourceType": "github",
+      "skillPath": "skills/notion-cli/SKILL.md",
+      "computedHash": "9624b2f0f37d738d3be67e7c7cc8b8359063defea92b32e96b01692aee60adb4"
+    },
     "nuxt": {
       "source": "antfu/skills",
       "sourceType": "github",

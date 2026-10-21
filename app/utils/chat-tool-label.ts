@@ -23,12 +23,14 @@ const actions: Record<string, string> = {
   get_scheduling_link: "Gegevens voor het adviesgesprek ophalen",
   get_scheduling_slots: "Beschikbare gesprekstijden zoeken",
   book_appointment: "Adviesgesprek boeken",
+  submit_feedback: "Feedback versturen",
   mcp_list_resources: "Beschikbare bronteksten bekijken",
   mcp_read_resource: "Brontekst lezen",
   mcp_get_prompt: "Aanpak voor je vraag ophalen"
 };
 
 const workflows: Record<string, string> = {
+  "report-feedback": "Feedbackmelding voorbereiden",
   "schedule-consultation": "Telefonisch adviesgesprek voorbereiden",
   "find-education-routes": "Aanpak voor jouw onderwijsroute ophalen",
   "compare-programs": "Opleidingsvergelijking voorbereiden",
