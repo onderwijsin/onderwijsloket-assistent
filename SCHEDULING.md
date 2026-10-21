@@ -1,6 +1,6 @@
 # Scheduling — proposed scope
 
-Status: proposal for review. No implementation until approved.
+Status: server utilities and MCP tools implemented; owner-supplied Dutch/English form choices are configured. Manual provider validation and checkbox serialization checks remain. See [scheduling](docs/scheduling.md) for the implementation contract and limitations.
 
 ## Purpose
 
@@ -31,7 +31,7 @@ Bookings are always telephone consultations, without payments, conferencing or a
 
 ## Resolve before implementing booking
 
-The supplied link responses do not contain select/checkbox options. Check for an easy, documented way to retrieve them through the API. If none exists, the project owner will provide a hardcoded list, maintained per language and field ID. Do not scrape booking pages or invent options. Validate that the configured choices still match the current API field definitions, and stop booking if required choice configuration is missing or incompatible. Verify the documented submission format for multi-select answers before implementing it.
+The supplied link responses do not contain select/checkbox options. Check for an easy, documented way to retrieve them through the API. If none exists, the project owner will provide a hardcoded list, maintained per language and field ID. Do not scrape booking pages or invent options. Validate that the configured choices still match the current API field definitions, and stop booking if required choice configuration is missing or incompatible. The documented request uses string field values; the implementation submits multiple checkbox labels as newline-separated text. The owner will manually verify this representation and whether SavvyCal enforces select/radio option membership; surface any provider rejection gracefully and do not automatically retry.
 
 Also verify which documented link settings establish telephone-only, one-to-one booking without payments, and how those settings affect event creation. Do not assume undocumented request properties can enforce them.
 
@@ -51,7 +51,7 @@ Do not log contact details, form answers, credentials or raw provider errors. Ex
 
 Keep the API adapter, schemas and scheduling workflow encapsulated behind thin MCP tools. Update server instructions with the last-resort policy, add `docs/scheduling.md`, and add the feature to the root README.
 
-Add unit tests for language/link restrictions, search windows, current required fields and choices, attribution, stale slots, confirmation gates, sanitized errors, uncertain booking outcomes and the event-creation rate limit (sixth attempt blocked, hourly reset, shared quota across languages, and read-only calls unaffected). Add HTTP MCP e2e tests using synthetic SavvyCal fixtures, covering discovery, the complete booking flow and failure paths. Tests must never create real appointments.
+Add unit tests for language/link restrictions, search windows, current required fields and choices, attribution, stale slots, confirmation gates, sanitized errors, uncertain booking outcomes and the event-creation rate limit (fourth attempt blocked, hourly reset, shared quota across languages, and read-only calls unaffected). Add HTTP MCP e2e tests using synthetic SavvyCal fixtures, covering discovery, the complete booking flow and failure paths. Tests must never create real appointments.
 
 Run repository formatting, lint, typecheck and relevant unit/e2e tests. No new dependencies or UI work are planned.
 

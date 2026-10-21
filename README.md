@@ -17,7 +17,7 @@ Onderwijsloket Assistent lets AI assistants find guidance, compare education pro
 - **Source attribution** through canonical website links and explicit indicators for missing content or bounded relationships.
 - **Self-describing contracts** with collection descriptions, input/output schemas, supported filters, sorting and pagination.
 
-All operations are read-only. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
+Knowledge operations are read-only. Scheduling can create a telephone appointment after explicit user confirmation. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
 
 ## Connect
 
@@ -89,6 +89,10 @@ and include `geo` metadata with the matched coordinates, full address, applied r
 and each hit's distance in metres. Regional desk distances approximate service-area
 coverage using indexed grid points. See [geographic search](docs/search.md#geographic-search)
 for the contract and [geocoding](docs/geocoding.md) for Mapbox environment configuration.
+
+## Scheduling
+
+When personal consultation is explicitly requested or a complex question remains unresolved, `get_scheduling_link`, `get_scheduling_slots` and `book_appointment` provide a guided Dutch/English telephone-booking flow. The server validates fresh form requirements and availability, supplies MCP client attribution and limits event creation to three attempts per hour per IP. No UI is included. Dutch and English form choices are configured; provider option validation and checkbox serialization still need a manual API check. See [scheduling](docs/scheduling.md).
 
 ## Education pathways
 

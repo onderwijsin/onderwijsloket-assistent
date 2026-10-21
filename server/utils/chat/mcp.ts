@@ -2,7 +2,7 @@ import { createMCPClient } from "@ai-sdk/mcp";
 import { useNitroApp } from "nitropack/runtime";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import type { H3Event } from "h3";
+import { getRequestIP, type H3Event } from "h3";
 import { INSTRUCTIONS } from "../../../config/mcp";
 
 /**
@@ -12,6 +12,8 @@ import { INSTRUCTIONS } from "../../../config/mcp";
  */
 export async function connectChatMcp(event: H3Event) {
   const { localFetch } = useNitroApp();
+  // Preserve the runtime-resolved caller address through local MCP dispatch for booking quotas.
+  event.context.clientAddress = getRequestIP(event);
   const client = await createMCPClient({
     clientName: "onderwijsloket-chat",
     transport: {

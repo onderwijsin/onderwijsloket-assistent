@@ -42,11 +42,13 @@ The HTTP project uses `@nuxt/test-utils` to build and start an isolated Node ser
 - **Content and resources:** editor hydration, Markdown/YAML rendering, missing-body notices, transcripts, relation bounds, traversal limits and truncation indicators.
 - **Caching:** Nitro’s actual function cache with isolated storage and controlled time, including collection/ID isolation, concurrent reads, expiry, retries and tool/resource reuse across all ten collections.
 - **Route workflows:** prerequisite grouping, sequential state cleanup, complete-selection gates, subset matching, pagination and ordered readable steps.
-- **MCP over HTTP:** all thirty-seven tools, advertised schemas, structured responses and text fallbacks, resource links, templates, catalogues and the route prompt. Catalogue cases include more than 1,500 records, lower upstream page caps and incomplete responses.
+- **MCP over HTTP:** all forty tools, advertised schemas, structured responses and text fallbacks, resource links, templates, catalogues and the route prompt. Catalogue cases include more than 1,500 records, lower upstream page caps and incomplete responses.
 
 The HTTP fixtures in `fixtures/directus.ts` and `fixtures/algolia.ts` exercise installed SDKs against real HTTP boundaries. Domain fixture modules provide relationships and collection-specific source/search records. Missing-content and error variants use distinct synthetic IDs so an earlier cached record cannot hide the scenario under test.
 
 `fixtures/faq-collection.ts` is a separate test-only collection, not the production FAQ definition. It tests registry behavior with non-UUID IDs, different native fields and optional capabilities. In-memory SDK tests check its protocol contract without adding it to the production registry.
+
+Scheduling tests cover the restricted SavvyCal adapter, form configuration, confirmed booking workflow and creation-only quota. HTTP scheduling tests use synthetic credentials and a test-only transport plugin that routes the fixed SavvyCal origin to a local fixture. The synthetic success fixture exercises the supplied Dutch and English choice lists, including multiple checkbox answers. Live provider option validation remains a manual check.
 
 ## Adding regression coverage
 

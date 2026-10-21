@@ -19,7 +19,8 @@ export default defineNuxtConfig({
   nitro: {
     experimental: { asyncContext: true },
     storage: {
-      "simple-rate-limiter:%2Fapi%2Fchat": { driver: "memory" }
+      "simple-rate-limiter:%2Fapi%2Fchat": { driver: "memory" },
+      "simple-rate-limiter:%2Fmcp": { driver: "memory" }
     }
   },
 
@@ -176,6 +177,7 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    scheduling: { apiKey: ENV.SAVVYCAL_API_KEY || "" },
     chat: {
       mistralApiKey: ENV.MISTRAL_API_KEY,
       openaiApiKey: ENV.OPENAI_API_KEY
