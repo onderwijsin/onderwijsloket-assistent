@@ -1,3 +1,21 @@
+# [1.1.0](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v1.0.0...v1.1.0) (2026-10-21)
+
+
+### Bug Fixes
+
+* Disable skew protection ([241c60a](https://github.com/onderwijsin/onderwijsloket-assistent/commit/241c60af50ebc15bbcb103f3e943f3d376eb30bd))
+* Double shortcut registration ([a60f8a8](https://github.com/onderwijsin/onderwijsloket-assistent/commit/a60f8a8e64dd5d8e71776a6e727170d5f558be58))
+* Harden submit report ([da9bea7](https://github.com/onderwijsin/onderwijsloket-assistent/commit/da9bea730c920d10eccec9c7981bdc1aa7302f48))
+* Remove nuxt cleanuo pre build ([b5fab02](https://github.com/onderwijsin/onderwijsloket-assistent/commit/b5fab02953dddf4404331371c19761f54f2fa0d7))
+
+
+### Features
+
+* Add feedback report ui ([7b82f3a](https://github.com/onderwijsin/onderwijsloket-assistent/commit/7b82f3a392e0114b61023d2e70aad927f7b53304))
+* Add feedback tool ([753388e](https://github.com/onderwijsin/onderwijsloket-assistent/commit/753388e57e5eb4d67f8c4eecd1eb069a0fdcb656))
+* Add scheduling MCP tool ([666c197](https://github.com/onderwijsin/onderwijsloket-assistent/commit/666c197bd32a632401b52a7e236fa414dd5ec7b9))
+* Add scheduling prompt ([efd148a](https://github.com/onderwijsin/onderwijsloket-assistent/commit/efd148a1be7e69a0dedfcaccc0a4993ac9bdf9f0))
+
 # 1.0.0 (2026-10-20)
 
 
