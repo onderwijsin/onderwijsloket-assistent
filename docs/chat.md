@@ -113,8 +113,8 @@ message is submitted. Typing alone does not add a navigation item.
 The sidebar provides new conversations, grouped local history, title search and links to
 Onderwijs in, the GitHub repository and the newsletter page. The conversation title menu
 supports rename and delete; the toolbar retains the color-mode toggle. In a conversation,
-an Experimenteel badge follows the title on desktop and occupies a compact second
-toolbar row on mobile, remaining outside the scrolling transcript. The welcome view
+an Experimenteel badge follows the title at the `sm` breakpoint and above; the header
+badge is hidden on mobile. The welcome view
 omits the redundant new-chat title and keeps its badge above the greeting. The command
 palette includes a new-chat action and the built-in system/light/dark theme choices.
 The page uses `sand-main` in light mode and `neutral-950` in dark mode; the conversation
@@ -190,13 +190,14 @@ responses show copy and regenerate actions, without voting controls. Copy includ
 only answer text. Regenerating uses the selected message ID and current model
 settings; as in the SDK, retrying an earlier answer discards the later conversation.
 
-Seven Dutch starters cover routes, programme comparison, local advice,
-required teaching qualifications, salaries, lateral entry and personal experiences.
+Eight Dutch starters cover routes, programme comparison, local advice,
+required teaching qualifications, salaries, lateral entry, telephone consultations and personal experiences.
 The routes, comparison, advice and experiences starters reflect the existing MCP
 prompt themes. Choosing a starter sends its text directly without assigning or clearing the composer
 draft, preventing a flash of the prompt in the input. It submits with the current model and feature
 selections. The agent can retrieve the corresponding MCP prompt workflow during
-the conversation.
+the conversation. The telephone consultation starter selects the `schedule-consultation`
+workflow; it requests help with scheduling but does not confirm an appointment.
 
 Messages, drafts and options are stored locally through Pinia. No server-side
 conversation persistence or authentication is used.

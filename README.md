@@ -113,13 +113,14 @@ provide guidance rather than admission or qualification guarantees. See
 
 In clients that support MCP prompts, select a workflow to guide the assistant through relevant tools and resources.
 
-| Prompt                     | Description                                                                                                                                         |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `compare-programs`         | Compare education programs or find alternatives to a known program, using your priorities and current program-form details.                         |
-| `find-local-support`       | Find regional education desks near a location and check their advice services, contact options and stated coverage.                                 |
-| `find-supporting-articles` | Find articles that explain or complement a previously discussed FAQ, article or other item, using relevant topics, qualifications, roles or tracks. |
-| `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                     |
-| `find-education-routes`    | Guide the source-defined questionnaire one question at a time, then present matching pathways and explain their steps.                              |
+| Prompt                     | Description                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `compare-programs`         | Compare education programs or find alternatives to a known program, using your priorities and current program-form details.                                  |
+| `find-local-support`       | Find regional education desks near a location and check their advice services, contact options and stated coverage.                                          |
+| `find-supporting-articles` | Find articles that explain or complement a previously discussed FAQ, article or other item, using relevant topics, qualifications, roles or tracks.          |
+| `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                              |
+| `find-education-routes`    | Guide the source-defined questionnaire one question at a time, then present matching pathways and explain their steps.                                       |
+| `schedule-consultation`    | Guide a requested telephone consultation through availability, intake and explicit confirmation, with a website alternative for the known intake limitation. |
 
 See [MCP prompts](docs/mcp-prompts.md) for arguments and workflow details.
 

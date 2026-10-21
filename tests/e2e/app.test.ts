@@ -373,6 +373,44 @@ describe("application", async () => {
     ]);
   });
 
+  it("discovers and retrieves the scheduling workflow without calling SavvyCal", async () => {
+    const before = scheduling.requests.length;
+    const prompts = (await rpc("prompts/list")).result.prompts;
+    expect(prompts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "schedule-consultation" })])
+    );
+    const request = "English consultation next week about teaching routes";
+    const response = await rpc("prompts/get", {
+      name: "schedule-consultation",
+      arguments: { request }
+    });
+    const message = response.result.messages[0];
+    expect(message.role).toBe("user");
+    for (const text of [
+      JSON.stringify(request),
+      "get_scheduling_link",
+      "get_scheduling_slots",
+      "book_appointment",
+      "explicit confirmation",
+      "silently dropping",
+      "RATE_LIMITED",
+      "BOOKING_UNCERTAIN"
+    ]) {
+      expect(message.content.text).toContain(text);
+    }
+    const defaultPrompt = await rpc("prompts/get", {
+      name: "schedule-consultation",
+      arguments: {}
+    });
+    expect(defaultPrompt.result.messages[0].content.text).toContain("Use the conversation context");
+    const invalid = await rpc("prompts/get", {
+      name: "schedule-consultation",
+      arguments: { request: "   " }
+    });
+    expect(invalid.error).toBeDefined();
+    expect(scheduling.requests.length).toBe(before);
+  });
+
   it("guides and matches pathways over MCP without exposing route source collections", async () => {
     const start = await call("get_route_questions", {});
     expect(start.result.structuredContent.next_question_id).toBe(questionIds[0]);

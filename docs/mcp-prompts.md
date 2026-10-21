@@ -1,17 +1,18 @@
 # MCP prompts
 
-Five user-selected workflows are auto-discovered from `server/mcp/prompts/`.
+Six user-selected workflows are auto-discovered from `server/mcp/prompts/`.
 They complement shared `mcp.instructions` without changing tool or resource
 contracts. Clients must support prompt listing and retrieval; retrieving a prompt
 returns a user message, not executed tool calls.
 
-| Prompt                     | Arguments                            | Purpose                                                                                                               |
-| -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
-| `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes.             |
-| `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                            |
-| `find-supporting-articles` | Optional `source`, `focus`           | Find useful related reading using contextually relevant taxonomy filters or text search.                              |
-| `find-supporting-media`    | Optional `source`, `focus`           | Find podcast episodes, videos and personal stories, respecting format preferences and available content.              |
-| `find-education-routes`    | Optional `background`                | Ask the source-defined route questions, validate confirmed choices, find matching pathways and explain ordered steps. |
+| Prompt                     | Arguments                            | Purpose                                                                                                                                                          |
+| -------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schedule-consultation`    | Optional `request`                   | Guide a requested telephone consultation through current fields, availability and explicit confirmation, with a website handoff for the known intake limitation. |
+| `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes.                                                        |
+| `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                                                                       |
+| `find-supporting-articles` | Optional `source`, `focus`           | Find useful related reading using contextually relevant taxonomy filters or text search.                                                                         |
+| `find-supporting-media`    | Optional `source`, `focus`           | Find podcast episodes, videos and personal stories, respecting format preferences and available content.                                                         |
+| `find-education-routes`    | Optional `background`                | Ask the source-defined route questions, validate confirmed choices, find matching pathways and explain ordered steps.                                            |
 
 Arguments are strings validated with Zod. Whitespace-only values are rejected;
 optional values should be omitted when not needed. A source can be a collection
@@ -36,3 +37,23 @@ The route prompt complements three dedicated [route tools](routes.md). It asks
 one enabled question at a time, requires confirmed choices and revalidates state
 after edits. Route matching remains server-side; the prompt cannot override
 questionnaire completion or matching rules.
+
+The scheduling prompt coordinates `get_scheduling_link`, `get_scheduling_slots` and
+`book_appointment`. It keeps scheduling limited to explicit consultation requests or
+unresolved complex questions, respects preferred consultation language and time zone,
+and requires fresh form requirements and explicit confirmation before creation.
+Retrieving the prompt never queries SavvyCal or consumes creation quota.
+
+The welcome composer's **Plan een adviesgesprek** suggestion sends an explicit request
+through the existing chat submission flow. The agent retrieves `schedule-consultation`
+via `mcp_get_prompt`; choosing the suggestion does not itself authorize event creation.
+Existing model/feature selections and composer drafts follow the other suggestions.
+The prompt has a Dutch activity label when loaded. The three scheduling tools also
+have Dutch activity labels for retrieving consultation details, finding available
+times and booking the appointment.
+
+Until [issue #13](https://github.com/onderwijsin/onderwijsloket-assistent/issues/13)
+is resolved, the workflow discloses that in-chat bookings can lose choice answers and
+recommends the website form. Continuing in chat requires an explicit user choice after
+that disclosure; final booking confirmation is still separate. The server adapter and
+its current serialization are unchanged. See [scheduling](scheduling.md).

@@ -184,9 +184,6 @@ defineShortcuts({
           </template>
           <template #right><UColorModeButton /></template>
         </UDashboardNavbar>
-        <div v-if="store.active?.messages.length" class="shrink-0 px-4 pb-2 sm:hidden">
-          <ChatExperimentalBadge />
-        </div>
       </template>
       <template #body>
         <ChatInterface

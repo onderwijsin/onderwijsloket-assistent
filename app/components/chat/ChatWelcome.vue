@@ -56,6 +56,12 @@ const suggestions = [
       "Hoe werkt zij-instromen in het onderwijs? Leg uit wat het inhoudt en vraag me naar mijn achtergrond en de sector waarin ik wil werken."
   },
   {
+    label: "Plan een adviesgesprek",
+    icon: "i-lucide-calendar-days",
+    prompt:
+      "Ik wil een telefonisch adviesgesprek plannen met een adviseur van het Onderwijsloket. Help me een geschikt moment te kiezen en de benodigde gegevens te verzamelen."
+  },
+  {
     label: "Ervaringen van anderen",
     icon: "i-lucide-messages-square",
     prompt:
