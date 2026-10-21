@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useChat } from "@ai-sdk/vue";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, isTextUIPart } from "ai";
 import { storeToRefs } from "pinia";
 import { chatTitleSchema } from "../../../shared/utils/chat-title";
 import { canRegenerateChat } from "../../utils/chat-regenerate";
@@ -122,6 +122,22 @@ async function selectSuggestion(prompt: string) {
   await submitMessage(prompt);
 }
 
+/** Start feedback collection for the selected answer without consenting to submission.
+ * @param messageId - Existing assistant answer to identify with a short text excerpt.
+ */
+async function reportFeedback(messageId: string) {
+  const message = messages.value.find((item) => item.id === messageId);
+  if (!message || message.role !== "assistant") return;
+  const excerpt = message.parts
+    .filter(isTextUIPart)
+    .map((part) => part.text)
+    .join("\n\n")
+    .slice(0, 600);
+  await submitMessage(
+    `Ik wil een probleem melden met het antwoord dat begint met:\n\n${JSON.stringify(excerpt)}\n\nHelp me via de feedbackwerkwijze om een melding te maken. Vraag eerst wat er misgaat en vraag mijn toestemming voordat je de melding verstuurt.`
+  );
+}
+
 onMounted(() => {
   transcript.value?.scrollTo({ top: transcript.value.scrollHeight, behavior: "instant" });
 });
@@ -167,6 +183,7 @@ onBeforeUnmount(() => {
             :messages="messages"
             :status="status"
             @regenerate="regenerateSafely($event)"
+            @feedback="reportFeedback($event)"
           />
         </div>
       </div>

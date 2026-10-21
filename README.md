@@ -2,7 +2,7 @@
 
 # Onderwijsloket Assistent
 
-Read-only access to Onderwijsloket’s knowledge about working in education, through the Model Context Protocol (MCP).
+Access to Onderwijsloket’s knowledge about working in education, with guided scheduling and feedback reporting through the Model Context Protocol (MCP).
 
 Onderwijsloket Assistent lets AI assistants find guidance, compare education programs, explore institutions and regional advice services, and read stories and media from Onderwijsloket. It combines relevance-ranked search, structured collection records and complete Markdown resources in one discoverable interface.
 
@@ -17,7 +17,7 @@ Onderwijsloket Assistent lets AI assistants find guidance, compare education pro
 - **Source attribution** through canonical website links and explicit indicators for missing content or bounded relationships.
 - **Self-describing contracts** with collection descriptions, input/output schemas, supported filters, sorting and pagination.
 
-Knowledge operations are read-only. Scheduling can create a telephone appointment after explicit user confirmation. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
+Knowledge operations are read-only. Scheduling can create a telephone appointment after explicit user confirmation; feedback reporting can send a report to the team after explicit consent. MCP access requires no API key or sign-in. Source visibility is managed by Directus; the server validates and presents the data it receives.
 
 ## Connect
 
@@ -94,6 +94,13 @@ for the contract and [geocoding](docs/geocoding.md) for Mapbox environment confi
 
 When personal consultation is explicitly requested or a complex question remains unresolved, `get_scheduling_link`, `get_scheduling_slots` and `book_appointment` provide a guided Dutch/English telephone-booking flow. The server validates fresh form requirements and availability, supplies MCP client attribution and limits event creation to three attempts per hour per IP. No UI is included. Dutch and English form choices are configured; provider option validation and checkbox serialization still need a manual API check. See [scheduling](docs/scheduling.md).
 
+## Feedback
+
+`submit_feedback` sends reports about incorrect information, bugs or other issues to
+the team of [Stichting Onderwijs in](https://onderwijsin.nl). The `report-feedback` prompt guides issue collection,
+review and explicit consent before submission. The chat dashboard's bug-icon action
+starts this workflow for a selected answer; clicking it does not submit a report.
+
 ## Education pathways
 
 Route data is exposed through a guided workflow rather than generic collection tools.
@@ -121,6 +128,7 @@ In clients that support MCP prompts, select a workflow to guide the assistant th
 | `find-supporting-media`    | Find related podcast episodes, videos and testimonials to explore a subject through listening, viewing or personal experiences.                              |
 | `find-education-routes`    | Guide the source-defined questionnaire one question at a time, then present matching pathways and explain their steps.                                       |
 | `schedule-consultation`    | Guide a requested telephone consultation through availability, intake and explicit confirmation, with a website alternative for the known intake limitation. |
+| `report-feedback`          | Collect a feedback report, explain conversation and metadata sharing, and obtain explicit consent before submission.                                         |
 
 See [MCP prompts](docs/mcp-prompts.md) for arguments and workflow details.
 
@@ -178,19 +186,20 @@ See the [testing guide](tests/README.md) for focused commands, fixture conventio
 
 ## Documentation
 
-| Guide                                                | Covers                                                                |
-| ---------------------------------------------------- | --------------------------------------------------------------------- |
-| [Collection registry](docs/collection-registry.md)   | Architecture, public contracts and responsibilities by layer.         |
-| [Education pathways](docs/routes.md)                 | Route questionnaire, answer dependencies, matching and ordered steps. |
-| [Collection data](docs/collection-data.md)           | Domain relationships, native records and reusable projections.        |
-| [Search](docs/search.md)                             | Source filters, geo-search, search indexes, snippets and facets.      |
-| [Resources](docs/collection-resources.md)            | Catalogues, URI templates and readable documents.                     |
-| [Content documents](docs/content-documents.md)       | Editor content hydration and Markdown rendering.                      |
-| [Taxonomies](docs/taxonomies.md)                     | Filter identities, archive links and normalization.                   |
-| [Caching](docs/cache.md)                             | Cache configuration, freshness and failure behavior.                  |
-| [Data access](docs/data-access.md)                   | Visibility and source-system responsibilities.                        |
-| [Release and deployment](docs/release-deployment.md) | Manual releases, pinned deployments and required configuration.       |
-| [Development](docs/development.md)                   | Environment setup, checks and contributor conventions.                |
-| [Tool analytics](docs/tool-analytics.md)             | Optional server-side analytics and query-data controls.               |
+| Guide                                                | Covers                                                                     |
+| ---------------------------------------------------- | -------------------------------------------------------------------------- |
+| [Collection registry](docs/collection-registry.md)   | Architecture, public contracts and responsibilities by layer.              |
+| [Education pathways](docs/routes.md)                 | Route questionnaire, answer dependencies, matching and ordered steps.      |
+| [Collection data](docs/collection-data.md)           | Domain relationships, native records and reusable projections.             |
+| [Search](docs/search.md)                             | Source filters, geo-search, search indexes, snippets and facets.           |
+| [Resources](docs/collection-resources.md)            | Catalogues, URI templates and readable documents.                          |
+| [Content documents](docs/content-documents.md)       | Editor content hydration and Markdown rendering.                           |
+| [Taxonomies](docs/taxonomies.md)                     | Filter identities, archive links and normalization.                        |
+| [Caching](docs/cache.md)                             | Cache configuration, freshness and failure behavior.                       |
+| [Data access](docs/data-access.md)                   | Visibility and source-system responsibilities.                             |
+| [Release and deployment](docs/release-deployment.md) | Manual releases, pinned deployments and required configuration.            |
+| [Development](docs/development.md)                   | Environment setup, checks and contributor conventions.                     |
+| [Tool analytics](docs/tool-analytics.md)             | Optional server-side analytics and query-data controls.                    |
+| [Feedback](docs/feedback.md)                         | Feedback tool, consent, full-conversation sharing and storage integration. |
 
 Maintained by [Stichting Onderwijs in](https://onderwijsin.nl) for [Onderwijsloket](https://onderwijsloket.com). Report bugs and request features through [GitHub issues](https://github.com/onderwijsin/onderwijsloket-assistent/issues).

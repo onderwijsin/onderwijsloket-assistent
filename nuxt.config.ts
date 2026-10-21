@@ -178,6 +178,11 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    feedback: {
+      notionApiToken: ENV.NOTION_API_KEY || "",
+      notionDataSourceId: "400b66e1-be69-80b6-a7cb-000bf91f086e",
+      appVersion: packageVersion
+    },
     scheduling: { apiKey: ENV.SAVVYCAL_API_KEY || "" },
     chat: {
       mistralApiKey: ENV.MISTRAL_API_KEY,

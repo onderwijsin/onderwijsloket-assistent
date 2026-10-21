@@ -12,7 +12,10 @@ import { canRegenerateChat } from "../../utils/chat-regenerate";
 import { chatToolLabel } from "../../utils/chat-tool-label";
 
 defineProps<{ messages: UIMessage[]; status: ChatStatus }>();
-defineEmits<{ regenerate: [messageId: string] }>();
+defineEmits<{
+  regenerate: [messageId: string];
+  feedback: [messageId: string];
+}>();
 </script>
 
 <template>
@@ -55,6 +58,7 @@ defineEmits<{ regenerate: [messageId: string] }>();
         :can-regenerate="canRegenerateChat(messages, message.id)"
         :busy="status === 'submitted' || status === 'streaming'"
         @regenerate="$emit('regenerate', $event)"
+        @feedback="$emit('feedback', $event)"
       />
     </template>
     <template #content="{ message }">

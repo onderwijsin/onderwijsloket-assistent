@@ -42,7 +42,7 @@ The HTTP project uses `@nuxt/test-utils` to build and start an isolated Node ser
 - **Content and resources:** editor hydration, Markdown/YAML rendering, missing-body notices, transcripts, relation bounds, traversal limits and truncation indicators.
 - **Caching:** Nitro’s actual function cache with isolated storage and controlled time, including collection/ID isolation, concurrent reads, expiry, retries and tool/resource reuse across all ten collections.
 - **Route workflows:** prerequisite grouping, sequential state cleanup, complete-selection gates, subset matching, pagination and ordered readable steps.
-- **MCP over HTTP:** all forty tools, advertised schemas, structured responses and text fallbacks, resource links, templates, catalogues and the route prompt. Catalogue cases include more than 1,500 records, lower upstream page caps and incomplete responses.
+- **MCP over HTTP:** all forty-one tools, advertised schemas, structured responses and text fallbacks, resource links, templates, catalogues and the route prompt. Catalogue cases include more than 1,500 records, lower upstream page caps and incomplete responses.
 
 The HTTP fixtures in `fixtures/directus.ts` and `fixtures/algolia.ts` exercise installed SDKs against real HTTP boundaries. Domain fixture modules provide relationships and collection-specific source/search records. Missing-content and error variants use distinct synthetic IDs so an earlier cached record cannot hide the scenario under test.
 

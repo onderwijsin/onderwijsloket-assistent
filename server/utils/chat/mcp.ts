@@ -2,26 +2,54 @@ import { createMCPClient } from "@ai-sdk/mcp";
 import { useNitroApp } from "nitropack/runtime";
 import { tool, type ToolSet } from "ai";
 import { z } from "zod";
-import { getRequestIP, type H3Event } from "h3";
+import { getHeader, getRequestIP, type H3Event } from "h3";
 import { INSTRUCTIONS } from "../../../config/mcp";
+import type { ChatRequest } from "./request";
 
 /**
  * Connect to this application's real MCP endpoint through Nitro's local HTTP dispatcher.
  * @param event - Current chat request, preserving request-local server context.
+ * @param request - Validated current conversation and settings, attached only to feedback submissions.
  * @returns Discovered tools, resource/prompt adapters, server instructions and idempotent cleanup.
  */
-export async function connectChatMcp(event: H3Event) {
+export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
   const { localFetch } = useNitroApp();
   // Preserve the runtime-resolved caller address through local MCP dispatch for booking quotas.
   event.context.clientAddress = getRequestIP(event);
   event.context.schedulingClientName = "onderwijsloket-chat";
+  // Request-local only: no other chats or unsent drafts are accessible here.
+  event.context.feedbackChatSnapshot = request
+    ? {
+        conversation: { messages: request.messages },
+        userAgent: getHeader(event, "user-agent")?.slice(0, 2000),
+        settings: {
+          model: request.model,
+          webSearch: request.webSearch,
+          extendedThinking: request.extendedThinking
+        }
+      }
+    : undefined;
   const client = await createMCPClient({
     clientName: "onderwijsloket-chat",
     transport: {
       type: "http",
       url: "http://mcp.internal/mcp",
       // Always dispatch the fixed local route; never use a client-supplied host or endpoint.
-      fetch: (_url, init) => localFetch("/mcp", { ...init, context: event.context })
+      // Nitro 2 localFetch places context on req.__unenv__ and promotes only
+      // _platform entries to the inner H3 event.context. Forward the allowlisted
+      // request metadata there; plain context entries do not reach MCP handlers.
+      fetch: (_url, init) =>
+        localFetch("/mcp", {
+          ...init,
+          context: {
+            _platform: {
+              ...event.context._platform,
+              clientAddress: event.context.clientAddress,
+              schedulingClientName: event.context.schedulingClientName,
+              feedbackChatSnapshot: event.context.feedbackChatSnapshot
+            }
+          }
+        })
     }
   });
   let closed = false;

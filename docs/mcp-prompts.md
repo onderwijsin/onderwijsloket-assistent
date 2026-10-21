@@ -1,12 +1,13 @@
 # MCP prompts
 
-Six user-selected workflows are auto-discovered from `server/mcp/prompts/`.
+Seven user-selected workflows are auto-discovered from `server/mcp/prompts/`.
 They complement shared `mcp.instructions` without changing tool or resource
 contracts. Clients must support prompt listing and retrieval; retrieving a prompt
 returns a user message, not executed tool calls.
 
 | Prompt                     | Arguments                            | Purpose                                                                                                               |
 | -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `report-feedback`          | Optional `issue`                     | Collect an actionable report, review shared context and obtain explicit consent before `submit_feedback`.             |
 | `schedule-consultation`    | Optional `request`                   | Guide a requested telephone consultation through current fields, availability and explicit confirmation.              |
 | `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes.             |
 | `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                            |

@@ -8,15 +8,18 @@ import { chatRequestSchema } from "../../server/utils/chat/request";
 
 const { localFetch, calls } = vi.hoisted(() => ({ localFetch: vi.fn(), calls: [] as string[] }));
 vi.mock("nitropack/runtime", () => ({ useNitroApp: () => ({ localFetch }) }));
-const event = { context: { fixture: true, clientAddress: "192.0.2.10" } } as unknown as H3Event;
+const event = {
+  context: { fixture: true, clientAddress: "192.0.2.10" },
+  node: { req: { headers: { "user-agent": "Web fixture" } } }
+} as unknown as H3Event;
 const selections = { question: "answer" };
 
 beforeEach(() => {
   calls.length = 0;
   localFetch.mockReset().mockImplementation(async (path, init) => {
     expect(path).toBe("/mcp");
-    expect(init.context).toBe(event.context);
-    expect(init.context.schedulingClientName).toBe("onderwijsloket-chat");
+    expect(init.context._platform.clientAddress).toBe(event.context.clientAddress);
+    expect(init.context._platform.schedulingClientName).toBe("onderwijsloket-chat");
     const rpc = JSON.parse(init.body);
     calls.push(rpc.method);
     if (rpc.id == null) return new Response(null, { status: 202 });
@@ -126,6 +129,40 @@ it("discovers MCP tools and instructions and exposes prompts/resources through t
   } finally {
     await session.close();
     await session.close();
+  }
+});
+
+it("forwards only the current request history and settings, without retaining them for the next request", async () => {
+  const request = chatRequestSchema.parse({
+    messages: [
+      { id: "u1", role: "user", parts: [{ type: "text", text: "Earlier personal detail" }] },
+      { id: "a1", role: "assistant", parts: [{ type: "text", text: "Earlier response" }] },
+      { id: "u2", role: "user", parts: [{ type: "text", text: "Send this report" }] }
+    ]
+  });
+  const session = await connectChatMcp(event, request);
+  try {
+    expect(event.context.feedbackChatSnapshot).toEqual({
+      conversation: { messages: request.messages },
+      userAgent: "Web fixture",
+      settings: {
+        model: request.model,
+        webSearch: request.webSearch,
+        extendedThinking: request.extendedThinking
+      }
+    });
+    for (const call of localFetch.mock.calls)
+      expect(call[1].context._platform.feedbackChatSnapshot).toBe(
+        event.context.feedbackChatSnapshot
+      );
+  } finally {
+    await session.close();
+  }
+  const next = await connectChatMcp(event);
+  try {
+    expect(event.context.feedbackChatSnapshot).toBeUndefined();
+  } finally {
+    await next.close();
   }
 });
 

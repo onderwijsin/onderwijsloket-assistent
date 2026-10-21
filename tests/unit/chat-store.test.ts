@@ -16,6 +16,7 @@ const storage = vi.hoisted(() => {
   vi.stubGlobal("piniaPluginPersistedstate", { localStorage: () => local });
   return { data, local };
 });
+import { groupConversations } from "../../app/utils/chat-history";
 import { useChatStore } from "../../app/stores/chat";
 
 /** Create a fresh app with the real persistence plugin and a browser-storage substitute. */
@@ -93,6 +94,113 @@ describe("local chat store", () => {
     store.deleteConversation(first.id);
     store.applyGeneratedTitle(first.id, "Een verwijderde chat");
     expect(store.conversations.some((chat) => chat.id === first.id)).toBe(false);
+  });
+
+  it("keeps creation order and date groups when reopening and saving an older chat", () => {
+    const store = openStore();
+    const older = store.newConversation();
+    store.saveMessages(older.id, messages);
+    store.active!.createdAt = "2026-10-20T10:00:00.000Z";
+    const newer = store.newConversation();
+    store.saveMessages(newer.id, messages);
+    store.active!.createdAt = "2026-10-21T10:00:00.000Z";
+    const now = new Date("2026-10-21T12:00:00.000Z");
+    const before = groupConversations(store.conversations, now);
+    store.selectConversation(older.id);
+    store.saveMessages(older.id, messages);
+    store.renameConversation(older.id, "Older chat");
+    expect(groupConversations(store.conversations, now)).toEqual(before);
+    expect(before.map((group) => [group.label, group.items.map((chat) => chat.id)])).toEqual([
+      ["Vandaag", [newer.id]],
+      ["Gisteren", [older.id]]
+    ]);
+    expect(store.active?.createdAt).toBe("2026-10-20T10:00:00.000Z");
+  });
+
+  it("persists pins, orders by pin time and restores creation order on unpin", async () => {
+    const store = openStore();
+    const first = store.newConversation();
+    store.saveMessages(first.id, messages);
+    store.active!.createdAt = "2026-10-19T10:00:00.000Z";
+    const second = store.newConversation();
+    store.saveMessages(second.id, messages);
+    store.active!.createdAt = "2026-10-20T10:00:00.000Z";
+    const draft = store.newConversation();
+    const clock = vi.spyOn(Date.prototype, "toISOString");
+    try {
+      clock.mockReturnValue("2026-10-21T10:00:00.000Z");
+      store.togglePin(second.id);
+      clock.mockReturnValue("2026-10-21T11:00:00.000Z");
+      store.togglePin(first.id);
+      store.togglePin(draft.id);
+      store.togglePin("missing");
+      await nextTick();
+      const restored = openStore();
+      const now = new Date("2026-10-21T12:00:00.000Z");
+      expect(
+        groupConversations(restored.conversations, now).map((group) => [
+          group.label,
+          group.items.map((chat) => chat.id)
+        ])
+      ).toEqual([["Vastgezet", [first.id, second.id]]]);
+      restored.togglePin(first.id);
+      restored.togglePin(second.id);
+      expect(
+        groupConversations(restored.conversations, now).flatMap((group) =>
+          group.items.map((chat) => chat.id)
+        )
+      ).toEqual([second.id, first.id]);
+      clock.mockReturnValue("2026-10-21T12:00:00.000Z");
+      restored.togglePin(first.id);
+      expect(restored.conversations.find((chat) => chat.id === first.id)?.pinnedAt).toBe(
+        "2026-10-21T12:00:00.000Z"
+      );
+    } finally {
+      clock.mockRestore();
+    }
+  });
+
+  it("archives and restores conversations without losing content or creation dates", async () => {
+    const store = openStore();
+    const chat = store.newConversation();
+    store.saveMessages(chat.id, messages);
+    store.active!.draft = "Keep this draft";
+    store.togglePin(chat.id);
+    const createdAt = store.active!.createdAt;
+    store.toggleArchive(chat.id);
+    expect(store.activeId).not.toBe(chat.id);
+    const archived = store.conversations.find((item) => item.id === chat.id)!;
+    expect(archived.archivedAt).toBeTruthy();
+    expect(archived.pinnedAt).toBeNull();
+    store.togglePin(chat.id);
+    expect(archived.pinnedAt).toBeNull();
+    expect(groupConversations(store.conversations).map((group) => group.label)).toEqual([
+      "Gearchiveerd"
+    ]);
+    await nextTick();
+    const restored = openStore();
+    restored.selectConversation(chat.id);
+    expect(restored.active?.archivedAt).toBeTruthy();
+    expect(restored.active?.draft).toBe("Keep this draft");
+    expect(restored.active?.messages).toHaveLength(1);
+    restored.toggleArchive(chat.id);
+    expect(restored.activeId).toBe(chat.id);
+    expect(restored.active?.archivedAt).toBeNull();
+    expect(restored.active?.createdAt).toBe(createdAt);
+    expect(groupConversations(restored.conversations)[0]?.label).toBe("Vandaag");
+    restored.toggleArchive("missing");
+    restored.toggleArchive(chat.id);
+    restored.deleteConversation(chat.id);
+    expect(restored.conversations.some((item) => item.id === chat.id)).toBe(false);
+  });
+
+  it("restores legacy conversations without pin timestamps", async () => {
+    const store = openStore();
+    const chat = store.newConversation();
+    store.saveMessages(chat.id, messages);
+    await nextTick();
+    expect(openStore().active?.id).toBe(chat.id);
+    expect(openStore().active?.pinnedAt).toBeUndefined();
   });
 
   it("does not retain mutable SDK message references", () => {

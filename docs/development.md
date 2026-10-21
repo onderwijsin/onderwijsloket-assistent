@@ -10,7 +10,7 @@ For a fresh checkout, run `corepack pnpm install` after configuring environment 
 
 `NOTION_API_KEY` is an optional server-only secret in the core Varlock schema,
 resolved from the environment-specific `NOTION_API_KEY` field in Proton Pass.
-It is reserved for feedback reporting; the reporting integration is not implemented yet.
+It is used by the server-side [feedback reporting integration](feedback.md).
 Provision that field in Proton Pass or supply an environment override before loading
 the configuration: the current resolver errors on a missing field despite `allowMissing=true`.
 
@@ -100,6 +100,9 @@ The light-mode page uses Onderwijs in’s `sand-main` token
 (`oklch(96% 0.011 76.6)`) around a `sand-light` conversation panel (`oklch(97.4% 0.006 75.4)`). Dark mode uses
 `neutral-950` for the page and a panel-scoped `bg-default` mapped to `zinc-900` at 50% opacity.
 The command palette includes new-chat and system/light/dark color-mode actions.
+`UDashboardSearch` owns the Cmd+K (Ctrl+K on other platforms) shortcut, including
+when the composer is focused. Do not register a second handler for this shortcut:
+both handlers would run and immediately close the palette again.
 
 The dashboard mounts client-side behind a loading skeleton. Pinia owns conversations,
 drafts and model settings, persisted in localStorage with the installed persisted-state

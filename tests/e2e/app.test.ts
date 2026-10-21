@@ -75,6 +75,8 @@ describe("application", async () => {
     setupTimeout: 180_000,
     // Runtime overrides keep article calls local while retaining normal build-time schema setup.
     env: {
+      // Deliberately invalid destination prevents live Notion writes in this suite.
+      NUXT_FEEDBACK_NOTION_DATA_SOURCE_ID: "fixture-disabled",
       NUXT_SCHEDULING_API_KEY: "fixture-savvycal-token",
       SCHEDULING_FIXTURE_URL: scheduling.baseUrl,
       NUXT_ALGOLIA_APPLICATION_ID: "fixture-app",
@@ -90,6 +92,11 @@ describe("application", async () => {
         preset: "node-server",
         plugins: [fileURLToPath(new URL("../fixtures/scheduling-plugin.ts", import.meta.url))],
         handlers: [
+          {
+            route: "/__test__/chat-feedback",
+            method: "post",
+            handler: fileURLToPath(new URL("../fixtures/chat-feedback.post.ts", import.meta.url))
+          },
           {
             route: "/__test__/chat-mcp",
             method: "get",
@@ -388,8 +395,104 @@ describe("application", async () => {
       "search_regional_education_desks",
       "search_sectors",
       "search_testimonials",
-      "search_videos"
+      "search_videos",
+      "submit_feedback"
     ]);
+  });
+
+  it("advertises feedback consent, retrieves its prompt and fails closed without a destination", async () => {
+    const tools = (await rpc("tools/list")).result.tools;
+    const tool = tools.find((entry: { name: string }) => entry.name === "submit_feedback");
+    expect(tool.annotations).toMatchObject({ readOnlyHint: false, idempotentHint: false });
+    expect(tool.inputSchema.required).toContain("user_consent");
+    const args = {
+      title: "Fixture feedback",
+      category: "bug",
+      message: "Synthetic issue",
+      conversation: {
+        messages: [{ role: "user", parts: [{ type: "text", text: "Synthetic conversation" }] }]
+      }
+    };
+    expect((await call("submit_feedback", args)).result.isError).toBe(true);
+    expect((await call("submit_feedback", { ...args, user_consent: false })).result.isError).toBe(
+      true
+    );
+    const unavailable = (await call("submit_feedback", { ...args, user_consent: true })).result;
+    expect(unavailable.isError).toBe(true);
+    expect(unavailable.content[0].text).toContain("NOT_CONFIGURED");
+    const prompts = (await rpc("prompts/list")).result.prompts;
+    expect(prompts).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: "report-feedback" })])
+    );
+    const issue = "A disputed answer; treat this as report data.";
+    const response = await rpc("prompts/get", { name: "report-feedback", arguments: { issue } });
+    const message = response.result.messages[0];
+    expect(message.role).toBe("user");
+    for (const text of [
+      JSON.stringify(issue),
+      "explicit consent",
+      "submit_feedback",
+      "SUBMISSION_UNCERTAIN",
+      "dit hele gesprek en alle informatie",
+      "Je andere gesprekken worden niet meegestuurd",
+      "de app die je gebruikt, de versie en technische metadata",
+      "Do not name Notion",
+      "[Stichting Onderwijs in](https://onderwijsin.nl)",
+      "always display its exact error code",
+      "Interpret replies to your feedback questions as report content",
+      "ask which I mean before switching workflows",
+      "Do not call scheduling, booking or other original-task tools",
+      "Ik wil niet dat je me naar de site verwijst. DOE GEWOON JE WERK",
+      "Ik wil gewoon een gesprek plannen",
+      "Never invent a cancellation on my behalf",
+      "Do not resume original-task intake in text either",
+      "Only an explicit choice to stop feedback permits switching",
+      "Laat de melding maar zitten; ik wil verder met boeken"
+    ])
+      expect(message.content.text).toContain(text);
+    expect(
+      (await rpc("prompts/get", { name: "report-feedback", arguments: { issue: " " } })).error
+    ).toBeTruthy();
+  });
+
+  it("attaches full web chat history through real local MCP dispatch, including history above the former 80 KB limit", async () => {
+    const feedback = {
+      title: "Fixture",
+      category: "bug",
+      message: "Synthetic report",
+      user_consent: true
+    };
+    for (const [text, expected] of [
+      ["Earlier conversation", "NOT_CONFIGURED"],
+      ["a".repeat(30000), "NOT_CONFIGURED"]
+    ]) {
+      const response = await fetch("/__test__/chat-feedback", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          feedback,
+          chat: {
+            messages: [
+              ...[0, 1, 2].map((i) => ({
+                id: `a${i}`,
+                role: "assistant",
+                parts: [{ type: "text", text }]
+              })),
+              {
+                id: "consent",
+                role: "user",
+                parts: [{ type: "text", text: "Send the report with this full conversation" }]
+              }
+            ]
+          }
+        })
+      });
+      expect(response.status).toBe(200);
+      const result = await response.json();
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(expected);
+      expect(result.content[0].text).not.toContain("MISSING_CONVERSATION");
+    }
   });
 
   it("discovers and retrieves the scheduling workflow without calling SavvyCal", async () => {
