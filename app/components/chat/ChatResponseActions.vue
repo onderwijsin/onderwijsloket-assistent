@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { isTextUIPart, type UIMessage } from "ai";
 
-const props = defineProps<{ message: UIMessage; busy: boolean }>();
+const props = defineProps<{ message: UIMessage; busy: boolean; canRegenerate?: boolean }>();
 const emit = defineEmits<{ regenerate: [messageId: string] }>();
 const text = computed(() =>
   props.message.parts
@@ -40,14 +40,20 @@ async function copyResponse() {
         @click="copyResponse"
       />
     </UTooltip>
-    <UTooltip text="Antwoord opnieuw genereren">
+    <UTooltip
+      :text="
+        canRegenerate === false
+          ? 'Opnieuw genereren uitgeschakeld om dubbele boekingen te voorkomen'
+          : 'Antwoord opnieuw genereren'
+      "
+    >
       <UButton
         icon="i-lucide-rotate-cw"
         aria-label="Antwoord opnieuw genereren"
         color="neutral"
         variant="ghost"
         size="xs"
-        :disabled="busy"
+        :disabled="busy || canRegenerate === false"
         :ui="{ leadingIcon: 'size-4!' }"
         @click="emit('regenerate', message.id)"
       />

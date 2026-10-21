@@ -14,6 +14,7 @@ export async function connectChatMcp(event: H3Event) {
   const { localFetch } = useNitroApp();
   // Preserve the runtime-resolved caller address through local MCP dispatch for booking quotas.
   event.context.clientAddress = getRequestIP(event);
+  event.context.schedulingClientName = "onderwijsloket-chat";
   const client = await createMCPClient({
     clientName: "onderwijsloket-chat",
     transport: {

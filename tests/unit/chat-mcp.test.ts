@@ -16,6 +16,7 @@ beforeEach(() => {
   localFetch.mockReset().mockImplementation(async (path, init) => {
     expect(path).toBe("/mcp");
     expect(init.context).toBe(event.context);
+    expect(init.context.schedulingClientName).toBe("onderwijsloket-chat");
     const rpc = JSON.parse(init.body);
     calls.push(rpc.method);
     if (rpc.id == null) return new Response(null, { status: 202 });

@@ -201,3 +201,9 @@ workflow; it requests help with scheduling but does not confirm an appointment.
 
 Messages, drafts and options are stored locally through Pinia. No server-side
 conversation persistence or authentication is used.
+
+Regenerate and retry are disabled whenever truncating that response would discard a `book_appointment` tool attempt, including failed or incomplete attempts. On a stream error after a booking attempt, the chat asks the user to check their confirmation email. Subsequent unrelated answers can still be regenerated.
+
+The AI accuracy disclaimer appears only in the welcome view, before the first message. It is hidden in transcript view.
+
+After submitting by Enter, button or suggested prompt, focus moves to the active composer, including the welcome-to-transcript transition. While a response is in progress the textarea is read-only instead of disabled, preserving focus; submission guards still prevent overlapping requests.

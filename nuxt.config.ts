@@ -20,7 +20,8 @@ export default defineNuxtConfig({
     experimental: { asyncContext: true },
     storage: {
       "simple-rate-limiter:%2Fapi%2Fchat": { driver: "memory" },
-      "simple-rate-limiter:%2Fmcp": { driver: "memory" }
+      "simple-rate-limiter:%2Fmcp": { driver: "memory" },
+      "scheduling-replays": { driver: "memory" }
     }
   },
 

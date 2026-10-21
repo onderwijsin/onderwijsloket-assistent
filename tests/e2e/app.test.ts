@@ -233,16 +233,29 @@ describe("application", async () => {
         })
       ])
     );
-    // Both language links share the same creation quota; read-only calls remain available.
+    const replay = (await call("book_appointment", args)).result;
+    expect(replay.structuredContent).toEqual(result.structuredContent);
+    expect(scheduling.requests.filter(({ method }) => method === "POST")).toHaveLength(1);
+    // Both language links share the same creation quota; distinct bookings consume quota.
     for (const language of ["en", "nl"] as const) {
       const next = (
-        await call("book_appointment", { ...args, language, answers: answersFor(language) })
+        await call("book_appointment", {
+          ...args,
+          email: `${language}@example.test`,
+          language,
+          answers: answersFor(language)
+        })
       ).result;
       expect(next.isError).not.toBe(true);
       if (language === "en") expect(next.structuredContent.message).toContain("Your booking");
     }
     const blocked = (
-      await call("book_appointment", { ...args, language: "en", answers: answersFor("en") })
+      await call("book_appointment", {
+        ...args,
+        email: "blocked@example.test",
+        language: "en",
+        answers: answersFor("en")
+      })
     ).result;
     expect(blocked.isError).toBe(true);
     expect(JSON.parse(blocked.content[0].text)).toMatchObject({
@@ -259,7 +272,13 @@ describe("application", async () => {
         booking_ready: false,
         blocking_field_ids: ["field_education"]
       });
-      const rejected = (await call("book_appointment", { ...args, language: "en" })).result;
+      const rejected = (
+        await call("book_appointment", {
+          ...args,
+          email: "incomplete@example.test",
+          language: "en"
+        })
+      ).result;
       expect(JSON.parse(rejected.content[0].text).code).toBe("FORM_NOT_CONFIGURED");
       expect(scheduling.requests.filter(({ method }) => method === "POST")).toHaveLength(3);
     } finally {
@@ -392,12 +411,18 @@ describe("application", async () => {
       "get_scheduling_slots",
       "book_appointment",
       "explicit confirmation",
-      "silently dropping",
+      "otherwise use Europe/Amsterdam",
+      "Do not ask me for my time zone",
+      "one clear question on its own line in bold",
+      "Dutch 0612345678 becomes +31612345678",
+      "Never request an international format",
+      "never bold",
       "RATE_LIMITED",
       "BOOKING_UNCERTAIN"
     ]) {
       expect(message.content.text).toContain(text);
     }
+    expect(message.content.text).not.toMatch(/known limitation|issue #13|silently dropping/i);
     const defaultPrompt = await rpc("prompts/get", {
       name: "schedule-consultation",
       arguments: {}

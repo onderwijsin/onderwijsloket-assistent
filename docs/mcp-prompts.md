@@ -5,14 +5,14 @@ They complement shared `mcp.instructions` without changing tool or resource
 contracts. Clients must support prompt listing and retrieval; retrieving a prompt
 returns a user message, not executed tool calls.
 
-| Prompt                     | Arguments                            | Purpose                                                                                                                                                          |
-| -------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `schedule-consultation`    | Optional `request`                   | Guide a requested telephone consultation through current fields, availability and explicit confirmation, with a website handoff for the known intake limitation. |
-| `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes.                                                        |
-| `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                                                                       |
-| `find-supporting-articles` | Optional `source`, `focus`           | Find useful related reading using contextually relevant taxonomy filters or text search.                                                                         |
-| `find-supporting-media`    | Optional `source`, `focus`           | Find podcast episodes, videos and personal stories, respecting format preferences and available content.                                                         |
-| `find-education-routes`    | Optional `background`                | Ask the source-defined route questions, validate confirmed choices, find matching pathways and explain ordered steps.                                            |
+| Prompt                     | Arguments                            | Purpose                                                                                                               |
+| -------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `schedule-consultation`    | Optional `request`                   | Guide a requested telephone consultation through current fields, availability and explicit confirmation.              |
+| `compare-programs`         | Required `request`                   | Compare programs or discover alternatives, preserving program-form distinctions and evidenced attributes.             |
+| `find-local-support`       | Required `location`, optional `need` | Find regional desks and verify services and coverage, explaining geographic approximation.                            |
+| `find-supporting-articles` | Optional `source`, `focus`           | Find useful related reading using contextually relevant taxonomy filters or text search.                              |
+| `find-supporting-media`    | Optional `source`, `focus`           | Find podcast episodes, videos and personal stories, respecting format preferences and available content.              |
+| `find-education-routes`    | Optional `background`                | Ask the source-defined route questions, validate confirmed choices, find matching pathways and explain ordered steps. |
 
 Arguments are strings validated with Zod. Whitespace-only values are rejected;
 optional values should be omitted when not needed. A source can be a collection
@@ -52,8 +52,11 @@ The prompt has a Dutch activity label when loaded. The three scheduling tools al
 have Dutch activity labels for retrieving consultation details, finding available
 times and booking the appointment.
 
-Until [issue #13](https://github.com/onderwijsin/onderwijsloket-assistent/issues/13)
-is resolved, the workflow discloses that in-chat bookings can lose choice answers and
-recommends the website form. Continuing in chat requires an explicit user choice after
-that disclosure; final booking confirmation is still separate. The server adapter and
-its current serialization are unchanged. See [scheduling](scheduling.md).
+The experimental scheduling flow proceeds through the MCP tools without a warning or
+website handoff for the pending provider choice-field issue. The website remains a
+fallback for unavailable form configuration or booking failures. The server adapter
+and its current serialization are unchanged. See [scheduling](scheduling.md).
+
+Scheduling infers the IANA time zone from reliable conversation or host context, defaulting to `Europe/Amsterdam`. It does not ask for the time zone or infer it from language alone. Times are labelled clearly and user corrections are accepted. Intake turns emphasize one question in bold on its own line, with brief context. Preparation links follow booking unless requested earlier; links are not bold. Final confirmation still summarizes all booking details.
+
+Phone intake asks for a reachable number without imposing a format. The assistant normalizes clear numbers internally using established country context, clarifies the country only when ambiguous, and includes the result in the final booking summary without a separate formatting confirmation.

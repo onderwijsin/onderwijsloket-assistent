@@ -3,6 +3,7 @@ import { useChat } from "@ai-sdk/vue";
 import { DefaultChatTransport } from "ai";
 import { storeToRefs } from "pinia";
 import { chatTitleSchema } from "../../../shared/utils/chat-title";
+import { canRegenerateChat } from "../../utils/chat-regenerate";
 import { restoreChatMessages } from "../../utils/chat-storage";
 
 const props = defineProps<{ conversationId: string }>();
@@ -19,6 +20,7 @@ const showTranscript = shallowRef(conversation.messages.length > 0);
 const submitting = shallowRef(false);
 let disposed = false;
 const transcript = useTemplateRef("transcript");
+const composer = useTemplateRef("composer");
 const { messages, status, error, sendMessage, stop, regenerate, clearError } = useChat({
   messages: restoreChatMessages(JSON.parse(JSON.stringify(conversation.messages))),
   throttle: 100,
@@ -50,6 +52,12 @@ const { messages, status, error, sendMessage, stop, regenerate, clearError } = u
   })
 });
 const busy = computed(() => status.value === "submitted" || status.value === "streaming");
+
+/** Preserve booking attempts when retrying or replacing an earlier answer. */
+async function regenerateSafely(messageId?: string) {
+  if (busy.value || !canRegenerateChat(messages.value, messageId)) return;
+  await regenerate({ messageId });
+}
 
 // Persist snapshots against this instance's ID, even when another chat is selected.
 watch(messages, (value) => store.saveMessages(props.conversationId, value), { flush: "sync" });
@@ -83,6 +91,8 @@ async function submitMessage(value: string, clearDraft = false) {
       messages.value.length === 0 &&
       conversation.titleSource === "fallback";
     conversation.titleRequested = true;
+    await nextTick();
+    composer.value?.focus();
     await sendMessage({ text }, { body: { generateTitle } });
   } finally {
     submitting.value = false;
@@ -134,12 +144,16 @@ onBeforeUnmount(() => {
     >
       <ChatWelcome class="my-auto shrink-0 py-8 sm:py-12" @select="selectSuggestion">
         <ChatComposer
+          ref="composer"
           v-model="input"
           v-model:settings="settings"
           :status="status"
           @submit="submit"
           @stop="stop()"
         />
+        <p class="text-muted text-center text-xs">
+          AI kan fouten maken. Controleer belangrijke informatie bij een opleider of adviseur.
+        </p>
       </ChatWelcome>
     </div>
     <template v-else>
@@ -152,7 +166,7 @@ onBeforeUnmount(() => {
           <ChatTranscript
             :messages="messages"
             :status="status"
-            @regenerate="regenerate({ messageId: $event })"
+            @regenerate="regenerateSafely($event)"
           />
         </div>
       </div>
@@ -163,7 +177,11 @@ onBeforeUnmount(() => {
           <UAlert
             v-if="error"
             title="Het is niet gelukt"
-            :description="error.message"
+            :description="
+              canRegenerateChat(messages)
+                ? error.message
+                : 'Mogelijk is je afspraak al aangemaakt. Controleer je bevestigingsmail voordat je opnieuw boekt.'
+            "
             color="error"
             variant="soft"
             icon="i-lucide-circle-alert"
@@ -172,15 +190,17 @@ onBeforeUnmount(() => {
           >
             <template #actions>
               <UButton
+                v-if="canRegenerateChat(messages)"
                 label="Opnieuw proberen"
                 color="error"
                 variant="subtle"
                 size="sm"
-                @click="regenerate()"
+                @click="regenerateSafely()"
               />
             </template>
           </UAlert>
           <ChatComposer
+            ref="composer"
             v-model="input"
             v-model:settings="settings"
             :status="status"
@@ -188,9 +208,6 @@ onBeforeUnmount(() => {
             @submit="submit"
             @stop="stop()"
           />
-          <p class="text-muted text-center text-xs">
-            AI kan fouten maken. Controleer belangrijke informatie bij een opleider of adviseur.
-          </p>
         </div>
       </div>
     </template>
