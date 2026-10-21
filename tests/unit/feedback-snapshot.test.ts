@@ -7,7 +7,7 @@ import type { FeedbackReport } from "../../server/utils/feedback/schemas";
 
 const report: FeedbackReport = {
   schemaVersion: 1,
-  consentVersion: "feedback-v3",
+  consentVersion: "feedback-v4",
   receivedAt: "2026-10-21T12:00:00.000Z",
   input: {
     title: "Unicode feedback 😀",

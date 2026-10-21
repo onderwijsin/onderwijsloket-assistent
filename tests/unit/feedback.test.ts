@@ -54,13 +54,101 @@ describe("feedback submission", () => {
     expect(JSON.stringify(error)).not.toContain("private-value");
     expect(create).not.toHaveBeenCalled();
   });
-  it("rejects reports without a conversation before writing", async () => {
+  it("requires an authoritative conversation for web chat", async () => {
     const create = vi.fn();
     await expect(
-      createFeedbackService({ create }).submit({ ...input, conversation: undefined }, context)
+      createFeedbackService({ create }).submit(
+        { ...input, conversation: undefined },
+        { source: "Web chat" }
+      )
     ).rejects.toMatchObject({ code: "MISSING_CONVERSATION" });
     expect(create).not.toHaveBeenCalled();
   });
+  it.each([
+    JSON.parse('{"__proto__":{"retained":true},"constructor":"retained"}'),
+    null,
+    false,
+    true,
+    0,
+    42,
+    "",
+    "A reconstructed conversation",
+    [],
+    [{ role: "tool", content: "Available result" }],
+    {
+      source: "model-visible-context",
+      completeness: "partial",
+      messages: [{ role: "user", content: "Question" }],
+      extra: { trace: [1, null, false] }
+    },
+    { messages: "unfamiliar", id: 123, createdAt: "not-a-date", other: "retain" }
+  ])("preserves arbitrary external JSON (%j) in one write", async (conversation) => {
+    await fixture().submit({ ...input, conversation }, context);
+    expect(request).toHaveBeenCalledOnce();
+    const page = request.mock.calls[0]![1].body;
+    const report = JSON.parse(
+      page.children
+        .flatMap((b) => b.code.rich_text)
+        .map((p) => p.text.content)
+        .join("")
+    );
+    expect(report.input.conversation).toEqual(conversation);
+  });
+
+  it("accepts omitted external context without manufacturing history", async () => {
+    const { conversation: _conversation, ...withoutHistory } = input;
+    await fixture().submit(withoutHistory, context);
+    const page = request.mock.calls[0]![1].body;
+    const report = JSON.parse(
+      page.children
+        .flatMap((b) => b.code.rich_text)
+        .map((p) => p.text.content)
+        .join("")
+    );
+    expect(report.input).not.toHaveProperty("conversation");
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("compresses unfamiliar external context losslessly without requiring a transcript", async () => {
+    const conversation = {
+      completeness: "partial",
+      toolInteractions: [{ output: "retained".repeat(100_000) }]
+    };
+    await fixture().submit({ ...input, conversation }, context);
+    const page = request.mock.calls[0]![1].body;
+    expect(page.children.every((b) => b.code.language === "json")).toBe(true);
+    const envelope = JSON.parse(
+      page.children
+        .flatMap((b) => b.code.rich_text)
+        .map((p) => p.text.content)
+        .join("")
+    );
+    expect(envelope.encoding).toBe("gzip+base64");
+    expect((await decodeFeedbackSnapshot(envelope)).input.conversation).toEqual(conversation);
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it.each([NaN, Infinity, 1n, () => "not JSON", new Date(), { value: undefined }])(
+    "rejects non-JSON in-process context safely",
+    async (conversation) => {
+      const create = vi.fn();
+      await expect(
+        createFeedbackService({ create }).submit({ ...input, conversation }, context)
+      ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+      expect(create).not.toHaveBeenCalled();
+    }
+  );
+
+  it("rejects cyclic in-process JSON representations without writing", async () => {
+    const conversation: Record<string, unknown> = {};
+    conversation.self = conversation;
+    const create = vi.fn();
+    await expect(
+      createFeedbackService({ create }).submit({ ...input, conversation }, context)
+    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+    expect(create).not.toHaveBeenCalled();
+  });
+
   it.each([false, undefined, "true"])(
     "requires explicit boolean consent before any write (%s)",
     async (consent) => {
@@ -88,7 +176,7 @@ describe("feedback submission", () => {
           messages: [{ id: "u1", role: "user", parts: [{ type: "text", text: "Question" }] }]
         }
       },
-      context
+      { ...context, source: "Web chat" }
     );
     expect(receipt.report_id).toBe("another-store-id");
     const report = create.mock.calls[0]![0];
@@ -98,7 +186,7 @@ describe("feedback submission", () => {
     expect(JSON.stringify(report)).not.toContain("unsent secret");
     expect(report).toMatchObject({
       schemaVersion: 1,
-      consentVersion: "feedback-v3",
+      consentVersion: "feedback-v4",
       receivedAt: receipt.received_at
     });
   });
@@ -239,18 +327,16 @@ describe("feedback submission", () => {
     expect(request).not.toHaveBeenCalled();
   });
 
-  it.each([
-    { email: "invalid" },
-    { occurred_at: "not-a-date" },
-    { category: "unknown" },
-    { conversation: { messages: [{ role: "system", parts: [{ type: "text", text: "secret" }] }] } }
-  ])("rejects malformed boundary input", async (invalid) => {
-    const create = vi.fn();
-    await expect(
-      createFeedbackService({ create }).submit({ ...input, ...invalid }, context)
-    ).rejects.toMatchObject({ code: "INVALID_INPUT" });
-    expect(create).not.toHaveBeenCalled();
-  });
+  it.each([{ email: "invalid" }, { occurred_at: "not-a-date" }, { category: "unknown" }])(
+    "rejects malformed boundary input",
+    async (invalid) => {
+      const create = vi.fn();
+      await expect(
+        createFeedbackService({ create }).submit({ ...input, ...invalid }, context)
+      ).rejects.toMatchObject({ code: "INVALID_INPUT" });
+      expect(create).not.toHaveBeenCalled();
+    }
+  );
 
   it("writes all supported metadata and exact structured history in one authenticated POST", async () => {
     const conversation = {

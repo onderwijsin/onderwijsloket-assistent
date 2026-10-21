@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { FeedbackError } from "../feedback/errors";
-import type { FeedbackReport, FeedbackStorage } from "../feedback/schemas";
+import {
+  feedbackConversationSchema,
+  type FeedbackReport,
+  type FeedbackStorage
+} from "../feedback/schemas";
 import type { NotionClient, NotionPageInput, NotionProperty } from "./client";
 import { NotionWriteError } from "./errors";
 import { compressFeedbackSnapshot } from "../feedback/snapshot";
@@ -54,6 +58,9 @@ export function notionText(value: string) {
  */
 export function feedbackPage(report: FeedbackReport, dataSourceId: string): NotionPageInput {
   const { input, context } = report;
+  // This is only a metadata projection; the original JSON remains in the snapshot.
+  const parsed = feedbackConversationSchema.safeParse(input.conversation);
+  const conversation = parsed.success ? parsed.data : undefined;
   const categories = { incorrect_information: "Incorrect information", bug: "Bug", other: "Other" };
   const properties: Record<string, NotionProperty> = {
     Name: { title: notionText(input.title) },
@@ -67,8 +74,8 @@ export function feedbackPage(report: FeedbackReport, dataSourceId: string): Noti
     Source: { select: { name: context.source } }
   };
   for (const [name, value] of Object.entries({
-    "Conversation ID": input.conversation?.id,
-    "Conversation title": input.conversation?.title,
+    "Conversation ID": conversation?.id,
+    "Conversation title": conversation?.title,
     "Message ID": input.message_id,
     Model: input.settings?.model,
     "User agent": context.userAgent,
@@ -79,8 +86,8 @@ export function feedbackPage(report: FeedbackReport, dataSourceId: string): Noti
     if (value !== undefined) properties[name] = { rich_text: notionText(value) };
   for (const [name, value] of Object.entries({
     "Occurred at": input.occurred_at,
-    "Conversation started at": input.conversation?.createdAt,
-    "Conversation updated at": input.conversation?.updatedAt
+    "Conversation started at": conversation?.createdAt,
+    "Conversation updated at": conversation?.updatedAt
   }))
     if (value !== undefined) properties[name] = { date: { start: value } };
   if (input.email) properties["User email"] = { email: input.email };
@@ -127,20 +134,25 @@ export function createNotionFeedbackStorage(
       if (size > 500_000) {
         try {
           const compressed = await compressFeedbackSnapshot(report);
-          const transcript = report.input
-            .conversation!.messages.map((message) => {
-              const text = message.parts
-                .filter((part) => part.type === "text" && typeof part.text === "string")
-                .map((part) => part.text)
-                .join("\n\n");
-              return `${message.role}:\n${text}`;
-            })
-            .join("\n\n");
+          const parsed = feedbackConversationSchema.safeParse(report.input.conversation);
+          const transcript = parsed.success
+            ? parsed.data.messages
+                .map((message) => {
+                  const text = message.parts
+                    .filter((part) => part.type === "text" && typeof part.text === "string")
+                    .map((part) => part.text)
+                    .join("\n\n");
+                  return `${message.role}:\n${text}`;
+                })
+                .join("\n\n")
+            : undefined;
           page.children = [
-            ...codeBlocks(
-              `Readable conversation (text only). Full structured snapshot is gzip+base64 in the JSON blocks below.\n\n${transcript}`,
-              "plain text"
-            ),
+            ...(transcript
+              ? codeBlocks(
+                  `Readable conversation (text only). Full structured snapshot is gzip+base64 in the JSON blocks below.\n\n${transcript}`,
+                  "plain text"
+                )
+              : []),
             ...codeBlocks(JSON.stringify(compressed))
           ];
         } catch {

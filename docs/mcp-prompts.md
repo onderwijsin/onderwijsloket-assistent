@@ -61,3 +61,11 @@ and its current serialization are unchanged. See [scheduling](scheduling.md).
 Scheduling infers the IANA time zone from reliable conversation or host context, defaulting to `Europe/Amsterdam`. It does not ask for the time zone or infer it from language alone. Times are labelled clearly and user corrections are accepted. Intake turns emphasize one question in bold on its own line, with brief context. Preparation links follow booking unless requested earlier; links are not bold. Final confirmation still summarizes all booking details.
 
 Phone intake asks for a reachable number without imposing a format. The assistant normalizes clear numbers internally using established country context, clarifies the country only when ambiguous, and includes the result in the final booking summary without a separate formatting confirmation.
+
+## Instruction ownership
+
+`config/mcp.ts` contains only cross-cutting guidance: purpose, minimal context,
+source choice, evidence, uncertainty and consent for writes. Collection/tool
+descriptions own field requirements, filters, pagination and action-specific
+behavior. Prompts explain multi-step workflows. Scheduling and feedback are
+conditional workflows, not the focus of every knowledge request.

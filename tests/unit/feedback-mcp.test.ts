@@ -120,7 +120,11 @@ describe("feedback MCP contract", () => {
     await withClient(async (client) => {
       const result = await client.callTool({
         name: "submit_feedback",
-        arguments: { ...args, settings: { ...settings, model: "invented" } }
+        arguments: {
+          ...args,
+          conversation: "agent reconstruction must not override snapshot",
+          settings: { ...settings, model: "invented" }
+        }
       });
       expect(result.isError).not.toBe(true);
       const body = createPage.mock.calls[0]![0];
@@ -132,7 +136,7 @@ describe("feedback MCP contract", () => {
       expect(report.input.conversation).toEqual(conversation);
       expect(report.input.settings).toEqual(settings);
       expect(report.context.source).toBe("Web chat");
-      expect(report.consentVersion).toBe("feedback-v3");
+      expect(report.consentVersion).toBe("feedback-v4");
     });
   });
 
@@ -147,15 +151,45 @@ describe("feedback MCP contract", () => {
     expect(createPage).not.toHaveBeenCalled();
   });
 
-  it("rejects external submissions without history instead of saving an incomplete report", async () => {
+  it("accepts external submissions without history", async () => {
     await withClient(async (client) => {
       const { conversation: _conversation, ...withoutHistory } = args;
       const result = await client.callTool({ name: "submit_feedback", arguments: withoutHistory });
-      expect(result.isError).toBe(true);
-      expect(JSON.stringify(result)).toContain("MISSING_CONVERSATION");
-      expect(createPage).not.toHaveBeenCalled();
+      expect(result.isError).not.toBe(true);
+      expect(createPage).toHaveBeenCalledOnce();
     });
   });
+  it.each([
+    JSON.parse('{"__proto__":{"retained":true},"constructor":"retained"}'),
+    null,
+    false,
+    0,
+    "reconstructed",
+    [],
+    { messages: [{ role: "user", content: "partial" }], completeness: "partial" }
+  ])("accepts arbitrary JSON through real MCP schema validation (%j)", async (conversation) => {
+    await withClient(async (client) => {
+      const listed = await client.listTools();
+      expect(listed.tools[0]?.inputSchema.required).not.toContain("conversation");
+      const result = await client.callTool({
+        name: "submit_feedback",
+        arguments: { ...args, conversation }
+      });
+      expect(result.isError).not.toBe(true);
+      expect(createPage).toHaveBeenCalledOnce();
+      const page = createPage.mock.calls[0]![0];
+      const snapshot = JSON.parse(
+        page.children
+          .flatMap(
+            (b: { code: { rich_text: { text: { content: string } }[] } }) => b.code.rich_text
+          )
+          .map((p: { text: { content: string } }) => p.text.content)
+          .join("")
+      );
+      expect(snapshot.input.conversation).toEqual(conversation);
+    });
+  });
+
   it("advertises explicit consent and returns a minimal receipt with request attribution", async () => {
     await withClient(async (client) => {
       const tools = await client.listTools();
