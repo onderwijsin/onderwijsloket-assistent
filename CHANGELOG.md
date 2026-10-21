@@ -1,3 +1,11 @@
+## [1.1.1](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v1.1.0...v1.1.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* Condense mcp system instruction ([2d7c27d](https://github.com/onderwijsin/onderwijsloket-assistent/commit/2d7c27df80fa551bdaea95c4595ad89a2b406c0d))
+* **feedback:** Accept best-effort external conversation context ([37f63ba](https://github.com/onderwijsin/onderwijsloket-assistent/commit/37f63ba3c5944bf437ff79d73d04aa0c2cce5cec))
+
 # [1.1.0](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v1.0.0...v1.1.0) (2026-10-21)
 
 

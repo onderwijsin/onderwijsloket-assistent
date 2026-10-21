@@ -1,6 +1,6 @@
 {
   "name": "@onderwijsin/onderwijsloket-assistent",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "An experimental MCP server to connect AI assistants to Onderwijsloket’s knowledge about working in education.",
   "type": "module",
