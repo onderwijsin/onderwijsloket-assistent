@@ -113,8 +113,11 @@ The old header, footer, newsletter banner and their exclusive components are rem
 Draft-only conversations stay out of sidebar history and search until the first user
 message is submitted. Typing alone does not add a navigation item.
 The sidebar provides new conversations, grouped local history, title search and links to
-Onderwijs in, the GitHub repository and the newsletter page. The conversation title menu
-supports pin/unpin, rename, copying and delete. “Gesprek kopiëren” copies the title and
+Onderwijs in, the GitHub repository and the newsletter page.
+The expanded sidebar footer shows the package version (shared with the MCP server) and
+the first eight characters of Nuxt's build ID in small, muted text. Hovering reveals the
+full build ID. The label is also present in mobile navigation and hidden when collapsed.
+The conversation title menu supports pin/unpin, rename, copying and delete. “Gesprek kopiëren” copies the title and
 user/assistant text as Markdown with speaker headings, excluding reasoning and tool payloads.
 Successful copying shows “Het gesprek is gekopieerd naar je klembord”; failures show an error toast.
 The copy action is disabled while copying or when the Clipboard API is unavailable.
