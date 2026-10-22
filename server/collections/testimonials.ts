@@ -264,7 +264,11 @@ export default defineMcpCollection({
       truncated: rendered.truncated
     };
   },
-  /** @returns Filter rules and taxonomy choices with sanitized source failures. */
+  /**
+   * Retrieve the supported testimonial filters and their current choices.
+   *
+   * @returns Filter rules and taxonomy choices with sanitized source failures.
+   */
   async filters() {
     try {
       return await filters.filters();

@@ -20,6 +20,11 @@ export default defineMcpResource({
     name: faqs.name,
     id: faqs.getInput.shape.id,
     get: faqs.get,
+    /**
+     * Select the rendered answer for the resource document.
+     * @param record - Validated detail record returned by the collection.
+     * @returns The record’s rendered answer text.
+     */
     content: (record) => record.answer,
     metadata: faqs.resourceMetadata
   })

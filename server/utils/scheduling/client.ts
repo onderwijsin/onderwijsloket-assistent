@@ -21,9 +21,11 @@ export function createSavvyCalClient(apiKey: string | undefined, transport = glo
     { fetch: transport }
   );
 
-  /** Resolve only a known, fixed API path.
+  /**
+   * Resolve only a known, fixed API path.
    * @param language - Consultation language.
    * @returns API path for the selected allowlisted link.
+   * @throws SchedulingError when the language is unsupported or the API token is missing.
    */
   function linkPath(language: SchedulingLanguage) {
     const parsed = schedulingLanguageSchema.safeParse(language);

@@ -227,6 +227,8 @@ export default defineMcpCollection({
   ...search,
   sorts,
   /**
+   * Read and normalize a page of FAQ summaries.
+   *
    * @param args - Parsed FAQ filters and pagination.
    * @returns A page of normalized FAQ summaries.
    */
@@ -242,6 +244,8 @@ export default defineMcpCollection({
     };
   },
   /**
+   * Read one FAQ detail record with its bounded relations.
+   *
    * @param id - Validated FAQ identifier.
    * @returns Readable answer and bounded related article references.
    */
@@ -276,7 +280,11 @@ export default defineMcpCollection({
       ]
     };
   },
-  /** @returns Filter rules and current taxonomy choices, or a sanitized upstream failure. */
+  /**
+   * Retrieve the supported FAQ filters and their current choices.
+   *
+   * @returns Filter rules and current taxonomy choices, or a sanitized upstream failure.
+   */
   async filters() {
     try {
       return await filters.filters();

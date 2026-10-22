@@ -91,7 +91,12 @@ const suggestions = [
       <p class="text-muted text-base sm:text-lg">Wat wil je weten over werken in het onderwijs?</p>
     </div>
     <slot />
-    <div class="flex flex-wrap gap-2" aria-label="Suggesties om een gesprek te beginnen">
+    <ChatSuggestionMarquee
+      :suggestions="suggestions"
+      class="md:hidden"
+      @select="emit('select', $event)"
+    />
+    <div class="hidden flex-wrap gap-2 md:flex" aria-label="Suggesties om een gesprek te beginnen">
       <UButton
         v-for="suggestion in suggestions"
         :key="suggestion.label"

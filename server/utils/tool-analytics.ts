@@ -81,7 +81,11 @@ export async function readToolCallDetails(
   return details;
 }
 
-/** Forward attribution headers without trusting arbitrary X-Forwarded-For chains. */
+/**
+ * Forward attribution headers without trusting arbitrary X-Forwarded-For chains.
+ * @param event - Current request used to derive client attribution headers.
+ * @returns The user agent and, when available, the caller IP for Plausible.
+ */
 export function getToolAnalyticsHeaders(event: H3Event): Record<string, string> {
   const headers: Record<string, string> = {
     "user-agent": getHeader(event, "user-agent") || "Onderwijsloket MCP"

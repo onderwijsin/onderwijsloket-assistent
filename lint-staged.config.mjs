@@ -19,8 +19,18 @@ const quotePath = (file) => `'${file.replaceAll("'", "'\\''")}'`;
 const task = (command, files) => `${command} ${files.map(quotePath).join(" ")}`;
 
 export default {
+  /**
+   * Build formatting tasks for staged data and documentation files.
+   * @param files - Staged paths matched by the data and documentation glob.
+   * @returns The formatting command, or no tasks when formatting is disabled.
+   */
   "*.{json,jsonc,md,mdc,yaml,yml}": (files) =>
     formatEnabled ? [task("oxfmt --no-error-on-unmatched-pattern", files)] : [],
+  /**
+   * Build enabled formatting and lint tasks for staged source files.
+   * @param files - Staged paths matched by the source glob.
+   * @returns Commands for the enabled formatting and lint checks.
+   */
   "*.{js,cjs,mjs,ts,cts,mts,jsx,tsx,vue}": (files) => {
     const tasks = [];
 

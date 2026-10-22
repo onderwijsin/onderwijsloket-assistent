@@ -26,6 +26,11 @@ export default defineAppConfig({
         }
       ]
     },
+    prose: {
+      a: {
+        base: "border-b-0 underline underline-offset-4"
+      }
+    },
     skeleton: {
       base: "bg-sand-dark dark:bg-elevated"
     },

@@ -1,4 +1,5 @@
-import { schedulingChoices, type SchedulingLanguage } from "../../server/utils/scheduling/config";
+import type { SchedulingLanguage } from "../../server/utils/scheduling/config";
+import { schedulingChoices } from "../fixtures/scheduling-choices";
 import { createSchedulingFixture } from "../fixtures/scheduling";
 import { sourceVariantId } from "../fixtures/directus";
 import { routeId, routeSelections, questionIds, answerIds } from "../fixtures/routes";
@@ -236,7 +237,10 @@ describe("application", async () => {
         expect.objectContaining({ type: "hidden", value: "Unknown MCP Client" }),
         expect.objectContaining({
           id: "field_RTHt4B8s",
-          value: "Primair onderwijs\nVoortgezet onderwijs"
+          options: [
+            { id: "opt_field_RTHt4B8s_0", value: "Primair onderwijs" },
+            { id: "opt_field_RTHt4B8s_1", value: "Voortgezet onderwijs" }
+          ]
         })
       ])
     );

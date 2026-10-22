@@ -27,8 +27,7 @@ export default defineMcpPrompt({
   },
   /**
    * Build related-media discovery without inventing transcripts or playback availability.
-   * @param source - Optional source reference, falling back to conversation context.
-   * @param focus - Optional subject, perspective or preferred format.
+   * @param input - Optional source reference, subject, perspective or preferred format.
    * @returns A user message guiding related media and personal experience discovery.
    */
   handler: async ({

@@ -68,10 +68,18 @@ ${mcp.instructions}`,
       stream: result.stream,
       sendReasoning: request.extendedThinking,
       sendSources: request.webSearch,
+      /**
+       * Return a safe public error message without exposing provider details.
+       * @returns The localized chat generation failure message.
+       */
       onError: () => "Het antwoord kon niet worden gegenereerd. Probeer het opnieuw."
     });
     const titleAbort = new AbortController();
     const combined = createUIMessageStream({
+      /**
+       * Merge the answer stream and emit a generated title for a new conversation.
+       * @param options - UI stream writer receiving answer chunks and optional title metadata.
+       */
       execute: async ({ writer }) => {
         writer.merge(stream);
         if (request.generateTitle && request.messages.length === 1) {
@@ -88,6 +96,10 @@ ${mcp.instructions}`,
             writer.write({ type: "data-conversation-title", data: { title }, transient: true });
         }
       },
+      /**
+       * Return a safe public error message without exposing provider details.
+       * @returns The localized chat generation failure message.
+       */
       onError: () => "Het antwoord kon niet worden gegenereerd. Probeer het opnieuw."
     });
     return createUIMessageStreamResponse({

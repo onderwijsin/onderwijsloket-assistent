@@ -1,11 +1,6 @@
 import { z } from "zod";
 import type { SavvyCalClient } from "./client";
-import {
-  schedulingChoices,
-  schedulingLinks,
-  type SchedulingChoiceConfig,
-  type SchedulingLanguage
-} from "./config";
+import { schedulingLinks, type SchedulingLanguage } from "./config";
 import { SchedulingError } from "./errors";
 import {
   schedulingBookingInput,
@@ -16,12 +11,14 @@ import {
   schedulingSlotsOutput,
   schedulingSlotSchema,
   savvyCalEventSchema,
+  savvyCalEventInput,
   savvyCalLinkSchema
 } from "./schemas";
 
 type Booking = z.infer<typeof schedulingBookingInput>;
 type Link = z.infer<typeof savvyCalLinkSchema>;
-type FormField = z.infer<typeof schedulingLinkOutput>["fields"][number];
+type FormField = Link["fields"][number] & { configured: boolean };
+type EventFields = z.infer<typeof savvyCalEventInput>["fields"];
 type ConfirmedEvent = z.infer<typeof savvyCalEventSchema>;
 type TimeRange = { from: string; until: string };
 type BookingContext = { clientName?: string; beforeCreate: () => Promise<void> };
@@ -30,11 +27,13 @@ const day = 24 * 60 * 60 * 1000;
 const choiceTypes = new Set(["select", "radio", "checkbox", "checkboxes"]);
 const multipleTypes = new Set(["checkbox", "checkboxes"]);
 
-/** Validate without exposing source data or Zod error payloads.
+/**
+ * Validate without exposing source data or Zod error payloads.
  * @param schema - Expected boundary contract.
  * @param value - Untrusted input or provider result.
  * @param code - Safe failure category.
  * @returns Parsed projection.
+ * @throws SchedulingError when the input or provider response does not match the schema.
  */
 function parse<T>(
   schema: z.ZodType<T>,
@@ -46,7 +45,11 @@ function parse<T>(
   return parsed.data;
 }
 
-/** Return contiguous day offsets, expanding weekly after the first fifteen days. */
+/**
+ * Return contiguous day offsets, expanding weekly after the first fifteen days.
+ * @param window - Zero-based availability window index.
+ * @returns Start and end day offsets relative to the current time.
+ */
 function defaultWindowDays(window: number): [number, number] {
   switch (window) {
     case 0:
@@ -62,31 +65,36 @@ function defaultWindowDays(window: number): [number, number] {
   }
 }
 
-/** Attach owner-supplied choices only when they match the current provider field. */
-function configureField(
-  field: Link["fields"][number],
-  choices: SchedulingChoiceConfig[SchedulingLanguage]
-): FormField {
-  const config = choices[field.id];
-  const matchingChoices = Boolean(
-    config &&
-    config.label === field.label &&
-    config.type === field.type &&
-    config.values.length > 0 &&
-    new Set(config.values).size === config.values.length
-  );
-  const configured = !choiceTypes.has(field.type) || matchingChoices;
-  return { ...field, configured, options: configured && config ? [...config.values] : [] };
+/**
+ * Only expose usable, unambiguous choices from the current provider response.
+ * @param field - Fresh provider field with its available choices.
+ * @returns The field with a flag indicating whether its choices can be used safely.
+ */
+function configureField(field: Link["fields"][number]): FormField {
+  const options = field.options ?? [];
+  const configured =
+    !choiceTypes.has(field.type) ||
+    (options.length > 0 &&
+      new Set(options.map(({ id }) => id)).size === options.length &&
+      new Set(options.map(({ value }) => value)).size === options.length);
+  return { ...field, configured };
 }
 
-/** Validate one answer and preserve the existing provider submission format. */
-function serializeAnswer(field: FormField, values: string[]) {
+/**
+ * Validate against fresh options and submit provider IDs without rewriting prefixes.
+ * @param field - Current field definition and configuration status.
+ * @param values - Submitted answer values, preserving provider choice values.
+ * @returns The provider field payload with resolved option IDs.
+ * @throws SchedulingError when choices are unconfigured or answers are invalid.
+ */
+function serializeAnswer(field: FormField, values: string[]): EventFields[number] {
   if (!field.configured) throw new SchedulingError("FORM_NOT_CONFIGURED");
 
   const hasDuplicates = new Set(values).size !== values.length;
   const hasMultipleAnswers = !multipleTypes.has(field.type) && values.length !== 1;
   const hasUnknownChoice =
-    choiceTypes.has(field.type) && values.some((value) => !field.options.includes(value));
+    choiceTypes.has(field.type) &&
+    values.some((value) => !field.options?.some((option) => option.value === value));
   if (hasDuplicates || hasMultipleAnswers || hasUnknownChoice) {
     throw new SchedulingError("INVALID_ANSWERS");
   }
@@ -94,12 +102,29 @@ function serializeAnswer(field: FormField, values: string[]) {
     throw new SchedulingError("INVALID_ANSWERS");
   }
 
-  const value = multipleTypes.has(field.type) ? values.join("\n") : values[0]!;
-  if (!value.trim() || value.length > 10000) throw new SchedulingError("INVALID_ANSWERS");
-  return { id: field.id, label: field.label, type: field.type, value };
+  const metadata = { id: field.id, label: field.label };
+  switch (field.type) {
+    case "select":
+    case "radio":
+    case "checkbox":
+    case "checkboxes":
+      return {
+        ...metadata,
+        type: field.type,
+        options: values.map((value) => field.options!.find((option) => option.value === value)!)
+      };
+    default:
+      return { ...metadata, type: field.type, value: values[0]! };
+  }
 }
 
-/** Reject missing, duplicate or unknown answers before preparing provider fields. */
+/**
+ * Reject missing, duplicate or unknown answers before preparing provider fields.
+ * @param fields - Current visible form fields.
+ * @param submitted - Answers supplied for the confirmed booking.
+ * @returns Validated provider payloads for answered fields.
+ * @throws SchedulingError when required fields are unconfigured or answers are missing, duplicated or unknown.
+ */
 function prepareAnswers(fields: FormField[], submitted: Booking["answers"]) {
   if (fields.some((field) => field.is_required && !field.configured)) {
     throw new SchedulingError("FORM_NOT_CONFIGURED");
@@ -121,8 +146,21 @@ function prepareAnswers(fields: FormField[], submitted: Booking["answers"]) {
   });
 }
 
-/** Accept confirmation only for the requested link and exact start/end instants. */
-function readConfirmation(raw: unknown, linkId: string, booking: Booking): ConfirmedEvent {
+/**
+ * Confirm the requested link, exact instants and preservation of every submitted answer.
+ * @param raw - Untrusted event creation response.
+ * @param linkId - Expected provider link ID.
+ * @param booking - Confirmed booking details.
+ * @param submitted - Field payloads sent to the provider.
+ * @returns The validated event with the requested slot and preserved answers.
+ * @throws SchedulingError when the response does not establish that the requested booking was created.
+ */
+function readConfirmation(
+  raw: unknown,
+  linkId: string,
+  booking: Booking,
+  submitted: EventFields
+): ConfirmedEvent {
   const result = savvyCalEventSchema.safeParse(raw);
   if (!result.success) throw new SchedulingError("BOOKING_UNCERTAIN");
 
@@ -134,10 +172,30 @@ function readConfirmation(raw: unknown, linkId: string, booking: Booking): Confi
   ) {
     throw new SchedulingError("BOOKING_UNCERTAIN");
   }
+  for (const expected of submitted) {
+    const matches = event.scheduler.fields.filter(({ id }) => id === expected.id);
+    const actual = matches[0];
+    if (matches.length !== 1 || !actual || actual.type !== expected.type) {
+      throw new SchedulingError("BOOKING_UNCERTAIN");
+    }
+    const preserved =
+      "options" in expected
+        ? actual.options?.length === expected.options.length &&
+          expected.options.every((option) =>
+            actual.options?.some(({ id, value }) => id === option.id && value === option.value)
+          )
+        : actual.value === expected.value;
+    if (!preserved) throw new SchedulingError("BOOKING_UNCERTAIN");
+  }
   return event;
 }
 
-/** Format the confirmation in the consultation language and the user's time zone. */
+/**
+ * Format the confirmation in the consultation language and the user's time zone.
+ * @param event - Validated provider event.
+ * @param booking - Booking language and time zone.
+ * @returns Minimal booking details and a localized confirmation message.
+ */
 function bookingConfirmation(event: ConfirmedEvent, booking: Booking) {
   const { language, time_zone } = booking;
   const when = new Intl.DateTimeFormat(language === "nl" ? "nl-NL" : "en-GB", {
@@ -168,10 +226,12 @@ function bookingConfirmation(event: ConfirmedEvent, booking: Booking) {
   });
 }
 
-/** Resolve a single conservative window with no gaps between subsequent windows.
+/**
+ * Resolve a single conservative window with no gaps between subsequent windows.
  * @param input - Language, optional preferred dates, or a default window index.
  * @param now - Anchor for default windows.
  * @returns ISO timestamps for one provider query.
+ * @throws SchedulingError when dates are invalid, in the past, reversed or more than 31 days apart.
  */
 export function schedulingRange(input: z.input<typeof schedulingSlotsInput>, now = Date.now()) {
   const args = parse(schedulingSlotsInput, input, "INVALID_INPUT");
@@ -187,13 +247,9 @@ export function schedulingRange(input: z.input<typeof schedulingSlotsInput>, now
 
 /** Encapsulate scheduling without accepting request URLs, API options or arbitrary link IDs.
  * @param client - Restricted API adapter.
- * @param choices - Owner-supplied choice definitions, never MCP arguments.
  * @returns Metadata, availability and confirmed booking workflows.
  */
-export function createSchedulingService(
-  client: SavvyCalClient,
-  choices: SchedulingChoiceConfig = schedulingChoices
-) {
+export function createSchedulingService(client: SavvyCalClient) {
   /** Fetch and validate fresh link identity, duration and attribution metadata.
    * @param language - Selected consultation language.
    * @returns Fresh API link with usable form configuration.
@@ -217,9 +273,7 @@ export function createSchedulingService(
     ) {
       throw new SchedulingError("INVALID_RESPONSE");
     }
-    const fields = link.fields
-      .filter(({ type }) => type !== "hidden")
-      .map((field) => configureField(field, choices[language]));
+    const fields = link.fields.filter(({ type }) => type !== "hidden").map(configureField);
     return { link, fields, attribution };
   }
 
@@ -271,11 +325,14 @@ export function createSchedulingService(
         url: `https://advies.onderwijsloket.com/${schedulingLinks[language].slug}`,
         default_duration: link.default_duration,
         durations: link.durations,
-        fields,
+        fields: fields.map((field) => ({
+          ...field,
+          options: field.configured ? (field.options ?? []).map(({ value }) => value) : []
+        })),
         booking_ready: blocking.length === 0,
         blocking_field_ids: blocking,
         guidance:
-          "Only offer on an explicit request for personal consultation or when a complex question remains unresolved after consulting available knowledge. A free, independent, roughly 20-minute one-to-one telephone consultation about working in education. The adviser calls the user's phone number. Prepare desired sector and role, practical obstacles and specific questions. Read the preparation information sent by email. Reuse known background only with confirmation. Ask for every required answer; never invent answers or choices. Missing choice configuration blocks booking. Infer the time zone from reliable conversation or host context, otherwise use Europe/Amsterdam; do not ask for it. Label displayed times clearly and accept corrections. Ask simply for a reachable phone number. Normalize spaces, punctuation and a clear national number to international format internally (for example, Dutch 0612345678 becomes +31612345678). Use established country context; do not infer the country from chat language or time zone alone. Ask which country the number belongs to only when ambiguous. Never request an international format or a country code as a formatting task, explain the conversion, or ask a separate confirmation of formatting. Include the phone number naturally in the final booking summary. Ask one focused question per turn, bold on its own line. Defer preparation links until after booking unless requested. Confirm the selected slot and completed details before booking.",
+          "Only offer on an explicit request for personal consultation or when a complex question remains unresolved after consulting available knowledge. A free, independent, roughly 20-minute one-to-one telephone consultation about working in education. The adviser calls the user's phone number. Prepare desired sector and role, practical obstacles and specific questions. Read the preparation information sent by email. Reuse known background only with confirmation. Ask for every required answer; never invent answers or choices. Missing choice configuration blocks booking. Infer the time zone from reliable conversation or host context, otherwise use Europe/Amsterdam; do not ask for it. Label displayed times clearly and accept corrections. Ask simply for a reachable phone number. Normalize spaces, punctuation and a clear national number to international format internally (for example, Dutch 0612345678 becomes +31612345678). Respect an explicit country code or established country context. Otherwise, when our conversation is in Dutch, assume the Netherlands (+31) for a national phone number without asking which country it belongs to. Ask which country the number belongs to only when it remains ambiguous. Never request an international format or a country code as a formatting task, explain the conversion, or ask a separate confirmation of formatting. Show the normalized international phone number, including its country code, in the final booking summary and use that same number for booking (for example, +31612345678). Ask one focused question per turn, bold on its own line. Defer preparation links until after booking unless requested. Confirm the selected slot and completed details before booking.",
         sources: [
           "https://onderwijsloket.com/adviesgesprek",
           "https://onderwijsloket.com/wat-kan-je-van-een-adviesgesprek-verwachten"
@@ -340,7 +397,7 @@ export function createSchedulingService(
         end_at: args.end_at,
         fields: submitted
       });
-      const event = readConfirmation(raw, link.id, args);
+      const event = readConfirmation(raw, link.id, args, submitted);
       return bookingConfirmation(event, args);
     }
   };

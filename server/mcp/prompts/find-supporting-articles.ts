@@ -27,8 +27,7 @@ export default defineMcpPrompt({
   },
   /**
    * Build context-sensitive article discovery, distinguishing relevance from corroboration.
-   * @param source - Optional source reference, falling back to conversation context.
-   * @param focus - Optional aspect to explore further.
+   * @param input - Optional source reference and focus, falling back to conversation context.
    * @returns A user message guiding related reading discovery and verification.
    */
   handler: async ({

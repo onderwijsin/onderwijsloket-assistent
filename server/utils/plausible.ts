@@ -21,6 +21,10 @@ const plausibleFetch = ofetch.create({
   method: "POST",
   timeout: 1000,
   retry: 0,
+  /**
+   * Report successful HTTP deliveries that Plausible explicitly dropped.
+   * @param options - Fetch response context, including attribution status headers.
+   */
   onResponse({ response }) {
     if (response.ok && response.headers.get("x-plausible-dropped") === "1") {
       console.warn(
@@ -28,15 +32,22 @@ const plausibleFetch = ofetch.create({
       );
     }
   },
+  /** Log a failed analytics response without exposing event data. */
   onResponseError() {
     console.warn("[tool-analytics] Event delivery failed.");
   },
+  /** Log an analytics transport failure without exposing event data. */
   onRequestError() {
     console.warn("[tool-analytics] Event delivery failed.");
   }
 });
 
-/** Deliver once with a bounded timeout; failures never propagate to the MCP response. */
+/**
+ * Deliver once with a bounded timeout; failures never propagate to the MCP response.
+ * @param config - Server-only delivery settings.
+ * @param props - Allowlisted tool event properties.
+ * @param headers - Client attribution headers for Plausible.
+ */
 export async function sendToolAnalytics(
   config: ToolAnalyticsConfig,
   props: ToolAnalyticsProps,

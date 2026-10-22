@@ -1,10 +1,9 @@
+import type { z } from "zod";
+import type { savvyCalEventInput } from "../../server/utils/scheduling/schemas";
+import { schedulingChoices } from "./scheduling-choices";
 import { createServer } from "node:http";
 import { once } from "node:events";
-import {
-  schedulingLinks,
-  schedulingChoices,
-  type SchedulingLanguage
-} from "../../server/utils/scheduling/config";
+import { schedulingLinks, type SchedulingLanguage } from "../../server/utils/scheduling/config";
 
 /** Synthetic provider contract; production data and appointments are never used.
  * @param language - Consultation language.
@@ -28,19 +27,39 @@ export function schedulingFixtureLink(language: SchedulingLanguage = "nl") {
         is_required: false
       },
       { id: "field_topic", label: "Question", type: "long_text", is_required: true }
-    ]
+    ] as {
+      id: string;
+      label: string;
+      type: string;
+      is_required: boolean;
+      options?: { id: string; value: string }[];
+    }[]
   };
 }
 
 /** Minimal confirmed phone event returned by the synthetic provider.
  * @param language - Consultation language.
  * @param start - Selected ISO timestamp.
+ * @param fields - Submitted intake fields echoed by the synthetic provider.
  * @returns Synthetic event response, without real personal data.
  */
-export function schedulingFixtureEvent(language: SchedulingLanguage, start: string) {
+export function schedulingFixtureEvent(
+  language: SchedulingLanguage,
+  start: string,
+  fields: z.input<typeof savvyCalEventInput>["fields"] = [
+    { id: "field_topic", label: "Question", type: "long_text", value: "Teaching routes" },
+    {
+      id: schedulingLinks[language].attributionField,
+      label: "Booking via",
+      type: "hidden",
+      value: "Unknown MCP Client"
+    }
+  ]
+) {
   return {
     id: "event_fixture",
     state: "confirmed",
+    scheduler: { fields },
     start_at: start,
     end_at: new Date(Date.parse(start) + 20 * 60000).toISOString(),
     organizer: { display_name: "Fixture Adviser" },
@@ -80,7 +99,15 @@ export async function createSchedulingFixture() {
     }
     requests.push({ method: request.method!, path: request.url!, ...(body ? { body } : {}) });
     if (request.method === "POST" && url.pathname.endsWith("/events")) {
-      response.end(JSON.stringify(schedulingFixtureEvent(language, String(body!.start_at))));
+      response.end(
+        JSON.stringify(
+          schedulingFixtureEvent(
+            language,
+            String(body!.start_at),
+            body!.fields as z.input<typeof savvyCalEventInput>["fields"]
+          )
+        )
+      );
     } else if (request.method === "GET" && url.pathname.endsWith("/slots")) {
       const from = Date.parse(url.searchParams.get("from")!);
       const until = Date.parse(url.searchParams.get("until")!);
@@ -101,7 +128,8 @@ export async function createSchedulingFixture() {
           id,
           label: field.label,
           type: field.type,
-          is_required: true
+          is_required: true,
+          options: field.values.map((value, index) => ({ id: `opt_${id}_${index}`, value }))
         }))
       );
       if (state.missingChoices)

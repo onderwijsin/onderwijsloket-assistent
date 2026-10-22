@@ -38,7 +38,7 @@ describe("local chat store", () => {
     const chat = first.newConversation();
     first.saveMessages(chat.id, messages);
     first.active!.draft = "Mijn vervolg";
-    first.settings.webSearch = true;
+    first.active!.settings.webSearch = true;
     first.sidebarCollapsed = true;
     first.sidebarOpen = true;
     await nextTick();
@@ -54,9 +54,114 @@ describe("local chat store", () => {
         parts: [{ type: "text", text: "Hoe word ik leraar?", state: "done" }]
       }))
     );
-    expect(restored.settings.webSearch).toBe(true);
+    expect(restored.active!.settings.webSearch).toBe(true);
     expect(restored.sidebarCollapsed).toBe(true);
     expect(restored.sidebarOpen).toBe(false);
+  });
+
+  it("restores independent drafts and preferences, including an unsent new conversation", async () => {
+    const store = openStore();
+    const first = store.newConversation();
+    store.saveMessages(first.id, messages);
+    store.active!.draft = "Follow-up draft";
+    store.active!.settings = {
+      model: "mistral-medium-latest",
+      webSearch: true,
+      extendedThinking: false
+    };
+    const draft = store.newConversation();
+    expect(draft.settings).toEqual({
+      model: "gpt-6-luna",
+      webSearch: false,
+      extendedThinking: true
+    });
+    store.active!.draft = "An unsent first message";
+    store.updateSettings(draft.id, { ...store.active!.settings, webSearch: true }, true);
+    store.selectConversation(first.id);
+    expect(store.active?.draft).toBe("Follow-up draft");
+    expect(store.active?.settings.model).toBe("mistral-medium-latest");
+    expect(store.newConversation().id).toBe(draft.id);
+    expect(store.active?.draft).toBe("An unsent first message");
+    await nextTick();
+
+    const restored = openStore();
+    expect(restored.active?.draft).toBe("An unsent first message");
+    expect(restored.active?.settings).toEqual({
+      model: "gpt-6-luna",
+      webSearch: true,
+      extendedThinking: true
+    });
+    restored.active!.settings.webSearch = false;
+    restored.selectConversation(first.id);
+    expect(restored.active?.draft).toBe("Follow-up draft");
+    expect(restored.active?.settings).toEqual({
+      model: "mistral-medium-latest",
+      webSearch: true,
+      extendedThinking: false
+    });
+    expect(restored.newConversation().id).toBe(draft.id);
+    expect(restored.conversations).toHaveLength(2);
+  });
+
+  it("persists welcome defaults while keeping transcript overrides local", async () => {
+    const store = openStore();
+    const first = store.newConversation();
+    const selected = {
+      model: "mistral-medium-latest" as const,
+      webSearch: true,
+      extendedThinking: false
+    };
+    store.updateSettings(first.id, selected, true);
+    store.saveMessages(first.id, messages);
+    store.updateSettings(first.id, { ...selected, model: "gpt-6-luna" }, false);
+    const second = store.newConversation();
+    expect(second.settings).toEqual(selected);
+    expect(first.settings.model).toBe("gpt-6-luna");
+    store.updateSettings(second.id, { ...selected, extendedThinking: true }, true);
+    expect(first.settings.extendedThinking).toBe(false);
+    store.saveMessages(second.id, messages);
+    await nextTick();
+    const restored = openStore();
+    expect(restored.defaultSettings).toEqual({ ...selected, extendedThinking: true });
+    expect(restored.newConversation().settings).toEqual(restored.defaultSettings);
+    restored.updateSettings(restored.activeId!, { ...selected, webSearch: false }, true);
+    expect(restored.conversations.find((chat) => chat.id === second.id)?.settings.webSearch).toBe(
+      true
+    );
+    restored.updateSettings("missing", selected, true);
+    expect(restored.defaultSettings.webSearch).toBe(false);
+  });
+
+  it("migrates legacy global preferences without overwriting conversation preferences", async () => {
+    const store = openStore();
+    const first = store.newConversation();
+    store.saveMessages(first.id, messages);
+    store.newConversation();
+    await nextTick();
+    const legacy = JSON.parse(storage.data.get("chat")!);
+    const preferences = {
+      model: "mistral-medium-latest",
+      webSearch: true,
+      extendedThinking: false
+    };
+    delete legacy.defaultSettings;
+    legacy.settings = preferences;
+    delete legacy.conversations[1].settings;
+    storage.data.set("chat", JSON.stringify(legacy));
+    const restored = openStore();
+    expect(restored.conversations[1]?.settings).toEqual(preferences);
+    expect(restored.conversations[0]?.settings.model).toBe("gpt-6-luna");
+    restored.conversations[1]!.settings.webSearch = false;
+    expect(legacy.settings.webSearch).toBe(true);
+
+    delete legacy.settings;
+    const migrated = deserializeChatState(JSON.stringify(legacy));
+    expect(migrated).toMatchObject({
+      conversations: [
+        { settings: { model: "gpt-6-luna" } },
+        { settings: { model: "gpt-6-luna", webSearch: false, extendedThinking: true } }
+      ]
+    });
   });
 
   it("keeps transcripts isolated while switching, renaming and deleting conversations", () => {

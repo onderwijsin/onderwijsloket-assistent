@@ -83,6 +83,7 @@
     "@semantic-release/release-notes-generator": "catalog:",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "eslint-plugin-jsdoc": "catalog:",
     "husky": "catalog:",
     "lint-staged": "catalog:",
     "oxfmt": "catalog:",

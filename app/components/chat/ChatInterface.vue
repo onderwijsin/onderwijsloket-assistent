@@ -1,22 +1,44 @@
 <script setup lang="ts">
 import { useChat } from "@ai-sdk/vue";
 import { DefaultChatTransport, isTextUIPart } from "ai";
-import { storeToRefs } from "pinia";
 import { chatTitleSchema } from "../../../shared/utils/chat-title";
 import { canRegenerateChat } from "../../utils/chat-regenerate";
 import { restoreChatMessages } from "../../utils/chat-storage";
 
 const props = defineProps<{ conversationId: string }>();
 const store = useChatStore();
+const toast = useToast();
+const errorToastId = `chat-error-${props.conversationId}`;
 const conversation = store.conversations.find((chat) => chat.id === props.conversationId)!;
 const input = computed({
+  /**
+   * Read the persisted draft for this conversation.
+   * @returns The current unsent draft.
+   */
   get: () => conversation.draft,
+  /**
+   * Persist composer edits in this conversation’s draft.
+   * @param value - New unsent draft text.
+   */
   set: (value: string) => {
     conversation.draft = value;
   }
 });
-const { settings } = storeToRefs(store);
 const showTranscript = shallowRef(conversation.messages.length > 0);
+const settings = computed({
+  /**
+   * Read the selections belonging to this conversation.
+   * @returns Current model and capabilities.
+   */
+  get: () => conversation.settings,
+  /**
+   * Save selections and update new-chat defaults only from the welcome view.
+   * @param value - Updated model and capabilities.
+   */
+  set: (value: typeof conversation.settings) => {
+    store.updateSettings(props.conversationId, value, !showTranscript.value);
+  }
+});
 const submitting = shallowRef(false);
 let disposed = false;
 const transcript = useTemplateRef("transcript");
@@ -24,6 +46,10 @@ const composer = useTemplateRef("composer");
 const { messages, status, error, sendMessage, stop, regenerate, clearError } = useChat({
   messages: restoreChatMessages(JSON.parse(JSON.stringify(conversation.messages))),
   throttle: 100,
+  /**
+   * Apply a valid generated title received through the chat data stream.
+   * @param part - Incoming custom data part from the server.
+   */
   onData: (part) => {
     if (
       part.type !== "data-conversation-title" ||
@@ -37,7 +63,18 @@ const { messages, status, error, sendMessage, stop, regenerate, clearError } = u
   },
   transport: new DefaultChatTransport({
     api: "/api/chat",
+    /**
+     * Snapshot the current model and feature settings for each request.
+     * @returns The current chat settings.
+     */
     body: () => ({ ...settings.value }),
+    /**
+     * Send a chat request and translate HTTP failures into public error messages.
+     * @param url - Chat endpoint URL supplied by the SDK transport.
+     * @param options - Fetch options supplied by the SDK transport.
+     * @returns The successful streaming response.
+     * @throws Error when the server rejects the request, including rate limits; network failures propagate.
+     */
     fetch: async (url, options) => {
       const response = await fetch(url, options);
       if (!response.ok) {
@@ -53,11 +90,53 @@ const { messages, status, error, sendMessage, stop, regenerate, clearError } = u
 });
 const busy = computed(() => status.value === "submitted" || status.value === "streaming");
 
-/** Preserve booking attempts when retrying or replacing an earlier answer. */
+/**
+ * Preserve booking attempts when retrying or replacing an earlier answer.
+ * @param messageId - Optional assistant message to regenerate; omitted to retry the latest answer.
+ */
 async function regenerateSafely(messageId?: string) {
   if (busy.value || !canRegenerateChat(messages.value, messageId)) return;
   await regenerate({ messageId });
 }
+
+// Keep request failures visible without taking space from the conversation.
+watch(error, (value) => {
+  if (!value) {
+    toast.remove(errorToastId);
+    return;
+  }
+  const canRetry = canRegenerateChat(messages.value);
+  toast.add({
+    id: errorToastId,
+    title: "Het is niet gelukt",
+    description: canRetry
+      ? value.message
+      : "Mogelijk is je afspraak al aangemaakt. Controleer je bevestigingsmail voordat je opnieuw boekt.",
+    color: "error",
+    icon: "i-lucide-circle-alert",
+    duration: Infinity,
+    close: true,
+    actions: canRetry
+      ? [
+          {
+            label: "Opnieuw proberen",
+            /** Clear the visible error and retry the latest answer when regeneration is allowed. */
+            onClick: () => {
+              clearError();
+              void regenerateSafely();
+            }
+          }
+        ]
+      : [],
+    /**
+     * Clear the chat error when its toast is dismissed.
+     * @param open - Whether the error toast remains open.
+     */
+    "onUpdate:open": (open) => {
+      if (!open) clearError();
+    }
+  });
+});
 
 // Persist snapshots against this instance's ID, even when another chat is selected.
 watch(messages, (value) => store.saveMessages(props.conversationId, value), { flush: "sync" });
@@ -101,6 +180,7 @@ async function submitMessage(value: string, clearDraft = false) {
 
 /** Animate the composer from the welcome view to the bottom of the chat panel. */
 async function enterTranscript() {
+  /** Reveal the transcript and reset its scroll position after rendering. */
   const update = async () => {
     showTranscript.value = true;
     await nextTick();
@@ -117,7 +197,10 @@ async function enterTranscript() {
   await transition.updateCallbackDone;
 }
 
-/** Submit a suggested prompt with the current model and feature selections. */
+/**
+ * Submit a suggested prompt with the current model and feature selections.
+ * @param prompt - Suggested prompt text to submit directly.
+ */
 async function selectSuggestion(prompt: string) {
   await submitMessage(prompt);
 }
@@ -144,6 +227,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   disposed = true;
+  toast.remove(errorToastId);
   store.saveMessages(props.conversationId, messages.value);
   void stop();
 });
@@ -156,9 +240,12 @@ onBeforeUnmount(() => {
   >
     <div
       v-if="!showTranscript"
-      class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-4 sm:px-6"
+      class="flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto"
     >
-      <ChatWelcome class="my-auto shrink-0 py-8 sm:py-12" @select="selectSuggestion">
+      <ChatWelcome
+        class="mx-auto my-auto w-full max-w-3xl shrink-0 px-4 py-8 sm:px-6 sm:py-12"
+        @select="selectSuggestion"
+      >
         <ChatComposer
           ref="composer"
           v-model="input"
@@ -191,31 +278,6 @@ onBeforeUnmount(() => {
         <div
           class="mx-auto w-full max-w-3xl space-y-2 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6"
         >
-          <UAlert
-            v-if="error"
-            title="Het is niet gelukt"
-            :description="
-              canRegenerateChat(messages)
-                ? error.message
-                : 'Mogelijk is je afspraak al aangemaakt. Controleer je bevestigingsmail voordat je opnieuw boekt.'
-            "
-            color="error"
-            variant="soft"
-            icon="i-lucide-circle-alert"
-            close
-            @update:open="clearError()"
-          >
-            <template #actions>
-              <UButton
-                v-if="canRegenerateChat(messages)"
-                label="Opnieuw proberen"
-                color="error"
-                variant="subtle"
-                size="sm"
-                @click="regenerateSafely()"
-              />
-            </template>
-          </UAlert>
           <ChatComposer
             ref="composer"
             v-model="input"

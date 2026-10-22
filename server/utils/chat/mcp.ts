@@ -38,6 +38,12 @@ export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
       // Nitro 2 localFetch places context on req.__unenv__ and promotes only
       // _platform entries to the inner H3 event.context. Forward the allowlisted
       // request metadata there; plain context entries do not reach MCP handlers.
+      /**
+       * Dispatch MCP requests locally while forwarding allowlisted request context.
+       * @param _url - Unused transport URL; requests always target the local MCP endpoint.
+       * @param init - Transport request options, including headers and body.
+       * @returns The local MCP HTTP response.
+       */
       fetch: (_url, init) =>
         localFetch("/mcp", {
           ...init,
@@ -53,6 +59,7 @@ export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
     }
   });
   let closed = false;
+  /** Close the request-local MCP client at most once. */
   const close = async () => {
     if (closed) return;
     closed = true;
@@ -69,6 +76,12 @@ export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
         description:
           "Bekijk de leesbare Onderwijsloket-resources en URI-templates. Gebruik teruggegeven resource-URI's; verzin geen record-ID's.",
         inputSchema: z.object({ cursor: z.string().optional() }),
+        /**
+         * List MCP resources and templates with request cancellation.
+         * @param options - Resource pagination cursor.
+         * @param context - Tool execution context containing the abort signal.
+         * @returns Combined resource descriptors and URI templates.
+         */
         execute: async ({ cursor }, { abortSignal }) => {
           const [resources, templates] = await Promise.all([
             client.listResources({ params: { cursor }, options: { signal: abortSignal } }),
@@ -81,6 +94,12 @@ export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
         description:
           "Lees de volledige brontekst of het transcript van een teruggegeven onderwijsloket:// resource. Gebruik de canonieke bronlink uit de inhoud voor citaten.",
         inputSchema: z.object({ uri: z.string().startsWith("onderwijsloket://") }),
+        /**
+         * Read an MCP resource using the caller’s cancellation signal.
+         * @param options - Resource URI to read.
+         * @param context - Tool execution context containing the abort signal.
+         * @returns The MCP resource contents.
+         */
         execute: ({ uri }, { abortSignal }) =>
           client.readResource({ uri, options: { signal: abortSignal } })
       }),
@@ -95,6 +114,12 @@ export async function connectChatMcp(event: H3Event, request?: ChatRequest) {
             ),
           arguments: z.record(z.string(), z.string()).default({})
         }),
+        /**
+         * Retrieve an advertised MCP prompt with its supplied arguments.
+         * @param options - Prompt name and argument values.
+         * @param context - Tool execution context containing the abort signal.
+         * @returns The resolved MCP prompt messages.
+         */
         execute: ({ name, arguments: args }, { abortSignal }) =>
           client.experimental_getPrompt({ name, arguments: args, options: { signal: abortSignal } })
       })
@@ -118,6 +143,10 @@ export function withMcpCleanup<T>(
 ): ReadableStream<T> {
   const reader = stream.getReader();
   return new ReadableStream<T>({
+    /**
+     * Forward the next chunk and clean up the MCP client on completion or failure.
+     * @param controller - Controller receiving chunks, completion or errors.
+     */
     async pull(controller) {
       try {
         const result = await reader.read();
@@ -132,6 +161,10 @@ export function withMcpCleanup<T>(
         controller.error(error);
       }
     },
+    /**
+     * Cancel the source reader and release the MCP connection even if cancellation fails.
+     * @param reason - Consumer-provided cancellation reason.
+     */
     async cancel(reason) {
       try {
         await reader.cancel(reason);

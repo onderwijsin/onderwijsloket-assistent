@@ -20,6 +20,11 @@ export default defineMcpResource({
     name: articles.name,
     get: articles.get,
     id: articles.getInput.shape.id,
+    /**
+     * Select the rendered body for the resource document.
+     * @param record - Validated detail record returned by the collection.
+     * @returns The record’s rendered body text.
+     */
     content: (record) => record.content,
     metadata: articles.resourceMetadata
   })

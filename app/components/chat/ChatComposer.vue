@@ -10,8 +10,12 @@ const emit = defineEmits<{ submit: []; stop: [] }>();
 const prompt = useTemplateRef("prompt");
 const busy = computed(() => props.status === "submitted" || props.status === "streaming");
 const models = [
-  { label: "Mistral Medium", value: "mistral-medium-latest", icon: "i-simple-icons-mistralai" },
-  { label: "GPT-6 Luna", value: "gpt-6-luna", icon: "i-simple-icons-openai" }
+  {
+    label: "Mistral Medium",
+    value: "mistral-medium-latest" as const,
+    icon: "i-simple-icons-mistralai"
+  },
+  { label: "GPT-6 Luna", value: "gpt-6-luna" as const, icon: "i-simple-icons-openai" }
 ] satisfies SelectItem[];
 const selectedIcon = computed(
   () => models.find((model) => model.value === settings.value.model)?.icon
@@ -22,9 +26,18 @@ const features = computed<DropdownMenuItem[]>(() => [
     icon: "i-lucide-globe",
     type: "checkbox",
     checked: settings.value.webSearch,
+    /**
+     * Update the web search setting from its menu checkbox.
+     * @param checked - Whether web search is enabled.
+     */
     onUpdateChecked: (checked) => {
-      settings.value.webSearch = checked;
+      settings.value = { ...settings.value, webSearch: checked };
     },
+    /**
+     * Keep the feature menu open while toggling a checkbox.
+     * @param event - Menu selection event whose default closing behavior is prevented.
+     * @returns No value after preventing the default selection behavior.
+     */
     onSelect: (event) => event.preventDefault()
   },
   {
@@ -32,9 +45,18 @@ const features = computed<DropdownMenuItem[]>(() => [
     icon: "i-lucide-brain",
     type: "checkbox",
     checked: settings.value.extendedThinking,
+    /**
+     * Update the extended thinking setting from its menu checkbox.
+     * @param checked - Whether extended thinking is enabled.
+     */
     onUpdateChecked: (checked) => {
-      settings.value.extendedThinking = checked;
+      settings.value = { ...settings.value, extendedThinking: checked };
     },
+    /**
+     * Keep the feature menu open while toggling a checkbox.
+     * @param event - Menu selection event whose default closing behavior is prevented.
+     * @returns No value after preventing the default selection behavior.
+     */
     onSelect: (event) => event.preventDefault()
   }
 ]);
@@ -86,7 +108,7 @@ defineExpose({ focus });
             variant="soft"
             size="sm"
             :disabled="busy"
-            @click="settings.webSearch = false"
+            @click="settings = { ...settings, webSearch: false }"
           />
         </UTooltip>
         <UTooltip v-if="settings.extendedThinking" text="Uitgebreid nadenken staat aan">
@@ -97,13 +119,14 @@ defineExpose({ focus });
             variant="soft"
             size="sm"
             :disabled="busy"
-            @click="settings.extendedThinking = false"
+            @click="settings = { ...settings, extendedThinking: false }"
           />
         </UTooltip>
       </div>
       <div class="ms-auto flex items-center gap-2">
         <USelect
-          v-model="settings.model"
+          :model-value="settings.model"
+          @update:model-value="settings = { ...settings, model: $event }"
           :items="models"
           :icon="selectedIcon"
           aria-label="AI-model kiezen"

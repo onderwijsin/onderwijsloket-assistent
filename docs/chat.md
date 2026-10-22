@@ -114,17 +114,26 @@ Draft-only conversations stay out of sidebar history and search until the first 
 message is submitted. Typing alone does not add a navigation item.
 The sidebar provides new conversations, grouped local history, title search and links to
 Onderwijs in, the GitHub repository and the newsletter page. The conversation title menu
-supports pin/unpin, rename and delete. History and search groups use creation dates,
+supports pin/unpin, rename, copying and delete. “Gesprek kopiëren” copies the title and
+user/assistant text as Markdown with speaker headings, excluding reasoning and tool payloads.
+Successful copying shows “Het gesprek is gekopieerd naar je klembord”; failures show an error toast.
+The copy action is disabled while copying or when the Clipboard API is unavailable.
+`useConversationClipboard` owns Markdown formatting, clipboard state and result toasts;
+the dashboard passes the active conversation through a reactive getter.
+History and search groups use creation dates,
 newest first; opening, continuing or renaming a conversation never changes its position
 or creation-date group. Pinned conversations appear only in a separate “Vastgezet” group
 above date groups, most recently pinned first. Unpinning restores the creation-date
 position; pinning again assigns a new pin timestamp. Pins persist locally alongside
 conversation data, and existing saved conversations without a pin timestamp remain unpinned;
-the toolbar retains the color-mode toggle. Sidebar rows expose pin/unpin and archive
+the toolbar retains the color-mode toggle. Below `sm`, the conversation title fills
+the available header width. Its action menu uses small sizing, extra vertical item
+padding and 1 rem leading icons. Sidebar rows expose pin/unpin and archive
 buttons on hover or keyboard focus. On devices with hover, actions overlay the title
 with a gradient fade rather than reserving title space; the title shifts subtly on reveal.
-Reduced-motion preferences disable this movement and transitions. Touch devices keep
-the buttons visible with space reserved for them. Archiving
+Reduced-motion preferences disable this movement and transitions. Mobile navigation hides row actions; pinning and archiving remain available in the
+conversation title menu. Desktop touch devices keep the buttons visible with space
+reserved for them. Archiving
 clears the pin and moves the conversation into the collapsed “Gearchiveerd” group at
 the bottom, ordered by creation date and included in search. Archiving the active chat
 opens an empty chat. Archived chats can be opened, restored or deleted; restoring
@@ -136,9 +145,16 @@ omits the redundant new-chat title and keeps its badge above the greeting. The c
 palette includes a new-chat action and the built-in system/light/dark theme choices.
 The page uses `sand-main` in light mode and `neutral-950` in dark mode; the conversation
 panel uses `sand-light` in light mode and a scoped `bg-default` → `zinc-900` at 50% opacity in dark mode.
-The composer dock and loading skeleton match the panel.
-Navigation icons use a compact size and optical alignment with the labels. Mobile navigation
-uses the dashboard sidebar menu. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
+The composer dock and loading skeleton match the panel. Below `sm`, the panel and
+loading shell fill the viewport without outer margins, rounded corners, rings or shadows.
+The framed panel appearance is retained from `sm` upward.
+Expanded navigation icons use a compact size and optical alignment with the labels. Collapsed
+navigation uses centered 20px icons in 32px square buttons, matching the sidebar collapse toggle,
+with an 8px vertical gap between buttons in both the primary and footer menus. Mobile navigation
+uses a full-screen dashboard menu with larger text and more space between history rows
+and groups. New-chat and search actions have extra padding and separation from history. Mobile
+navigation adds breathing room above the primary actions and equally above and below the footer links,
+including an equal allowance for the device bottom safe area. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
 Cmd/Ctrl+K for search. The desktop sidebar can be resized by dragging its edge between 12 and 24 rem (default 17 rem).
 Its width resets on reload. Dashboard component persistence is disabled: Pinia owns its state.
 
@@ -188,7 +204,9 @@ Markdown through the installed renderer’s `value` prop, with a Suspense fallba
 The composer submits the current model, search and thinking flags using
 `DefaultChatTransport`. Web search defaults off; extended thinking defaults on.
 Sending is disabled during a response and the submit control becomes a stop button.
-Failed requests show Dutch errors with retry and dismissal controls; quota errors
+Failed requests show persistent error toasts (`duration: Infinity`) with retry and
+dismissal controls instead of an inline alert. Toasts are removed when the error is
+cleared or the conversation is left; quota errors
 explain the hourly limit.
 
 The conversation omits the extra title/action row and decorative message
@@ -215,6 +233,11 @@ submission flow and preserves the composer draft. The agent follows the
 consent before submitting. Clicking the action is not consent to send a report.
 The action is disabled while a response is being generated.
 
+Below `md`, `ChatSuggestionMarquee` shows all starters in three spacious viewport-width rows
+with staggered starting offsets, alternating directions and a slow 120-second loop, following the Nuxt UI testimonials
+example. Horizontal button gaps and vertical row gaps are both 0.75 rem. Rows pause on hover, touch and keyboard focus. With reduced motion, animation
+stops and each row scrolls horizontally so all prompts remain reachable. From `md`,
+the original wrapped suggestion pills remain visible.
 Eight Dutch starters cover routes, programme comparison, local advice,
 required teaching qualifications, salaries, lateral entry, telephone consultations and personal experiences.
 The routes, comparison, advice and experiences starters reflect the existing MCP
@@ -237,3 +260,36 @@ OpenAI chat tool inputs omit the unsupported JSON Schema `propertyNames` keyword
 provider boundary. Original MCP schemas and local input validators remain unchanged,
 including UUID key constraints and defaults. Mistral schemas are unchanged. Other AI SDK
 compatibility warnings remain enabled.
+
+## Privacy page
+
+`/privacy` is prerendered and imports `app/pages/privacy.md` as raw text at build
+time, rendered with the `Markdown` component. Policy edits require a rebuild. The dashboard layout reuses the
+chat sidebar and panel through a content slot, without the conversation title,
+transcript or composer. Its server fallback renders the policy inside `ChatDashboardLoading`, so prerendered
+HTML includes the content and dashboard chrome before the client dashboard mounts.
+The loading shell uses the same Nuxt UI dashboard group, 17-rem sidebar, header,
+navbar and panel spacing as the live dashboard. Local sidebar collapse and history
+state become available after mounting. Privacy is the fourth
+sidebar footer link. New-chat and history actions return to `/`.
+
+Conversation history highlights the active conversation only on `/`, leaving it
+unhighlighted on `/privacy`. The Onderwijs in, GitHub and newsletter footer links
+open in a new tab with `noopener noreferrer`; Privacy stays in the current tab.
+
+Drafts persist per conversation, including the unsent new conversation. “New
+conversation” reopens that unsent draft. Model and capability selections made in
+the welcome view also update persisted global defaults for future conversations.
+Once transcript mode is active, edits affect only that conversation. New chats
+copy the defaults, so later changes do not affect existing transcripts. Initial
+defaults are GPT-6 Luna, web search off and extended thinking on.
+
+Preferences and defaults persist in Pinia/localStorage. Legacy global preferences
+migrate into defaults and conversations without their own selections. For saved
+state with only conversation preferences, defaults are recovered from an unsent
+conversation when available, otherwise from initial defaults. Deleting a
+conversation also deletes its local draft and preferences.
+
+Markdown links use a single text underline with no bottom border, configured in
+`app.config.ts` via `ui.prose.a`. This prevents the Nuxt UI hover border from
+stacking with Tailwind Typography’s underline on prose pages.

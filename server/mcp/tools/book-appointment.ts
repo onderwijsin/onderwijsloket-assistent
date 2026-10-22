@@ -10,7 +10,7 @@ export default defineMcpTool({
   name: "book_appointment",
   group: "scheduling",
   description:
-    "Create a real one-to-one telephone appointment only after the user explicitly confirms the selected slot, name, email, international phone number, time zone and completed current booking form. Normalize phone numbers to international format internally using established country context; never ask users to format numbers or separately confirm formatting. Clarify the country only when ambiguous. Use get_scheduling_link first; never invent answers, field IDs or options. Supply all required answers using exact returned choices, reusing confirmed information from the conversation. The server sets hidden booking attribution from the MCP client name, refreshes link/form and availability, and enforces the hourly creation quota. Display the returned message. Never retry automatically: BOOKING_UNCERTAIN may already have created the appointment; check confirmation email first. Cancel or reschedule through that email.",
+    "Create a real one-to-one telephone appointment only after the user explicitly confirms the selected slot, name, email, international phone number, time zone and completed current booking form. Normalize phone numbers to international format internally using established country context; never ask users to format numbers or separately confirm formatting. Respect an explicit country code or established country context; otherwise default national numbers to the Netherlands (+31) when the conversation is in Dutch. Clarify the country only when it remains ambiguous. Show the normalized international phone number, including its country code, in the confirmation summary and submit that same number for booking. Use get_scheduling_link first; never invent answers, field IDs or options. Supply all required answers using exact returned choices, reusing confirmed information from the conversation. The server sets hidden booking attribution from the MCP client name, refreshes link/form and availability, and enforces the hourly creation quota. Display the returned message. Never retry automatically: BOOKING_UNCERTAIN may already have created the appointment; check confirmation email first. Cancel or reschedule through that email.",
   annotations: {
     readOnlyHint: false,
     destructiveHint: false,
@@ -31,6 +31,7 @@ export default defineMcpTool({
           clientName:
             event.context.schedulingClientName ??
             getSdkServer(useMcpServer().server).getClientVersion()?.name,
+          /** Consume the booking creation quota and persist the attempt before calling the provider. */
           beforeCreate: async () => {
             await enforceSchedulingRateLimit(event);
             await markAttempted();

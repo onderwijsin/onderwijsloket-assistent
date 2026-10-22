@@ -165,6 +165,8 @@ export function integerFilter(description: string) {
   return {
     schema: z.number().int().nonnegative().optional().describe(description),
     /**
+     * Describe a nonnegative integer equality filter for the supplied field.
+     *
      * @param name - Public field key.
      * @returns Integer equality descriptor.
      */

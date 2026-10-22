@@ -1,7 +1,7 @@
 import { defineStore, acceptHMRUpdate } from "pinia";
 import { computed, ref } from "vue";
 import type { UIMessage } from "ai";
-import type { ChatSettings } from "../types/chat";
+import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from "../types/chat";
 import { deserializeChatState } from "../utils/chat-storage";
 
 export interface Conversation {
@@ -14,6 +14,7 @@ export interface Conversation {
   pinnedAt?: string | null;
   archivedAt?: string | null;
   draft: string;
+  settings: ChatSettings;
   messages: UIMessage[];
 }
 
@@ -23,22 +24,20 @@ export const useChatStore = defineStore(
   () => {
     const conversations = ref<Conversation[]>([]);
     const activeId = ref<string | null>(null);
-    const settings = ref<ChatSettings>({
-      model: "gpt-6-luna",
-      webSearch: false,
-      extendedThinking: true
-    });
+    const defaultSettings = ref<ChatSettings>({ ...DEFAULT_CHAT_SETTINGS });
     const sidebarCollapsed = ref(false);
     const sidebarOpen = ref(false);
     const searchOpen = ref(false);
     const active = computed(() => conversations.value.find((chat) => chat.id === activeId.value));
 
-    /** Create or reuse an empty conversation and select it. @returns The selected local conversation. */
+    /**
+     * Create or reuse an empty conversation and select it.
+     * @returns The reused empty conversation or a newly created active conversation.
+     */
     function newConversation() {
-      const empty = conversations.value.find(
-        (chat) => !chat.archivedAt && !chat.messages.length && !chat.draft
-      );
+      const empty = conversations.value.find((chat) => !chat.archivedAt && !chat.messages.length);
       if (empty) {
+        empty.settings = { ...defaultSettings.value };
         activeId.value = empty.id;
         return empty;
       }
@@ -51,6 +50,7 @@ export const useChatStore = defineStore(
         createdAt: now,
         updatedAt: now,
         draft: "",
+        settings: { ...defaultSettings.value },
         messages: []
       };
       conversations.value.unshift(chat);
@@ -58,7 +58,23 @@ export const useChatStore = defineStore(
       return chat;
     }
 
-    /** Select an existing chat and close mobile navigation. @param id - Local conversation ID. */
+    /**
+     * Save preferences, updating defaults only while editing the welcome composer.
+     * @param id - Conversation receiving the selections.
+     * @param settings - Complete model and capability selections.
+     * @param updateDefaults - Whether the welcome composer is still visible.
+     */
+    function updateSettings(id: string, settings: ChatSettings, updateDefaults: boolean) {
+      const chat = conversations.value.find((item) => item.id === id);
+      if (!chat) return;
+      chat.settings = { ...settings };
+      if (updateDefaults) defaultSettings.value = { ...settings };
+    }
+
+    /**
+     * Select an existing chat and close mobile navigation.
+     * @param id - Local conversation identifier.
+     */
     function selectConversation(id: string) {
       if (!conversations.value.some((chat) => chat.id === id)) return;
       activeId.value = id;
@@ -66,7 +82,11 @@ export const useChatStore = defineStore(
       searchOpen.value = false;
     }
 
-    /** Save SDK message snapshots without retaining mutable SDK objects. @param id - Owning chat ID. @param messages - Current streamed transcript. */
+    /**
+     * Save SDK message snapshots without retaining mutable SDK objects.
+     * @param id - Local conversation identifier.
+     * @param messages - Current SDK messages to snapshot for persistence.
+     */
     function saveMessages(id: string, messages: UIMessage[]) {
       const chat = conversations.value.find((item) => item.id === id);
       if (!chat) return;
@@ -83,13 +103,19 @@ export const useChatStore = defineStore(
       }
     }
 
-    /** Toggle a conversation's persisted pin timestamp. @param id - Local chat ID. */
+    /**
+     * Toggle a conversation's persisted pin timestamp.
+     * @param id - Local conversation identifier.
+     */
     function togglePin(id: string) {
       const chat = conversations.value.find((item) => item.id === id);
       if (chat && !chat.archivedAt) chat.pinnedAt = chat.pinnedAt ? null : new Date().toISOString();
     }
 
-    /** Archive or restore a local chat without discarding its content. @param id - Local chat ID. */
+    /**
+     * Archive or restore a local chat without discarding its content.
+     * @param id - Local conversation identifier.
+     */
     function toggleArchive(id: string) {
       const chat = conversations.value.find((item) => item.id === id);
       if (!chat) return;
@@ -100,7 +126,11 @@ export const useChatStore = defineStore(
       }
     }
 
-    /** Rename a conversation. @param id - Local chat ID. @param title - User supplied title. */
+    /**
+     * Rename a conversation.
+     * @param id - Local conversation identifier.
+     * @param title - User-supplied title to trim and bound.
+     */
     function renameConversation(id: string, title: string) {
       const chat = conversations.value.find((item) => item.id === id);
       if (chat && title.trim()) {
@@ -109,7 +139,11 @@ export const useChatStore = defineStore(
       }
     }
 
-    /** Apply a generated title without replacing a manual rename. @param id - Owning local chat ID. @param title - Validated server title. */
+    /**
+     * Apply a generated title without replacing a manual rename.
+     * @param id - Local conversation identifier.
+     * @param title - Validated generated title to apply while the title is still a fallback.
+     */
     function applyGeneratedTitle(id: string, title: string) {
       const chat = conversations.value.find((item) => item.id === id);
       if (!chat || chat.titleSource !== "fallback") return;
@@ -117,7 +151,10 @@ export const useChatStore = defineStore(
       chat.titleSource = "generated";
     }
 
-    /** Delete a local conversation and select a remaining chat. @param id - Local chat ID. */
+    /**
+     * Delete a local conversation and select a remaining chat.
+     * @param id - Local conversation identifier.
+     */
     function deleteConversation(id: string) {
       conversations.value = conversations.value.filter((chat) => chat.id !== id);
       if (activeId.value === id) activeId.value = conversations.value[0]?.id ?? null;
@@ -127,8 +164,9 @@ export const useChatStore = defineStore(
     return {
       conversations,
       activeId,
+      defaultSettings,
+      updateSettings,
       active,
-      settings,
       sidebarCollapsed,
       sidebarOpen,
       searchOpen,
@@ -147,7 +185,7 @@ export const useChatStore = defineStore(
       // Never use the persistence module's default cookie storage for chat content.
       storage: piniaPluginPersistedstate.localStorage(),
       serializer: { serialize: JSON.stringify, deserialize: deserializeChatState },
-      pick: ["conversations", "activeId", "settings", "sidebarCollapsed"]
+      pick: ["conversations", "activeId", "defaultSettings", "sidebarCollapsed"]
     }
   }
 );
