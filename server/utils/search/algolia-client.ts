@@ -28,6 +28,7 @@ export function useAlgoliaClient() {
  * @param token - Server-side API credential.
  * @param host - Optional HTTP(S) host override; empty selects the default hosts.
  * @returns An SDK client using default hosts or the validated host override.
+ * @throws Error when a custom host has an unsupported protocol or no hostname; SDK initialization errors propagate.
  */
 function createClient(applicationId: string, token: string, host: string) {
   if (!host) return algoliasearch(applicationId, token, undefined);

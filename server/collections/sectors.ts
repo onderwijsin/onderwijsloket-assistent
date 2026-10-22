@@ -307,6 +307,8 @@ export default defineMcpCollection({
   searchResult: searchAdapter.searchResult,
   search: searchAdapter.search,
   /**
+   * Read and normalize a page of sector summaries.
+   *
    * @param args - Parsed sector filters and pagination.
    * @returns A page of sector summaries.
    */
@@ -322,6 +324,8 @@ export default defineMcpCollection({
     };
   },
   /**
+   * Read one sector detail record with its bounded relations.
+   *
    * @param id - Validated sector/taxonomy identifier.
    * @returns Named text sections and ordered bounded featured references.
    */

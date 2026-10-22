@@ -15,6 +15,10 @@ export const contentNodeSchema: z.ZodType<ContentNode> = z.object({
   type: z.string(),
   text: z.string().optional(),
   attrs: z.record(z.string(), z.unknown()).optional(),
+  /**
+   * Resolve the recursive child-node schema lazily.
+   * @returns The optional array schema for nested content nodes.
+   */
   get content() {
     return z.array(contentNodeSchema).optional();
   },

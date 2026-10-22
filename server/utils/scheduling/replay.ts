@@ -14,7 +14,11 @@ const hourInMilliseconds = hourInSeconds * 1000;
 const activeBookings = new Set<string>();
 let nextCleanupAt = 0;
 
-/** Hash the booking identity so storage keys contain no contact details. */
+/**
+ * Hash the booking identity so storage keys contain no contact details.
+ * @param booking - Validated booking whose email and start instant identify duplicate attempts.
+ * @returns The hexadecimal SHA-256 digest of the normalized booking identity.
+ */
 async function bookingKey(booking: z.infer<typeof schedulingBookingInput>) {
   const email = booking.email.trim().toLowerCase();
   const start = Date.parse(booking.start_at);
@@ -23,7 +27,10 @@ async function bookingKey(booking: z.infer<typeof schedulingBookingInput>) {
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** Prune lazily because the memory driver ignores storage TTL options. */
+/**
+ * Prune lazily because the memory driver ignores storage TTL options.
+ * @param storage - Replay storage namespace to prune.
+ */
 async function removeExpiredRecords(storage: ReplayStorage) {
   const now = Date.now();
   if (now < nextCleanupAt) return;
@@ -35,7 +42,12 @@ async function removeExpiredRecords(storage: ReplayStorage) {
   }
 }
 
-/** Reuse a confirmed result; an unfinished or unreadable attempt must never be replayed. */
+/**
+ * Reuse a confirmed result; an unfinished or unreadable attempt must never be replayed.
+ * @param record - Stored attempt that may contain a confirmed booking.
+ * @returns The validated original booking confirmation.
+ * @throws SchedulingError when the stored attempt has no valid confirmation.
+ */
 function confirmedResult(record: ReplayRecord): BookingResult {
   const result = schedulingBookingOutput.safeParse(record.result);
   if (!result.success) throw new SchedulingError("BOOKING_UNCERTAIN");
@@ -66,6 +78,7 @@ export async function protectBooking(input: BookingInput, action: BookingAction)
     const ttl = Math.max(hourInSeconds, secondsUntilEnd);
     const expires = Date.now() + ttl * 1000;
 
+    /** Persist an unfinished attempt before the provider write to prevent duplicate bookings. */
     const markAttempted = async () => {
       // Persist before sending: a timeout or lost stream must not cause another POST.
       await storage.setItem(key, { expires }, { ttl });

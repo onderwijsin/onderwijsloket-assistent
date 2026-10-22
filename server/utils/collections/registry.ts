@@ -34,6 +34,7 @@ interface DiscoveryCollection {
  * Publish an explicit allowlist for shared discovery without erasing record schemas.
  * @param definitions - Only implemented, enabled public collection definitions.
  * @returns Discovery schemas and resolvers; record tools retain their own definitions.
+ * @throws Error when the registry is empty, names are duplicated or metadata identifies a different collection.
  */
 export function createCollectionRegistry<const Definitions extends readonly DiscoveryCollection[]>(
   definitions: Definitions
@@ -73,6 +74,7 @@ export function createCollectionRegistry<const Definitions extends readonly Disc
    * @param name - Public collection name; never an arbitrary upstream table name.
    * @param operation - Capability to require before any provider operation runs.
    * @returns The registered definition, or a sanitized unknown/unsupported error.
+   * @throws H3Error when the collection is unknown or the requested capability is unsupported.
    */
   function resolve(name: string, operation?: "filters" | "facets") {
     const definition = entries.find((entry) => entry.name === name);

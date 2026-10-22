@@ -110,6 +110,11 @@ const cachedLocations = defineCachedFunction(requestLocations, {
   name: "mapbox-geocoding-nl-proximity-v1",
   maxAge: cacheDurations.geocoding,
   swr: false,
+  /**
+   * Reject cached geocoding payloads that do not match the current location schema.
+   * @param entry - Cached entry whose value contains provider locations.
+   * @returns Whether the cached locations satisfy the output schema.
+   */
   validate: (entry) => locationsSchema.safeParse(entry.value).success
 });
 

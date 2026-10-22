@@ -116,7 +116,11 @@ export function listResources(collection: {
       name: "resource-catalogue-descriptors",
       maxAge: cacheDurations.resourceCatalogue,
       swr: false,
-      /** @returns A collection-scoped key; Nitro coalesces concurrent cold requests for this key. */
+      /**
+       * Scope cached resource descriptors and concurrent reads to one collection.
+       *
+       * @returns A collection-scoped key; Nitro coalesces concurrent cold requests for this key.
+       */
       getKey: () => collection.name
     }
   );

@@ -58,6 +58,10 @@ function normalizeContentNodes(node: JSONContent, warn: (message: string) => voi
  */
 export function contentToMarkdown(document: JSONContent, options: ContentMarkdownOptions) {
   const warnings = new Set<string>();
+  /**
+   * Collect each rendering warning once across the document and its nested content.
+   * @param message - Rendering warning to retain.
+   */
   const warn = (message: string) => {
     warnings.add(message);
   };

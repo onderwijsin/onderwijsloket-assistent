@@ -20,6 +20,11 @@ export default defineMcpResource({
     name: collection.name,
     id: collection.getInput.shape.id,
     get: collection.get,
+    /**
+     * Select the rendered description for the resource document.
+     * @param record - Validated detail record returned by the collection.
+     * @returns The record’s rendered description text.
+     */
     content: (record) => record.description,
     metadata: collection.resourceMetadata
   })

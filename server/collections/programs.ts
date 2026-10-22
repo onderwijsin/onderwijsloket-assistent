@@ -420,7 +420,11 @@ const programs = defineMcpCollection({
       ]
     };
   },
-  /** @returns Source-filter rules, taxonomy choices and provider/location lookup instructions. */
+  /**
+   * Retrieve the supported program filters and their current choices.
+   *
+   * @returns Source-filter rules, taxonomy choices and provider/location lookup instructions.
+   */
   async filters() {
     try {
       return await filters.filters();

@@ -33,6 +33,7 @@ export type McpListOptions<
  *
  * @param collection - Collection schemas, operation implementations and discovery metadata.
  * @returns The collection definition with validated methods, discovery metadata and MCP input/output schemas.
+ * @throws Error when search lacks an operation name or the detail cache TTL is invalid.
  */
 export function defineMcpCollection<
   const Name extends keyof Schema & string,

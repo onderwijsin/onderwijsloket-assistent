@@ -20,8 +20,7 @@ export default defineMcpPrompt({
   },
   /**
    * Build a local-support search and verification workflow.
-   * @param location - Validated location text.
-   * @param need - Optional advice needs and preferences.
+   * @param input - Validated location text and optional advice needs and preferences.
    * @returns A user message guiding local service discovery and coverage verification.
    */
   handler: async ({ location, need }) => `Find local support for working in education.

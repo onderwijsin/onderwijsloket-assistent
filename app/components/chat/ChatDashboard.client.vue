@@ -17,6 +17,10 @@ const groups = computed(() =>
       pinnedAt: chat.pinnedAt,
       archivedAt: chat.archivedAt,
       active: chat.id === store.activeId,
+      /**
+       * Select this conversation from the history list.
+       * @returns No value after selecting the conversation.
+       */
       onSelect: () => store.selectConversation(chat.id)
     }))
   }))
@@ -35,6 +39,7 @@ const actions = computed<DropdownMenuItem[]>(() => [
     disabled: !!store.active?.archivedAt,
     label: store.active?.pinnedAt ? "Losmaken" : "Vastzetten",
     icon: store.active?.pinnedAt ? "i-lucide-pin-off" : "i-lucide-pin",
+    /** Toggle the active conversation’s pinned state. */
     onSelect: () => {
       if (store.activeId) store.togglePin(store.activeId);
     }
@@ -42,6 +47,7 @@ const actions = computed<DropdownMenuItem[]>(() => [
   {
     label: store.active?.archivedAt ? "Terugzetten" : "Archiveren",
     icon: store.active?.archivedAt ? "i-lucide-archive-restore" : "i-lucide-archive",
+    /** Archive or restore the active conversation. */
     onSelect: () => {
       if (store.activeId) store.toggleArchive(store.activeId);
     }
@@ -49,6 +55,7 @@ const actions = computed<DropdownMenuItem[]>(() => [
   {
     label: "Naam wijzigen",
     icon: "i-lucide-pencil",
+    /** Open the rename dialog with the active conversation’s current title. */
     onSelect: () => {
       if (!store.active) return;
       renameId.value = store.active.id;
@@ -60,6 +67,7 @@ const actions = computed<DropdownMenuItem[]>(() => [
     label: "Gesprek verwijderen",
     icon: "i-lucide-trash",
     color: "error",
+    /** Delete the active conversation from local history. */
     onSelect: () => {
       if (store.activeId) store.deleteConversation(store.activeId);
     }

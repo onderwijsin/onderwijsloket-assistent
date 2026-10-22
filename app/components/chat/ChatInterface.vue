@@ -12,7 +12,15 @@ const toast = useToast();
 const errorToastId = `chat-error-${props.conversationId}`;
 const conversation = store.conversations.find((chat) => chat.id === props.conversationId)!;
 const input = computed({
+  /**
+   * Read the persisted draft for this conversation.
+   * @returns The current unsent draft.
+   */
   get: () => conversation.draft,
+  /**
+   * Persist composer edits in this conversation’s draft.
+   * @param value - New unsent draft text.
+   */
   set: (value: string) => {
     conversation.draft = value;
   }
@@ -26,6 +34,10 @@ const composer = useTemplateRef("composer");
 const { messages, status, error, sendMessage, stop, regenerate, clearError } = useChat({
   messages: restoreChatMessages(JSON.parse(JSON.stringify(conversation.messages))),
   throttle: 100,
+  /**
+   * Apply a valid generated title received through the chat data stream.
+   * @param part - Incoming custom data part from the server.
+   */
   onData: (part) => {
     if (
       part.type !== "data-conversation-title" ||
@@ -39,7 +51,18 @@ const { messages, status, error, sendMessage, stop, regenerate, clearError } = u
   },
   transport: new DefaultChatTransport({
     api: "/api/chat",
+    /**
+     * Snapshot the current model and feature settings for each request.
+     * @returns The current chat settings.
+     */
     body: () => ({ ...settings.value }),
+    /**
+     * Send a chat request and translate HTTP failures into public error messages.
+     * @param url - Chat endpoint URL supplied by the SDK transport.
+     * @param options - Fetch options supplied by the SDK transport.
+     * @returns The successful streaming response.
+     * @throws Error when the server rejects the request, including rate limits; network failures propagate.
+     */
     fetch: async (url, options) => {
       const response = await fetch(url, options);
       if (!response.ok) {
@@ -55,7 +78,10 @@ const { messages, status, error, sendMessage, stop, regenerate, clearError } = u
 });
 const busy = computed(() => status.value === "submitted" || status.value === "streaming");
 
-/** Preserve booking attempts when retrying or replacing an earlier answer. */
+/**
+ * Preserve booking attempts when retrying or replacing an earlier answer.
+ * @param messageId - Optional assistant message to regenerate; omitted to retry the latest answer.
+ */
 async function regenerateSafely(messageId?: string) {
   if (busy.value || !canRegenerateChat(messages.value, messageId)) return;
   await regenerate({ messageId });
@@ -82,6 +108,7 @@ watch(error, (value) => {
       ? [
           {
             label: "Opnieuw proberen",
+            /** Clear the visible error and retry the latest answer when regeneration is allowed. */
             onClick: () => {
               clearError();
               void regenerateSafely();
@@ -89,6 +116,10 @@ watch(error, (value) => {
           }
         ]
       : [],
+    /**
+     * Clear the chat error when its toast is dismissed.
+     * @param open - Whether the error toast remains open.
+     */
     "onUpdate:open": (open) => {
       if (!open) clearError();
     }
@@ -137,6 +168,7 @@ async function submitMessage(value: string, clearDraft = false) {
 
 /** Animate the composer from the welcome view to the bottom of the chat panel. */
 async function enterTranscript() {
+  /** Reveal the transcript and reset its scroll position after rendering. */
   const update = async () => {
     showTranscript.value = true;
     await nextTick();
@@ -153,7 +185,10 @@ async function enterTranscript() {
   await transition.updateCallbackDone;
 }
 
-/** Submit a suggested prompt with the current model and feature selections. */
+/**
+ * Submit a suggested prompt with the current model and feature selections.
+ * @param prompt - Suggested prompt text to submit directly.
+ */
 async function selectSuggestion(prompt: string) {
   await submitMessage(prompt);
 }

@@ -2,7 +2,11 @@ import { asSchema, jsonSchema, type ToolSet } from "ai";
 
 type JsonSchema = Awaited<ReturnType<typeof asSchema>["jsonSchema"]>;
 
-/** Remove unsupported key constraints only at JSON Schema locations, preserving property names and data. */
+/**
+ * Remove unsupported key constraints only at JSON Schema locations, preserving property names and data.
+ * @param schema - JSON Schema whose nested schema locations should be normalized.
+ * @returns A schema copy without unsupported propertyNames constraints.
+ */
 function withoutPropertyNames(schema: JsonSchema): JsonSchema {
   const result = { ...schema };
   delete result.propertyNames;
@@ -45,7 +49,11 @@ function withoutPropertyNames(schema: JsonSchema): JsonSchema {
   return result;
 }
 
-/** Boolean schemas have no keywords to normalize. */
+/**
+ * Boolean schemas have no keywords to normalize.
+ * @param schema - Boolean schema or JSON Schema object to normalize.
+ * @returns The unchanged boolean or a normalized schema object.
+ */
 function normalize(schema: JsonSchema | boolean): JsonSchema | boolean {
   return typeof schema === "boolean" ? schema : withoutPropertyNames(schema);
 }

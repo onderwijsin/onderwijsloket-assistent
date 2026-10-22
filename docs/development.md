@@ -77,9 +77,25 @@ Follow the [HTTP request policy](http-requests.md): use `ofetch` or `ofetch.crea
 
 Start with [collection registry](collection-registry.md), [search](search.md) and [collection data](collection-data.md). Resources, content rendering, taxonomy choices and cache controls have focused reference guides. The implementation exposes ten core collections with record tools/resources; supporting tables remain embedded. [Education pathways](routes.md) use dedicated questionnaire, matching and detail tools. The [geocoding utility](geocoding.md) resolves location text for geographic searches of programs, institutions and regional education desks. [MCP prompts](mcp-prompts.md) provide program comparison, local support, related-content and route-questionnaire workflows. The [chat integration](chat.md) exposes these workflows to the assistant.
 
-## Server JSDoc
+## JSDoc
 
-MCP handlers, collection methods and their supporting server utilities document behavior, each declared parameter with `@param`, and the return value with `@returns`. Functions without parameters omit `@param`; void and throwing functions explain their effects under `@returns`. Schema, configuration and type comments describe their purpose without function tags. Keep client-facing MCP descriptions independent of infrastructure details.
+Oxlint loads `eslint-plugin-jsdoc` as `jsdoc-js` alongside its native `jsdoc` plugin.
+Function declarations, assigned function expressions, arrow functions and methods
+require a JSDoc description, a descriptive `@param` for each parameter, and a
+descriptive `@returns` when returning a value. Void functions do not need `@returns`.
+Inline callbacks do not require their own comment. Existing comments on callbacks
+are still validated. Function JSDoc enforcement excludes `tests/**`; other lint rules remain
+active there. Destructured parameters need a root parameter description; individual properties do not need separate tags.
+
+Explicit throw statements require `@throws` with a description of the error
+condition. Document errors propagated from other functions manually: lint cannot
+discover every possible thrown error or rejected promise. Keep parameter and return
+types in TypeScript rather than duplicating them in JSDoc.
+
+Missing comments and tags fail `corepack pnpm lint`. Their autofixers are disabled
+so `lint:fix` cannot generate empty documentation. Schema, configuration and type
+comments describe their purpose without function tags. Keep client-facing MCP
+descriptions independent of infrastructure details.
 
 ## Tool analytics
 

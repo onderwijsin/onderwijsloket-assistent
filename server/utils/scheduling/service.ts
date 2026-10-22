@@ -27,11 +27,13 @@ const day = 24 * 60 * 60 * 1000;
 const choiceTypes = new Set(["select", "radio", "checkbox", "checkboxes"]);
 const multipleTypes = new Set(["checkbox", "checkboxes"]);
 
-/** Validate without exposing source data or Zod error payloads.
+/**
+ * Validate without exposing source data or Zod error payloads.
  * @param schema - Expected boundary contract.
  * @param value - Untrusted input or provider result.
  * @param code - Safe failure category.
  * @returns Parsed projection.
+ * @throws SchedulingError when the input or provider response does not match the schema.
  */
 function parse<T>(
   schema: z.ZodType<T>,
@@ -43,7 +45,11 @@ function parse<T>(
   return parsed.data;
 }
 
-/** Return contiguous day offsets, expanding weekly after the first fifteen days. */
+/**
+ * Return contiguous day offsets, expanding weekly after the first fifteen days.
+ * @param window - Zero-based availability window index.
+ * @returns Start and end day offsets relative to the current time.
+ */
 function defaultWindowDays(window: number): [number, number] {
   switch (window) {
     case 0:
@@ -59,7 +65,11 @@ function defaultWindowDays(window: number): [number, number] {
   }
 }
 
-/** Only expose usable, unambiguous choices from the current provider response. */
+/**
+ * Only expose usable, unambiguous choices from the current provider response.
+ * @param field - Fresh provider field with its available choices.
+ * @returns The field with a flag indicating whether its choices can be used safely.
+ */
 function configureField(field: Link["fields"][number]): FormField {
   const options = field.options ?? [];
   const configured =
@@ -70,7 +80,13 @@ function configureField(field: Link["fields"][number]): FormField {
   return { ...field, configured };
 }
 
-/** Validate against fresh options and submit provider IDs without rewriting prefixes. */
+/**
+ * Validate against fresh options and submit provider IDs without rewriting prefixes.
+ * @param field - Current field definition and configuration status.
+ * @param values - Submitted answer values, preserving provider choice values.
+ * @returns The provider field payload with resolved option IDs.
+ * @throws SchedulingError when choices are unconfigured or answers are invalid.
+ */
 function serializeAnswer(field: FormField, values: string[]): EventFields[number] {
   if (!field.configured) throw new SchedulingError("FORM_NOT_CONFIGURED");
 
@@ -102,7 +118,13 @@ function serializeAnswer(field: FormField, values: string[]): EventFields[number
   }
 }
 
-/** Reject missing, duplicate or unknown answers before preparing provider fields. */
+/**
+ * Reject missing, duplicate or unknown answers before preparing provider fields.
+ * @param fields - Current visible form fields.
+ * @param submitted - Answers supplied for the confirmed booking.
+ * @returns Validated provider payloads for answered fields.
+ * @throws SchedulingError when required fields are unconfigured or answers are missing, duplicated or unknown.
+ */
 function prepareAnswers(fields: FormField[], submitted: Booking["answers"]) {
   if (fields.some((field) => field.is_required && !field.configured)) {
     throw new SchedulingError("FORM_NOT_CONFIGURED");
@@ -124,7 +146,15 @@ function prepareAnswers(fields: FormField[], submitted: Booking["answers"]) {
   });
 }
 
-/** Confirm the requested link, exact instants and preservation of every submitted answer. */
+/**
+ * Confirm the requested link, exact instants and preservation of every submitted answer.
+ * @param raw - Untrusted event creation response.
+ * @param linkId - Expected provider link ID.
+ * @param booking - Confirmed booking details.
+ * @param submitted - Field payloads sent to the provider.
+ * @returns The validated event with the requested slot and preserved answers.
+ * @throws SchedulingError when the response does not establish that the requested booking was created.
+ */
 function readConfirmation(
   raw: unknown,
   linkId: string,
@@ -160,7 +190,12 @@ function readConfirmation(
   return event;
 }
 
-/** Format the confirmation in the consultation language and the user's time zone. */
+/**
+ * Format the confirmation in the consultation language and the user's time zone.
+ * @param event - Validated provider event.
+ * @param booking - Booking language and time zone.
+ * @returns Minimal booking details and a localized confirmation message.
+ */
 function bookingConfirmation(event: ConfirmedEvent, booking: Booking) {
   const { language, time_zone } = booking;
   const when = new Intl.DateTimeFormat(language === "nl" ? "nl-NL" : "en-GB", {
@@ -191,10 +226,12 @@ function bookingConfirmation(event: ConfirmedEvent, booking: Booking) {
   });
 }
 
-/** Resolve a single conservative window with no gaps between subsequent windows.
+/**
+ * Resolve a single conservative window with no gaps between subsequent windows.
  * @param input - Language, optional preferred dates, or a default window index.
  * @param now - Anchor for default windows.
  * @returns ISO timestamps for one provider query.
+ * @throws SchedulingError when dates are invalid, in the past, reversed or more than 31 days apart.
  */
 export function schedulingRange(input: z.input<typeof schedulingSlotsInput>, now = Date.now()) {
   const args = parse(schedulingSlotsInput, input, "INVALID_INPUT");

@@ -22,9 +22,18 @@ const features = computed<DropdownMenuItem[]>(() => [
     icon: "i-lucide-globe",
     type: "checkbox",
     checked: settings.value.webSearch,
+    /**
+     * Update the web search setting from its menu checkbox.
+     * @param checked - Whether web search is enabled.
+     */
     onUpdateChecked: (checked) => {
       settings.value.webSearch = checked;
     },
+    /**
+     * Keep the feature menu open while toggling a checkbox.
+     * @param event - Menu selection event whose default closing behavior is prevented.
+     * @returns No value after preventing the default selection behavior.
+     */
     onSelect: (event) => event.preventDefault()
   },
   {
@@ -32,9 +41,18 @@ const features = computed<DropdownMenuItem[]>(() => [
     icon: "i-lucide-brain",
     type: "checkbox",
     checked: settings.value.extendedThinking,
+    /**
+     * Update the extended thinking setting from its menu checkbox.
+     * @param checked - Whether extended thinking is enabled.
+     */
     onUpdateChecked: (checked) => {
       settings.value.extendedThinking = checked;
     },
+    /**
+     * Keep the feature menu open while toggling a checkbox.
+     * @param event - Menu selection event whose default closing behavior is prevented.
+     * @returns No value after preventing the default selection behavior.
+     */
     onSelect: (event) => event.preventDefault()
   }
 ]);

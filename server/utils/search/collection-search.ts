@@ -180,6 +180,7 @@ export function defineCollectionSearch<
    * Constrain dynamic provider facet names to the collection's static search contract.
    * @param args - Query context containing selected filters and optional facet names.
    * @returns Nothing; rejects unsupported public filter names before provider access.
+   * @throws H3Error when a facet name is unavailable or filter values fail validation.
    */
   function validateFacets(args: { filters?: SearchOptions["filters"]; facets?: string[] }) {
     if (
@@ -327,6 +328,7 @@ export function defineCollectionSearch<
  *
  * @param error - Error to translate into the public search error contract.
  * @returns Never returns; throws a sanitized error or preserves an invalid-filter error.
+ * @throws H3Error preserving input errors with status 400 or reporting other search failures as status 502.
  */
 function throwSearchError(error: unknown): never {
   if (error && typeof error === "object" && "statusCode" in error && error.statusCode === 400)

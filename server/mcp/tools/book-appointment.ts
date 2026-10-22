@@ -31,6 +31,7 @@ export default defineMcpTool({
           clientName:
             event.context.schedulingClientName ??
             getSdkServer(useMcpServer().server).getClientVersion()?.name,
+          /** Consume the booking creation quota and persist the attempt before calling the provider. */
           beforeCreate: async () => {
             await enforceSchedulingRateLimit(event);
             await markAttempted();

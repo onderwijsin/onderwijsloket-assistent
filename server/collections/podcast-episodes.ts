@@ -324,6 +324,8 @@ const collection = defineMcpCollection({
     }
   }),
   /**
+   * Project podcast episode metadata without the separately rendered content.
+   *
    * @param record - Validated detail.
    * @returns Public front matter without duplicated body/transcripts.
    */
@@ -336,6 +338,8 @@ const collection = defineMcpCollection({
     return record;
   },
   /**
+   * Read and normalize a page of podcast episode summaries.
+   *
    * @param args - Parsed list arguments.
    * @returns Bounded summaries and continuation flag.
    */
@@ -351,6 +355,8 @@ const collection = defineMcpCollection({
     };
   },
   /**
+   * Read one podcast episode detail record with its bounded relations.
+   *
    * @param id - Validated record identity.
    * @returns Nullable readable content and native media detail.
    */
