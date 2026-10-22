@@ -4,6 +4,7 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import { groupConversations } from "../../utils/chat-history";
 
 const store = useChatStore();
+const { copyConversation, canCopy } = useConversationClipboard(() => store.active);
 const collapsedNavigationUi = {
   list: "flex flex-col gap-2",
   link: "size-8 justify-center gap-0 p-1.5",
@@ -67,6 +68,12 @@ const actions = computed<DropdownMenuItem[]>(() => [
       renameTitle.value = store.active.title;
       renaming.value = true;
     }
+  },
+  {
+    label: "Gesprek kopiëren",
+    icon: "i-lucide-copy",
+    disabled: !canCopy.value,
+    onSelect: copyConversation
   },
   {
     label: "Gesprek verwijderen",

@@ -114,7 +114,13 @@ Draft-only conversations stay out of sidebar history and search until the first 
 message is submitted. Typing alone does not add a navigation item.
 The sidebar provides new conversations, grouped local history, title search and links to
 Onderwijs in, the GitHub repository and the newsletter page. The conversation title menu
-supports pin/unpin, rename and delete. History and search groups use creation dates,
+supports pin/unpin, rename, copying and delete. “Gesprek kopiëren” copies the title and
+user/assistant text as Markdown with speaker headings, excluding reasoning and tool payloads.
+Successful copying shows “Het gesprek is gekopieerd naar je klembord”; failures show an error toast.
+The copy action is disabled while copying or when the Clipboard API is unavailable.
+`useConversationClipboard` owns Markdown formatting, clipboard state and result toasts;
+the dashboard passes the active conversation through a reactive getter.
+History and search groups use creation dates,
 newest first; opening, continuing or renaming a conversation never changes its position
 or creation-date group. Pinned conversations appear only in a separate “Vastgezet” group
 above date groups, most recently pinned first. Unpinning restores the creation-date
