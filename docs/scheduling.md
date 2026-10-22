@@ -16,6 +16,8 @@ The language argument is `nl` or `en`. Choose the user's preferred consultation 
 
 After selecting a slot, collect name, email, international phone number and every current required form answer. Infer the IANA time zone from reliable conversation or host context, defaulting to `Europe/Amsterdam`; do not ask the user for it or infer it from chat language alone. Label times clearly and accept corrections. Answers are `{ field_id, values: string[] }`; text and single-select fields take one value. Ask the user to explicitly confirm the slot and completed form before calling `book_appointment` with `confirmed: true`. This is a caller attestation to user confirmation, not independent proof of consent. The adviser calls the supplied number. Optional answers may be omitted, and known background should be reused only after confirmation.
 
+Ask simply for a reachable phone number and normalize it internally. Respect an explicit country code or established country context; otherwise, in a Dutch conversation, assume the Netherlands (`+31`) for national numbers: `0612345678` becomes `+31612345678` without a country follow-up. Ask for the country only when it remains ambiguous. Show the normalized international number, including its country code (for example, `+31612345678`), in the final booking summary and submit that same number for booking.
+
 The server refreshes the link before each operation and rechecks the exact slot immediately before creation. It rejects unknown, duplicate or hidden answer IDs and missing required fields. The hidden attribution field is populated from the SDK connection client name, falling back to `Unknown MCP Client`. Client names are self-reported labels, not authenticated identities.
 
 ## Form choices and provider validation

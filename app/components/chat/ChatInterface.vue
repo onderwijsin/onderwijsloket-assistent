@@ -8,6 +8,8 @@ import { restoreChatMessages } from "../../utils/chat-storage";
 
 const props = defineProps<{ conversationId: string }>();
 const store = useChatStore();
+const toast = useToast();
+const errorToastId = `chat-error-${props.conversationId}`;
 const conversation = store.conversations.find((chat) => chat.id === props.conversationId)!;
 const input = computed({
   get: () => conversation.draft,
@@ -58,6 +60,40 @@ async function regenerateSafely(messageId?: string) {
   if (busy.value || !canRegenerateChat(messages.value, messageId)) return;
   await regenerate({ messageId });
 }
+
+// Keep request failures visible without taking space from the conversation.
+watch(error, (value) => {
+  if (!value) {
+    toast.remove(errorToastId);
+    return;
+  }
+  const canRetry = canRegenerateChat(messages.value);
+  toast.add({
+    id: errorToastId,
+    title: "Het is niet gelukt",
+    description: canRetry
+      ? value.message
+      : "Mogelijk is je afspraak al aangemaakt. Controleer je bevestigingsmail voordat je opnieuw boekt.",
+    color: "error",
+    icon: "i-lucide-circle-alert",
+    duration: Infinity,
+    close: true,
+    actions: canRetry
+      ? [
+          {
+            label: "Opnieuw proberen",
+            onClick: () => {
+              clearError();
+              void regenerateSafely();
+            }
+          }
+        ]
+      : [],
+    "onUpdate:open": (open) => {
+      if (!open) clearError();
+    }
+  });
+});
 
 // Persist snapshots against this instance's ID, even when another chat is selected.
 watch(messages, (value) => store.saveMessages(props.conversationId, value), { flush: "sync" });
@@ -144,6 +180,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   disposed = true;
+  toast.remove(errorToastId);
   store.saveMessages(props.conversationId, messages.value);
   void stop();
 });
@@ -194,31 +231,6 @@ onBeforeUnmount(() => {
         <div
           class="mx-auto w-full max-w-3xl space-y-2 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6"
         >
-          <UAlert
-            v-if="error"
-            title="Het is niet gelukt"
-            :description="
-              canRegenerateChat(messages)
-                ? error.message
-                : 'Mogelijk is je afspraak al aangemaakt. Controleer je bevestigingsmail voordat je opnieuw boekt.'
-            "
-            color="error"
-            variant="soft"
-            icon="i-lucide-circle-alert"
-            close
-            @update:open="clearError()"
-          >
-            <template #actions>
-              <UButton
-                v-if="canRegenerateChat(messages)"
-                label="Opnieuw proberen"
-                color="error"
-                variant="subtle"
-                size="sm"
-                @click="regenerateSafely()"
-              />
-            </template>
-          </UAlert>
           <ChatComposer
             ref="composer"
             v-model="input"

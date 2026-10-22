@@ -230,11 +230,19 @@ defineShortcuts({
       :ui="{ body: 'min-h-0 gap-0 overflow-hidden p-0 sm:p-0' }"
     >
       <template #header>
-        <UDashboardNavbar :ui="{ root: 'border-b-0 shrink-0' }">
+        <UDashboardNavbar
+          :ui="{
+            root: 'border-b-0 shrink-0',
+            left: 'flex-1 sm:flex-initial',
+            title: 'min-w-0 flex-1 sm:flex-initial'
+          }"
+        >
           <template #title>
             <UDropdownMenu
               v-if="store.active?.messages.length"
               :items="actions"
+              size="sm"
+              :ui="{ item: 'py-2', itemLeadingIcon: 'size-4!' }"
               :content="{ align: 'start' }"
             >
               <UButton
@@ -242,7 +250,7 @@ defineShortcuts({
                 trailing-icon="i-lucide-chevron-down"
                 color="neutral"
                 variant="ghost"
-                class="min-w-0 max-w-[55vw] sm:max-w-[min(28rem,45vw)]"
+                class="min-w-0 w-full justify-between sm:w-auto sm:max-w-[min(28rem,45vw)]"
                 :ui="{ label: 'truncate' }"
               />
             </UDropdownMenu>

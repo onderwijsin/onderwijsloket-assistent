@@ -120,7 +120,9 @@ or creation-date group. Pinned conversations appear only in a separate “Vastge
 above date groups, most recently pinned first. Unpinning restores the creation-date
 position; pinning again assigns a new pin timestamp. Pins persist locally alongside
 conversation data, and existing saved conversations without a pin timestamp remain unpinned;
-the toolbar retains the color-mode toggle. Sidebar rows expose pin/unpin and archive
+the toolbar retains the color-mode toggle. Below `sm`, the conversation title fills
+the available header width. Its action menu uses small sizing, extra vertical item
+padding and 1 rem leading icons. Sidebar rows expose pin/unpin and archive
 buttons on hover or keyboard focus. On devices with hover, actions overlay the title
 with a gradient fade rather than reserving title space; the title shifts subtly on reveal.
 Reduced-motion preferences disable this movement and transitions. Mobile navigation hides row actions; pinning and archiving remain available in the
@@ -194,7 +196,9 @@ Markdown through the installed renderer’s `value` prop, with a Suspense fallba
 The composer submits the current model, search and thinking flags using
 `DefaultChatTransport`. Web search defaults off; extended thinking defaults on.
 Sending is disabled during a response and the submit control becomes a stop button.
-Failed requests show Dutch errors with retry and dismissal controls; quota errors
+Failed requests show persistent error toasts (`duration: Infinity`) with retry and
+dismissal controls instead of an inline alert. Toasts are removed when the error is
+cleared or the conversation is left; quota errors
 explain the hourly limit.
 
 The conversation omits the extra title/action row and decorative message
