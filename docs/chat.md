@@ -260,3 +260,19 @@ OpenAI chat tool inputs omit the unsupported JSON Schema `propertyNames` keyword
 provider boundary. Original MCP schemas and local input validators remain unchanged,
 including UUID key constraints and defaults. Mistral schemas are unchanged. Other AI SDK
 compatibility warnings remain enabled.
+
+## Privacy page
+
+`/privacy` is prerendered and imports `app/pages/privacy.md` as raw text at build
+time, rendered with the `Markdown` component. Policy edits require a rebuild. The dashboard layout reuses the
+chat sidebar and panel through a content slot, without the conversation title,
+transcript or composer. Its server fallback renders the policy inside `ChatDashboardLoading`, so prerendered
+HTML includes the content and dashboard chrome before the client dashboard mounts.
+The loading shell uses the same Nuxt UI dashboard group, 17-rem sidebar, header,
+navbar and panel spacing as the live dashboard. Local sidebar collapse and history
+state become available after mounting. Privacy is the fourth
+sidebar footer link. New-chat and history actions return to `/`.
+
+Conversation history highlights the active conversation only on `/`, leaving it
+unhighlighted on `/privacy`. The Onderwijs in, GitHub and newsletter footer links
+open in a new tab with `noopener noreferrer`; Privacy stays in the current tab.

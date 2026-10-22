@@ -4,6 +4,7 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import { groupConversations } from "../../utils/chat-history";
 
 const store = useChatStore();
+const route = useRoute();
 const { copyConversation, canCopy } = useConversationClipboard(() => store.active);
 const collapsedNavigationUi = {
   list: "flex flex-col gap-2",
@@ -22,23 +23,46 @@ const groups = computed(() =>
       label: chat.title,
       pinnedAt: chat.pinnedAt,
       archivedAt: chat.archivedAt,
-      active: chat.id === store.activeId,
+      active: route.path === "/" && chat.id === store.activeId,
       /**
        * Select this conversation from the history list.
        * @returns No value after selecting the conversation.
        */
-      onSelect: () => store.selectConversation(chat.id)
+      onSelect: () => selectConversation(chat.id)
     }))
   }))
 );
 const links = [
-  { label: "Onderwijs in", to: "https://onderwijsin.nl", icon: "i-lucide-external-link" },
+  {
+    label: "Onderwijs in",
+    to: "https://onderwijsin.nl",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    icon: "i-lucide-external-link"
+  },
   {
     label: "Bekijk broncode",
     to: "https://github.com/onderwijsin/onderwijsloket-assistent",
+    target: "_blank",
+    rel: "noopener noreferrer",
     icon: "i-simple-icons-github"
   },
-  { label: "Blijf op de hoogte", to: "https://onderwijsin.nl/nieuwsbrief", icon: "i-lucide-mail" }
+  {
+    label: "Blijf op de hoogte",
+    to: "https://onderwijsin.nl/nieuwsbrief",
+    target: "_blank",
+    rel: "noopener noreferrer",
+    icon: "i-lucide-mail"
+  },
+  {
+    label: "Privacy",
+    to: "/privacy",
+    icon: "i-lucide-shield",
+    /** Close the mobile menu when opening the privacy page. */
+    onSelect: () => {
+      store.sidebarOpen = false;
+    }
+  }
 ];
 const actions = computed<DropdownMenuItem[]>(() => [
   {
@@ -91,6 +115,16 @@ function newChat() {
   store.newConversation();
   store.sidebarOpen = false;
   store.searchOpen = false;
+  void navigateTo("/");
+}
+
+/**
+ * Open the selected conversation on the chat page.
+ * @param id Conversation identifier from local history.
+ */
+function selectConversation(id: string) {
+  store.selectConversation(id);
+  void navigateTo("/");
 }
 /** Save the selected conversation's edited title. */
 function saveTitle() {
@@ -186,7 +220,7 @@ defineShortcuts({
                   size="sm"
                   :ui="{ label: 'history-label truncate' }"
                   :aria-current="item.active ? 'page' : undefined"
-                  @click="store.selectConversation(item.id!)"
+                  @click="selectConversation(item.id!)"
                 />
                 <div
                   class="history-actions absolute inset-y-0 end-0 flex items-center bg-elevated pe-1"
@@ -262,7 +296,7 @@ defineShortcuts({
             title: 'min-w-0 flex-1 sm:flex-initial'
           }"
         >
-          <template #title>
+          <template v-if="!$slots.default" #title>
             <UDropdownMenu
               v-if="store.active?.messages.length"
               :items="actions"
@@ -288,11 +322,13 @@ defineShortcuts({
         </UDashboardNavbar>
       </template>
       <template #body>
-        <ChatInterface
-          v-if="store.active"
-          :key="store.activeId!"
-          :conversation-id="store.active.id"
-        />
+        <slot>
+          <ChatInterface
+            v-if="store.active"
+            :key="store.activeId!"
+            :conversation-id="store.active.id"
+          />
+        </slot>
       </template>
     </UDashboardPanel>
     <UModal
