@@ -5,6 +5,8 @@ import { groupConversations } from "../../utils/chat-history";
 
 const store = useChatStore();
 const route = useRoute();
+const config = useRuntimeConfig();
+const buildLabel = `v${config.public.appVersion} · ${config.app.buildId.slice(0, 8)}`;
 const { copyConversation, canCopy } = useConversationClipboard(() => store.active);
 const collapsedNavigationUi = {
   list: "flex flex-col gap-2",
@@ -149,6 +151,11 @@ defineShortcuts({
       resizable
       collapsible
       mode="modal"
+      :ui="{
+        content: 'overflow-y-auto',
+        body: 'flex-none overflow-y-visible lg:flex-1 lg:overflow-y-auto',
+        footer: 'pt-4'
+      }"
       :menu="{
         fullscreen: true,
         title: 'Gesprekken',
@@ -253,13 +260,22 @@ defineShortcuts({
         </nav>
       </template>
       <template #footer="{ collapsed }">
-        <UNavigationMenu
-          :items="links"
-          :collapsed="collapsed"
-          orientation="vertical"
-          class="w-full py-[calc(0.75rem+env(safe-area-inset-bottom))] lg:py-0"
-          :ui="collapsed ? collapsedNavigationUi : undefined"
-        />
+        <div class="w-full pb-[calc(0.75rem+env(safe-area-inset-bottom))] lg:pb-0">
+          <UNavigationMenu
+            :items="links"
+            :collapsed="collapsed"
+            orientation="vertical"
+            class="w-full"
+            :ui="collapsed ? collapsedNavigationUi : undefined"
+          />
+          <p
+            v-if="!collapsed"
+            class="mt-2 truncate px-2.5 text-[10px] leading-4 text-dimmed"
+            :title="`Versie ${config.public.appVersion} · Build ${config.app.buildId}`"
+          >
+            {{ buildLabel }}
+          </p>
+        </div>
       </template>
     </UDashboardSidebar>
     <UDashboardSearch

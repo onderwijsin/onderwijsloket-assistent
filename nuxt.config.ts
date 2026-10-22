@@ -202,6 +202,7 @@ export default defineNuxtConfig({
       host: ""
     },
     public: {
+      appVersion: packageVersion,
       directus: {
         assetBaseUrl: ENV.DIRECTUS_ASSET_URL
       },
