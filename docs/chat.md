@@ -289,3 +289,7 @@ migrate into defaults and conversations without their own selections. For saved
 state with only conversation preferences, defaults are recovered from an unsent
 conversation when available, otherwise from initial defaults. Deleting a
 conversation also deletes its local draft and preferences.
+
+Markdown links use a single text underline with no bottom border, configured in
+`app.config.ts` via `ui.prose.a`. This prevents the Nuxt UI hover border from
+stacking with Tailwind Typography’s underline on prose pages.

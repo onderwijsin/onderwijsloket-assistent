@@ -83,4 +83,4 @@ Wil je meer weten over bewaartermijnen, je gegevens laten aanpassen of verwijder
 - [Privacyverklaring van Stichting Onderwijs in](https://onderwijsin.nl/privacy).
 - [Privacyverklaring van Onderwijsloket](https://onderwijsloket.com/privacy-policy).
 
-Je kunt ook mailen naar [privacy@onderwijsloket.com](mailto:privacy@onderwijsloket.com).
+Je kunt ook mailen naar [privacy@onderwijsin.nl](mailto:privacy@onderwijsin.nl).
