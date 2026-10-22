@@ -57,6 +57,7 @@ catalog:
   ai: 7.0.144
   algoliasearch: ^5.60.0
   defu: 6.1.7
+  eslint-plugin-jsdoc: 65.4.0
   "h3": "1.15.11"
   husky: 9.1.7
   lint-staged: 17.6.0

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-dvh gap-3 bg-sand-main p-3 dark:bg-neutral-950"
+    class="flex h-dvh gap-3 bg-sand-main p-0 sm:p-3 dark:bg-neutral-950"
     role="status"
     aria-label="Gesprekken laden"
     aria-busy="true"
@@ -12,7 +12,7 @@
       <USkeleton class="h-5 w-1/2" />
     </aside>
     <main
-      class="flex min-w-0 flex-1 flex-col rounded-xl bg-sand-light ring ring-default dark:[--ui-bg:color-mix(in_oklab,var(--color-zinc-900)_50%,transparent)] dark:bg-default p-5 sm:p-8"
+      class="flex min-w-0 flex-1 flex-col rounded-none bg-sand-light sm:rounded-xl sm:ring sm:ring-default dark:[--ui-bg:color-mix(in_oklab,var(--color-zinc-900)_50%,transparent)] dark:bg-default p-5 sm:p-8"
     >
       <USkeleton class="h-6 w-36" />
       <div class="m-auto w-full max-w-2xl space-y-6">

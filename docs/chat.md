@@ -123,8 +123,9 @@ conversation data, and existing saved conversations without a pin timestamp rema
 the toolbar retains the color-mode toggle. Sidebar rows expose pin/unpin and archive
 buttons on hover or keyboard focus. On devices with hover, actions overlay the title
 with a gradient fade rather than reserving title space; the title shifts subtly on reveal.
-Reduced-motion preferences disable this movement and transitions. Touch devices keep
-the buttons visible with space reserved for them. Archiving
+Reduced-motion preferences disable this movement and transitions. Mobile navigation hides row actions; pinning and archiving remain available in the
+conversation title menu. Desktop touch devices keep the buttons visible with space
+reserved for them. Archiving
 clears the pin and moves the conversation into the collapsed “Gearchiveerd” group at
 the bottom, ordered by creation date and included in search. Archiving the active chat
 opens an empty chat. Archived chats can be opened, restored or deleted; restoring
@@ -136,9 +137,14 @@ omits the redundant new-chat title and keeps its badge above the greeting. The c
 palette includes a new-chat action and the built-in system/light/dark theme choices.
 The page uses `sand-main` in light mode and `neutral-950` in dark mode; the conversation
 panel uses `sand-light` in light mode and a scoped `bg-default` → `zinc-900` at 50% opacity in dark mode.
-The composer dock and loading skeleton match the panel.
+The composer dock and loading skeleton match the panel. Below `sm`, the panel and
+loading shell fill the viewport without outer margins, rounded corners, rings or shadows.
+The framed panel appearance is retained from `sm` upward.
 Navigation icons use a compact size and optical alignment with the labels. Mobile navigation
-uses the dashboard sidebar menu. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
+uses a full-screen dashboard menu with larger text and more space between history rows
+and groups. New-chat and search actions have extra padding and separation from history. Mobile
+navigation adds breathing room above the primary actions and equally above and below the footer links,
+including an equal allowance for the device bottom safe area. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
 Cmd/Ctrl+K for search. The desktop sidebar can be resized by dragging its edge between 12 and 24 rem (default 17 rem).
 Its width resets on reload. Dashboard component persistence is disabled: Pinia owns its state.
 
@@ -215,6 +221,11 @@ submission flow and preserves the composer draft. The agent follows the
 consent before submitting. Clicking the action is not consent to send a report.
 The action is disabled while a response is being generated.
 
+Below `md`, `ChatSuggestionMarquee` shows all starters in three spacious viewport-width rows
+with staggered starting offsets, alternating directions and a slow 120-second loop, following the Nuxt UI testimonials
+example. Horizontal button gaps and vertical row gaps are both 0.75 rem. Rows pause on hover, touch and keyboard focus. With reduced motion, animation
+stops and each row scrolls horizontally so all prompts remain reachable. From `md`,
+the original wrapped suggestion pills remain visible.
 Eight Dutch starters cover routes, programme comparison, local advice,
 required teaching qualifications, salaries, lateral entry, telephone consultations and personal experiences.
 The routes, comparison, advice and experiences starters reflect the existing MCP

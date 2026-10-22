@@ -23,6 +23,30 @@ export const schedulingSlotsInput = schedulingLinkInput.extend({
       "Start at 0 (next 3 days). After no results use next_window: days 4–7, days 8–15, then weekly. Ignored with explicit dates."
     )
 });
+/** Provider option identifiers and exact labels are kept together through submission. */
+export const savvyCalOptionSchema = z.object({
+  id: z.string().min(1),
+  value: z.string().min(1).max(10000)
+});
+const choiceType = z.enum(["select", "radio", "checkbox", "checkboxes"]);
+const textType = z.enum([
+  "hidden",
+  "short_text",
+  "long_text",
+  "text",
+  "textarea",
+  "email",
+  "phone"
+]);
+const eventFieldInput = z.discriminatedUnion("type", [
+  z.strictObject({ id: z.string().min(1), label: z.string(), type: textType, value: nonemptyText }),
+  z.strictObject({
+    id: z.string().min(1),
+    label: z.string(),
+    type: choiceType,
+    options: z.array(savvyCalOptionSchema).min(1).max(50)
+  })
+]);
 /** Exactly the documented event request, with server-generated field metadata. */
 export const savvyCalEventInput = z.strictObject({
   display_name: z.string().trim().min(1).max(200),
@@ -44,11 +68,7 @@ export const savvyCalEventInput = z.strictObject({
     }, "Use an IANA time zone."),
   start_at: timestamp,
   end_at: timestamp,
-  fields: z
-    .array(
-      z.strictObject({ id: z.string(), label: z.string(), type: z.string(), value: nonemptyText })
-    )
-    .max(100)
+  fields: z.array(eventFieldInput).max(100)
 });
 export const schedulingBookingInput = z.strictObject({
   ...schedulingLinkInput.shape,
@@ -88,6 +108,7 @@ export const savvyCalFieldSchema = z.object({
     "radio",
     "checkbox"
   ]),
+  options: z.array(savvyCalOptionSchema).max(100).nullish(),
   is_required: z.boolean()
 });
 export const savvyCalLinkSchema = z.object({
@@ -112,6 +133,18 @@ export const savvyCalEventSchema = z.object({
   state: z.literal("confirmed"),
   start_at: timestamp,
   end_at: timestamp,
+  scheduler: z.object({
+    fields: z
+      .array(
+        z.object({
+          id: z.string(),
+          type: z.string(),
+          value: z.string().nullable().optional(),
+          options: z.array(savvyCalOptionSchema).nullish()
+        })
+      )
+      .max(100)
+  }),
   organizer: z.object({ display_name: z.string().min(1) }),
   link: z.object({ id: z.string() }),
   is_group_session: z.literal(false),

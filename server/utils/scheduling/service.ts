@@ -1,11 +1,6 @@
 import { z } from "zod";
 import type { SavvyCalClient } from "./client";
-import {
-  schedulingChoices,
-  schedulingLinks,
-  type SchedulingChoiceConfig,
-  type SchedulingLanguage
-} from "./config";
+import { schedulingLinks, type SchedulingLanguage } from "./config";
 import { SchedulingError } from "./errors";
 import {
   schedulingBookingInput,
@@ -16,12 +11,14 @@ import {
   schedulingSlotsOutput,
   schedulingSlotSchema,
   savvyCalEventSchema,
+  savvyCalEventInput,
   savvyCalLinkSchema
 } from "./schemas";
 
 type Booking = z.infer<typeof schedulingBookingInput>;
 type Link = z.infer<typeof savvyCalLinkSchema>;
-type FormField = z.infer<typeof schedulingLinkOutput>["fields"][number];
+type FormField = Link["fields"][number] & { configured: boolean };
+type EventFields = z.infer<typeof savvyCalEventInput>["fields"];
 type ConfirmedEvent = z.infer<typeof savvyCalEventSchema>;
 type TimeRange = { from: string; until: string };
 type BookingContext = { clientName?: string; beforeCreate: () => Promise<void> };
@@ -62,31 +59,26 @@ function defaultWindowDays(window: number): [number, number] {
   }
 }
 
-/** Attach owner-supplied choices only when they match the current provider field. */
-function configureField(
-  field: Link["fields"][number],
-  choices: SchedulingChoiceConfig[SchedulingLanguage]
-): FormField {
-  const config = choices[field.id];
-  const matchingChoices = Boolean(
-    config &&
-    config.label === field.label &&
-    config.type === field.type &&
-    config.values.length > 0 &&
-    new Set(config.values).size === config.values.length
-  );
-  const configured = !choiceTypes.has(field.type) || matchingChoices;
-  return { ...field, configured, options: configured && config ? [...config.values] : [] };
+/** Only expose usable, unambiguous choices from the current provider response. */
+function configureField(field: Link["fields"][number]): FormField {
+  const options = field.options ?? [];
+  const configured =
+    !choiceTypes.has(field.type) ||
+    (options.length > 0 &&
+      new Set(options.map(({ id }) => id)).size === options.length &&
+      new Set(options.map(({ value }) => value)).size === options.length);
+  return { ...field, configured };
 }
 
-/** Validate one answer and preserve the existing provider submission format. */
-function serializeAnswer(field: FormField, values: string[]) {
+/** Validate against fresh options and submit provider IDs without rewriting prefixes. */
+function serializeAnswer(field: FormField, values: string[]): EventFields[number] {
   if (!field.configured) throw new SchedulingError("FORM_NOT_CONFIGURED");
 
   const hasDuplicates = new Set(values).size !== values.length;
   const hasMultipleAnswers = !multipleTypes.has(field.type) && values.length !== 1;
   const hasUnknownChoice =
-    choiceTypes.has(field.type) && values.some((value) => !field.options.includes(value));
+    choiceTypes.has(field.type) &&
+    values.some((value) => !field.options?.some((option) => option.value === value));
   if (hasDuplicates || hasMultipleAnswers || hasUnknownChoice) {
     throw new SchedulingError("INVALID_ANSWERS");
   }
@@ -94,9 +86,20 @@ function serializeAnswer(field: FormField, values: string[]) {
     throw new SchedulingError("INVALID_ANSWERS");
   }
 
-  const value = multipleTypes.has(field.type) ? values.join("\n") : values[0]!;
-  if (!value.trim() || value.length > 10000) throw new SchedulingError("INVALID_ANSWERS");
-  return { id: field.id, label: field.label, type: field.type, value };
+  const metadata = { id: field.id, label: field.label };
+  switch (field.type) {
+    case "select":
+    case "radio":
+    case "checkbox":
+    case "checkboxes":
+      return {
+        ...metadata,
+        type: field.type,
+        options: values.map((value) => field.options!.find((option) => option.value === value)!)
+      };
+    default:
+      return { ...metadata, type: field.type, value: values[0]! };
+  }
 }
 
 /** Reject missing, duplicate or unknown answers before preparing provider fields. */
@@ -121,8 +124,13 @@ function prepareAnswers(fields: FormField[], submitted: Booking["answers"]) {
   });
 }
 
-/** Accept confirmation only for the requested link and exact start/end instants. */
-function readConfirmation(raw: unknown, linkId: string, booking: Booking): ConfirmedEvent {
+/** Confirm the requested link, exact instants and preservation of every submitted answer. */
+function readConfirmation(
+  raw: unknown,
+  linkId: string,
+  booking: Booking,
+  submitted: EventFields
+): ConfirmedEvent {
   const result = savvyCalEventSchema.safeParse(raw);
   if (!result.success) throw new SchedulingError("BOOKING_UNCERTAIN");
 
@@ -133,6 +141,21 @@ function readConfirmation(raw: unknown, linkId: string, booking: Booking): Confi
     Date.parse(event.end_at) !== Date.parse(booking.end_at)
   ) {
     throw new SchedulingError("BOOKING_UNCERTAIN");
+  }
+  for (const expected of submitted) {
+    const matches = event.scheduler.fields.filter(({ id }) => id === expected.id);
+    const actual = matches[0];
+    if (matches.length !== 1 || !actual || actual.type !== expected.type) {
+      throw new SchedulingError("BOOKING_UNCERTAIN");
+    }
+    const preserved =
+      "options" in expected
+        ? actual.options?.length === expected.options.length &&
+          expected.options.every((option) =>
+            actual.options?.some(({ id, value }) => id === option.id && value === option.value)
+          )
+        : actual.value === expected.value;
+    if (!preserved) throw new SchedulingError("BOOKING_UNCERTAIN");
   }
   return event;
 }
@@ -187,13 +210,9 @@ export function schedulingRange(input: z.input<typeof schedulingSlotsInput>, now
 
 /** Encapsulate scheduling without accepting request URLs, API options or arbitrary link IDs.
  * @param client - Restricted API adapter.
- * @param choices - Owner-supplied choice definitions, never MCP arguments.
  * @returns Metadata, availability and confirmed booking workflows.
  */
-export function createSchedulingService(
-  client: SavvyCalClient,
-  choices: SchedulingChoiceConfig = schedulingChoices
-) {
+export function createSchedulingService(client: SavvyCalClient) {
   /** Fetch and validate fresh link identity, duration and attribution metadata.
    * @param language - Selected consultation language.
    * @returns Fresh API link with usable form configuration.
@@ -217,9 +236,7 @@ export function createSchedulingService(
     ) {
       throw new SchedulingError("INVALID_RESPONSE");
     }
-    const fields = link.fields
-      .filter(({ type }) => type !== "hidden")
-      .map((field) => configureField(field, choices[language]));
+    const fields = link.fields.filter(({ type }) => type !== "hidden").map(configureField);
     return { link, fields, attribution };
   }
 
@@ -271,7 +288,10 @@ export function createSchedulingService(
         url: `https://advies.onderwijsloket.com/${schedulingLinks[language].slug}`,
         default_duration: link.default_duration,
         durations: link.durations,
-        fields,
+        fields: fields.map((field) => ({
+          ...field,
+          options: field.configured ? (field.options ?? []).map(({ value }) => value) : []
+        })),
         booking_ready: blocking.length === 0,
         blocking_field_ids: blocking,
         guidance:
@@ -340,7 +360,7 @@ export function createSchedulingService(
         end_at: args.end_at,
         fields: submitted
       });
-      const event = readConfirmation(raw, link.id, args);
+      const event = readConfirmation(raw, link.id, args, submitted);
       return bookingConfirmation(event, args);
     }
   };

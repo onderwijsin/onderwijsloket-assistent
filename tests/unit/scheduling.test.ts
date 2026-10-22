@@ -1,7 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createSavvyCalClient } from "../../server/utils/scheduling/client";
 import { createSchedulingService, schedulingRange } from "../../server/utils/scheduling/service";
-import { schedulingLinks, type SchedulingChoiceConfig } from "../../server/utils/scheduling/config";
+import type { z } from "zod";
+import type { savvyCalEventInput } from "../../server/utils/scheduling/schemas";
+import { schedulingLinks } from "../../server/utils/scheduling/config";
 import { schedulingFixtureEvent, schedulingFixtureLink } from "../fixtures/scheduling";
 
 const start = "2027-01-05T10:00:00Z";
@@ -24,7 +26,9 @@ function fixture() {
   const client = {
     getLink: vi.fn(async () => link),
     getSlots: vi.fn(async () => [{ start_at: start, end_at: end, duration: 20, rank: 1 }]),
-    createEvent: vi.fn(async () => schedulingFixtureEvent("nl", start))
+    createEvent: vi.fn(async (_language: "nl" | "en", body: z.input<typeof savvyCalEventInput>) =>
+      schedulingFixtureEvent(_language, start, body.fields)
+    )
   };
   return { link, client, service: createSchedulingService(client), guard: vi.fn(async () => {}) };
 }
@@ -132,74 +136,134 @@ describe("scheduling workflow", () => {
     }
     expect(guard).not.toHaveBeenCalled();
   });
-  it("validates owner-supplied choices against exact current field metadata", async () => {
-    vi.useFakeTimers().setSystemTime(new Date("2027-01-01T00:00:00Z"));
-    const { client, link, guard } = fixture();
-    link.fields.push({
-      id: "field_education",
-      label: "Education",
-      type: "select",
-      is_required: true
-    });
-    const choices: SchedulingChoiceConfig = {
-      nl: {
-        field_education: { label: "Education", type: "select", values: ["Bachelor", "Master"] }
-      },
-      en: {}
-    };
-    const service = createSchedulingService(client, choices);
-    const answers = [...input.answers, { field_id: "field_education", values: ["Invented"] }];
-    await expect(service.book({ ...input, answers }, { beforeCreate: guard })).rejects.toThrow(
-      "INVALID_ANSWERS"
-    );
-    answers[1]!.values = ["Bachelor"];
-    await service.book({ ...input, answers }, { beforeCreate: guard });
-    expect(client.createEvent).toHaveBeenCalledWith(
-      "nl",
-      expect.objectContaining({
-        fields: expect.arrayContaining([expect.objectContaining({ value: "Unknown MCP Client" })])
-      })
-    );
-    choices.nl.field_education!.label = "Old label";
-    await expect(service.book({ ...input, answers }, { beforeCreate: guard })).rejects.toThrow(
-      "FORM_NOT_CONFIGURED"
-    );
-  });
-  it("blocks missing checkbox choices, then serializes confirmed selections as readable string values", async () => {
-    vi.useFakeTimers().setSystemTime(new Date("2027-01-01T00:00:00Z"));
-    const { client, link, guard } = fixture();
-    link.fields.push({
-      id: "field_sectors",
-      label: "Sectors",
-      type: "checkboxes",
-      is_required: true
-    });
-    await expect(
-      createSchedulingService(client).book(input, { beforeCreate: guard })
-    ).rejects.toThrow("FORM_NOT_CONFIGURED");
-    expect(guard).not.toHaveBeenCalled();
-    const service = createSchedulingService(client, {
-      nl: {
-        field_sectors: { label: "Sectors", type: "checkboxes", values: ["Primary", "Secondary"] }
-      },
-      en: {}
-    });
-    await service.book(
-      {
-        ...input,
-        answers: [...input.answers, { field_id: "field_sectors", values: ["Primary", "Secondary"] }]
-      },
-      { beforeCreate: guard }
-    );
-    expect(client.createEvent).toHaveBeenCalledWith(
-      "nl",
-      expect.objectContaining({
-        fields: expect.arrayContaining([
-          expect.objectContaining({ id: "field_sectors", value: "Primary\nSecondary" })
-        ])
-      })
-    );
-  });
+  it.each(["nl", "en"] as const)(
+    "submits current select, radio and multiple checkbox option objects for %s",
+    async (language) => {
+      vi.useFakeTimers().setSystemTime(new Date("2027-01-01T00:00:00Z"));
+      const { client, guard } = fixture();
+      const link = schedulingFixtureLink(language);
+      client.getLink.mockResolvedValue(link);
+      const service = createSchedulingService(client);
+      const choiceFields = ["select", "radio", "checkboxes", "checkbox"].map((type, index) => ({
+        id: index === 0 ? "bare_field_id" : `field_choice_${index}`,
+        label: `Choice ${index}`,
+        type,
+        is_required: true,
+        options: [
+          { id: "opt_first", value: "Primary, with comma" },
+          { id: "bare_option_id", value: "Secondary" }
+        ]
+      }));
+      link.fields.push(...choiceFields);
+      const form = await service.getLink({ language });
+      expect(form.booking_ready).toBe(true);
+      expect(form.fields[1]?.options).toEqual(["Primary, with comma", "Secondary"]);
+      const answers = [
+        ...input.answers,
+        ...choiceFields.map((field) => ({
+          field_id: field.id,
+          values: field.options
+            .slice(0, field.type.startsWith("checkbox") ? 2 : 1)
+            .map(({ value }) => value)
+        }))
+      ];
+      await expect(
+        service.book({ ...input, language, answers }, { beforeCreate: guard })
+      ).resolves.toHaveProperty("id");
+      const submitted = client.createEvent.mock.calls[0]![1].fields;
+      for (const field of choiceFields) {
+        expect(submitted.find(({ id }) => id === field.id)).toEqual({
+          id: field.id,
+          label: field.label,
+          type: field.type,
+          options: field.options.slice(0, field.type.startsWith("checkbox") ? 2 : 1)
+        });
+      }
+      // Fresh metadata replaces prior labels and IDs; stale values never reach a write.
+      choiceFields[0]!.options[0]!.value = "Changed";
+      await expect(
+        service.book({ ...input, language, answers }, { beforeCreate: guard })
+      ).rejects.toThrow("INVALID_ANSWERS");
+      expect(client.createEvent).toHaveBeenCalledOnce();
+      expect(guard).toHaveBeenCalledOnce();
+    }
+  );
+  it.each([
+    { options: [] },
+    {
+      options: [
+        { id: "opt_same", value: "One" },
+        { id: "opt_same", value: "Two" }
+      ]
+    },
+    {
+      options: [
+        { id: "opt_one", value: "Same" },
+        { id: "opt_two", value: "Same" }
+      ]
+    }
+  ])(
+    "blocks empty or ambiguous provider choices before quota consumption ($options)",
+    async ({ options }) => {
+      vi.useFakeTimers().setSystemTime(new Date("2027-01-01T00:00:00Z"));
+      const { link, service, guard, client } = fixture();
+      link.fields.push({
+        id: "field_choice",
+        label: "Choice",
+        type: "select",
+        is_required: true,
+        options
+      });
+      expect(await service.getLink({ language: "nl" })).toMatchObject({
+        booking_ready: false,
+        blocking_field_ids: ["field_choice"]
+      });
+      await expect(service.book(input, { beforeCreate: guard })).rejects.toThrow(
+        "FORM_NOT_CONFIGURED"
+      );
+      expect(guard).not.toHaveBeenCalled();
+      expect(client.createEvent).not.toHaveBeenCalled();
+    }
+  );
+  it.each(["missing", "empty", "wrong-id", "wrong-value", "partial"])(
+    "treats %s returned intake as uncertain without retrying",
+    async (failure) => {
+      vi.useFakeTimers().setSystemTime(new Date("2027-01-01T00:00:00Z"));
+      const { link, service, client, guard } = fixture();
+      link.fields.push({
+        id: "field_choice",
+        label: "Choice",
+        type: "checkboxes",
+        is_required: true,
+        options: [
+          { id: "opt_one", value: "One" },
+          { id: "opt_two", value: "Two" }
+        ]
+      });
+      client.createEvent.mockImplementationOnce(async (language, body) => {
+        const event = schedulingFixtureEvent(language, start, structuredClone(body.fields));
+        const field = event.scheduler.fields.find(({ id }) => id === "field_choice")!;
+        if (failure === "missing") event.scheduler.fields = [];
+        if ("options" in field) {
+          if (failure === "empty") field.options = [];
+          if (failure === "partial") field.options.pop();
+          if (failure === "wrong-id") field.options[0]!.id = "stale_id";
+          if (failure === "wrong-value") field.options[0]!.value = "Incorrect";
+        }
+        return event;
+      });
+      await expect(
+        service.book(
+          {
+            ...input,
+            answers: [...input.answers, { field_id: "field_choice", values: ["One", "Two"] }]
+          },
+          { beforeCreate: guard }
+        )
+      ).rejects.toThrow("BOOKING_UNCERTAIN");
+      expect(client.createEvent).toHaveBeenCalledOnce();
+    }
+  );
   it("rejects stale slots and malformed availability without consuming quota", async () => {
     vi.useFakeTimers().setSystemTime(new Date("2027-01-01T00:00:00Z"));
     const { client, service, guard } = fixture();

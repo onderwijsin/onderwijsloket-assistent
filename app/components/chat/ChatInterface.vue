@@ -156,9 +156,12 @@ onBeforeUnmount(() => {
   >
     <div
       v-if="!showTranscript"
-      class="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col overflow-y-auto px-4 sm:px-6"
+      class="flex min-h-0 w-full flex-1 flex-col overflow-x-hidden overflow-y-auto"
     >
-      <ChatWelcome class="my-auto shrink-0 py-8 sm:py-12" @select="selectSuggestion">
+      <ChatWelcome
+        class="mx-auto my-auto w-full max-w-3xl shrink-0 px-4 py-8 sm:px-6 sm:py-12"
+        @select="selectSuggestion"
+      >
         <ChatComposer
           ref="composer"
           v-model="input"
