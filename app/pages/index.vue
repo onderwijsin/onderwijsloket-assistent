@@ -1,3 +1,7 @@
+<script setup lang="ts">
+useHead({ titleTemplate: "%s | Stichting Onderwijs in" });
+</script>
+
 <template>
   <ClientOnly>
     <ChatDashboard />

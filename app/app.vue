@@ -22,8 +22,7 @@ useSeoMeta({
   description,
   ogTitle: title,
   ogDescription: description,
-  ogImage:
-    "https://res.cloudinary.com/onderwijsin/image/upload/w_1200/brand/onderwijsin_meta_hxhulm.png",
+  ogImage: "/meta_image.png",
   twitterCard: "summary_large_image"
 });
 </script>
