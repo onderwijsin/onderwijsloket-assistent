@@ -25,6 +25,27 @@ determine the version: fixes normally produce patch releases, features minor
 releases, and breaking changes major releases. Commits without a release-triggering
 change do not create a version.
 
+### Experimental version baseline
+
+The experimental release history starts at `0.1.0`. The former `1.0.0`,
+`1.1.0`, `1.1.1` and `1.2.0` releases and tags were removed, and their changelog
+entries consolidated under `0.1.0`. Git commit history is preserved.
+
+After committing and merging the version reset to `main`, create the baseline
+on that exact commit before dispatching another release:
+
+```sh
+git tag v0.1.0 <reset-commit-sha>
+git push origin v0.1.0
+```
+
+The workflow requires this tag to be an ancestor of the release commit.
+Without a baseline tag, semantic-release defaults to `1.0.0`, regardless of the
+version in `package.json`. With the baseline, fixes produce `0.1.1` and features
+produce `0.2.0`. Breaking changes still produce `1.0.0`; review those intentionally
+before dispatching a release. This reset does not publish a replacement GitHub
+release or deploy the application.
+
 A release updates `CHANGELOG.md` and the version in `package.json`, commits them
 with `chore(release): <version> [skip ci]`, creates a `v<version>` tag and publishes
 a GitHub release. It does not publish an npm package. The workflow captures local

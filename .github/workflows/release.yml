@@ -67,6 +67,13 @@ jobs:
         with:
           proton-pass-personal-access-token: ${{ secrets.PROTON_PASS_PERSONAL_ACCESS_TOKEN }}
 
+      - name: Verify experimental release baseline
+        run: |
+          if ! git merge-base --is-ancestor v0.1.0 HEAD; then
+            echo 'Create and push v0.1.0 on the committed version reset before releasing.'
+            exit 1
+          fi
+
       - name: Run semantic-release
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
