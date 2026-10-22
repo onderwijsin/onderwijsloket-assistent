@@ -1,3 +1,19 @@
+# [1.2.0](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v1.1.1...v1.2.0) (2026-10-22)
+
+
+### Bug Fixes
+
+* Collapsed nav state layout ([911c446](https://github.com/onderwijsin/onderwijsloket-assistent/commit/911c44606668094ca0a51ab09d61ec052ac218fa))
+* Finetune scheduling flow ([9afb4bf](https://github.com/onderwijsin/onderwijsloket-assistent/commit/9afb4bff8634fa43f02516072b887bb49881c997))
+* Savvycal scheduling form options and mobile layout ([cc5d7f6](https://github.com/onderwijsin/onderwijsloket-assistent/commit/cc5d7f60ffae64a42139edaf3b35aca9dd7d97f1))
+
+
+### Features
+
+* Add conversation copy ([5c2872d](https://github.com/onderwijsin/onderwijsloket-assistent/commit/5c2872dc8c2066279e92935be7399565a31d2c1b))
+* Add privacy policy ([a35a4d3](https://github.com/onderwijsin/onderwijsloket-assistent/commit/a35a4d3fcab7b7d06cf288af345d708e376999c0))
+* Persist draft messages and chat preferences ([f918dfc](https://github.com/onderwijsin/onderwijsloket-assistent/commit/f918dfc2ccdd291d28386b972505ba8ffc45a579))
+
 ## [1.1.1](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v1.1.0...v1.1.1) (2026-10-21)
 
 
