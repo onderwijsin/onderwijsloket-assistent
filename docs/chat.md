@@ -142,7 +142,9 @@ panel uses `sand-light` in light mode and a scoped `bg-default` → `zinc-900` a
 The composer dock and loading skeleton match the panel. Below `sm`, the panel and
 loading shell fill the viewport without outer margins, rounded corners, rings or shadows.
 The framed panel appearance is retained from `sm` upward.
-Navigation icons use a compact size and optical alignment with the labels. Mobile navigation
+Expanded navigation icons use a compact size and optical alignment with the labels. Collapsed
+navigation uses centered 20px icons in 32px square buttons, matching the sidebar collapse toggle,
+with an 8px vertical gap between buttons in both the primary and footer menus. Mobile navigation
 uses a full-screen dashboard menu with larger text and more space between history rows
 and groups. New-chat and search actions have extra padding and separation from history. Mobile
 navigation adds breathing room above the primary actions and equally above and below the footer links,

@@ -4,6 +4,11 @@ import type { DropdownMenuItem } from "@nuxt/ui";
 import { groupConversations } from "../../utils/chat-history";
 
 const store = useChatStore();
+const collapsedNavigationUi = {
+  list: "flex flex-col gap-2",
+  link: "size-8 justify-center gap-0 p-1.5",
+  linkLeadingIcon: "size-5 translate-y-0"
+};
 if (!store.active) store.newConversation();
 const renaming = ref(false);
 const renameTitle = ref("");
@@ -140,7 +145,11 @@ defineShortcuts({
           ]"
           orientation="vertical"
           class="mt-2 mb-4 lg:mt-0 lg:mb-0"
-          :ui="{ list: 'gap-2 lg:gap-0', link: 'py-3 text-base lg:py-1.5 lg:text-sm' }"
+          :ui="
+            collapsed
+              ? collapsedNavigationUi
+              : { list: 'gap-2 lg:gap-0', link: 'py-3 text-base lg:py-1.5 lg:text-sm' }
+          "
         />
         <nav v-if="!collapsed" aria-label="Gespreksgeschiedenis" class="space-y-6 lg:space-y-3">
           <component
@@ -208,6 +217,7 @@ defineShortcuts({
           :collapsed="collapsed"
           orientation="vertical"
           class="w-full py-[calc(0.75rem+env(safe-area-inset-bottom))] lg:py-0"
+          :ui="collapsed ? collapsedNavigationUi : undefined"
         />
       </template>
     </UDashboardSidebar>
