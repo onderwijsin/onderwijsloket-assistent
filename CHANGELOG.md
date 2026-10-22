@@ -1,3 +1,10 @@
+## [0.1.2](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v0.1.1...v0.1.2) (2026-10-22)
+
+
+### Bug Fixes
+
+* Update title template for homepage ([2365b22](https://github.com/onderwijsin/onderwijsloket-assistent/commit/2365b2222c67411bd7a6e677e166b08588e4d95e))
+
 ## [0.1.1](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v0.1.0...v0.1.1) (2026-10-22)
 
 
