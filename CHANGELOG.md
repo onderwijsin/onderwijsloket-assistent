@@ -1,3 +1,11 @@
+## [0.1.1](https://github.com/onderwijsin/onderwijsloket-assistent/compare/v0.1.0...v0.1.1) (2026-10-22)
+
+
+### Bug Fixes
+
+* Add app version ([983e419](https://github.com/onderwijsin/onderwijsloket-assistent/commit/983e4197bffd129da5b8cd2c1ec63694be75432d))
+* Mobile menu footer scroll ([b6572b4](https://github.com/onderwijsin/onderwijsloket-assistent/commit/b6572b40cda5302798d111356aa69db91d2a62a8))
+
 # 0.1.0 (2026-10-22)
 
 Initial experimental release. Consolidates the previous 1.x release notes.
