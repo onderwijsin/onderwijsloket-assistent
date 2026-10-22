@@ -151,6 +151,11 @@ defineShortcuts({
       resizable
       collapsible
       mode="modal"
+      :ui="{
+        content: 'overflow-y-auto',
+        body: 'flex-none overflow-y-visible lg:flex-1 lg:overflow-y-auto',
+        footer: 'pt-4'
+      }"
       :menu="{
         fullscreen: true,
         title: 'Gesprekken',

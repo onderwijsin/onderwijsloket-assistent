@@ -117,6 +117,8 @@ Onderwijs in, the GitHub repository and the newsletter page.
 The expanded sidebar footer shows the package version (shared with the MCP server) and
 the first eight characters of Nuxt's build ID in small, muted text. Hovering reveals the
 full build ID. The label is also present in mobile navigation and hidden when collapsed.
+On mobile, the entire navigation menu scrolls, including its footer. The footer has
+extra top padding to separate it from the conversation history.
 The conversation title menu supports pin/unpin, rename, copying and delete. “Gesprek kopiëren” copies the title and
 user/assistant text as Markdown with speaker headings, excluding reasoning and tool payloads.
 Successful copying shows “Het gesprek is gekopieerd naar je klembord”; failures show an error toast.
@@ -156,8 +158,8 @@ navigation uses centered 20px icons in 32px square buttons, matching the sidebar
 with an 8px vertical gap between buttons in both the primary and footer menus. Mobile navigation
 uses a full-screen dashboard menu with larger text and more space between history rows
 and groups. New-chat and search actions have extra padding and separation from history. Mobile
-navigation adds breathing room above the primary actions and equally above and below the footer links,
-including an equal allowance for the device bottom safe area. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
+navigation adds breathing room above the primary actions and footer links,
+with bottom padding that includes the device safe area. Keyboard shortcuts are Cmd/Ctrl+O for a new chat and
 Cmd/Ctrl+K for search. The desktop sidebar can be resized by dragging its edge between 12 and 24 rem (default 17 rem).
 Its width resets on reload. Dashboard component persistence is disabled: Pinia owns its state.
 
