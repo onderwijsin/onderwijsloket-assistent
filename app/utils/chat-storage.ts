@@ -1,5 +1,12 @@
 import { z } from "zod";
 import type { UIMessage } from "ai";
+import { DEFAULT_CHAT_SETTINGS } from "../types/chat";
+
+const settingsSchema = z.object({
+  model: z.enum(["gpt-6-luna", "mistral-medium-latest"]),
+  webSearch: z.boolean(),
+  extendedThinking: z.boolean()
+});
 
 const partSchema = z.looseObject({ type: z.string() }).superRefine((part, context) => {
   if ((part.type === "text" || part.type === "reasoning") && typeof part.text !== "string") {
@@ -21,17 +28,15 @@ const conversationSchema = z.object({
   pinnedAt: z.iso.datetime().nullable().optional(),
   archivedAt: z.iso.datetime().nullable().optional(),
   draft: z.string(),
+  settings: settingsSchema.optional(),
   messages: z.array(messageSchema)
 });
 const stateSchema = z.object({
   conversations: z.array(conversationSchema),
   activeId: z.string().nullable(),
   sidebarCollapsed: z.boolean(),
-  settings: z.object({
-    model: z.enum(["gpt-6-luna", "mistral-medium-latest"]),
-    webSearch: z.boolean(),
-    extendedThinking: z.boolean()
-  })
+  settings: settingsSchema.optional(),
+  defaultSettings: settingsSchema.optional()
 });
 
 /**
@@ -71,10 +76,19 @@ export function deserializeChatState(value: string): Record<string, unknown> {
   try {
     const result = stateSchema.safeParse(JSON.parse(value));
     if (!result.success) return {};
+    const defaults =
+      result.data.defaultSettings ??
+      result.data.settings ??
+      result.data.conversations.find((chat) => !chat.archivedAt && !chat.messages.length)
+        ?.settings ??
+      DEFAULT_CHAT_SETTINGS;
     return {
-      ...result.data,
+      defaultSettings: { ...defaults },
+      activeId: result.data.activeId,
+      sidebarCollapsed: result.data.sidebarCollapsed,
       conversations: result.data.conversations.map((chat) => ({
         ...chat,
+        settings: { ...(chat.settings ?? defaults) },
         messages: restoreChatMessages(chat.messages as UIMessage[])
       }))
     };

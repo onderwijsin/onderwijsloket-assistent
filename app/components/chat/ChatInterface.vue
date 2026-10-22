@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useChat } from "@ai-sdk/vue";
 import { DefaultChatTransport, isTextUIPart } from "ai";
-import { storeToRefs } from "pinia";
 import { chatTitleSchema } from "../../../shared/utils/chat-title";
 import { canRegenerateChat } from "../../utils/chat-regenerate";
 import { restoreChatMessages } from "../../utils/chat-storage";
@@ -25,8 +24,21 @@ const input = computed({
     conversation.draft = value;
   }
 });
-const { settings } = storeToRefs(store);
 const showTranscript = shallowRef(conversation.messages.length > 0);
+const settings = computed({
+  /**
+   * Read the selections belonging to this conversation.
+   * @returns Current model and capabilities.
+   */
+  get: () => conversation.settings,
+  /**
+   * Save selections and update new-chat defaults only from the welcome view.
+   * @param value - Updated model and capabilities.
+   */
+  set: (value: typeof conversation.settings) => {
+    store.updateSettings(props.conversationId, value, !showTranscript.value);
+  }
+});
 const submitting = shallowRef(false);
 let disposed = false;
 const transcript = useTemplateRef("transcript");

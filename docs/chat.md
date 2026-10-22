@@ -276,3 +276,16 @@ sidebar footer link. New-chat and history actions return to `/`.
 Conversation history highlights the active conversation only on `/`, leaving it
 unhighlighted on `/privacy`. The Onderwijs in, GitHub and newsletter footer links
 open in a new tab with `noopener noreferrer`; Privacy stays in the current tab.
+
+Drafts persist per conversation, including the unsent new conversation. “New
+conversation” reopens that unsent draft. Model and capability selections made in
+the welcome view also update persisted global defaults for future conversations.
+Once transcript mode is active, edits affect only that conversation. New chats
+copy the defaults, so later changes do not affect existing transcripts. Initial
+defaults are GPT-6 Luna, web search off and extended thinking on.
+
+Preferences and defaults persist in Pinia/localStorage. Legacy global preferences
+migrate into defaults and conversations without their own selections. For saved
+state with only conversation preferences, defaults are recovered from an unsent
+conversation when available, otherwise from initial defaults. Deleting a
+conversation also deletes its local draft and preferences.

@@ -1,7 +1,7 @@
 import { defineStore, acceptHMRUpdate } from "pinia";
 import { computed, ref } from "vue";
 import type { UIMessage } from "ai";
-import type { ChatSettings } from "../types/chat";
+import { DEFAULT_CHAT_SETTINGS, type ChatSettings } from "../types/chat";
 import { deserializeChatState } from "../utils/chat-storage";
 
 export interface Conversation {
@@ -14,6 +14,7 @@ export interface Conversation {
   pinnedAt?: string | null;
   archivedAt?: string | null;
   draft: string;
+  settings: ChatSettings;
   messages: UIMessage[];
 }
 
@@ -23,11 +24,7 @@ export const useChatStore = defineStore(
   () => {
     const conversations = ref<Conversation[]>([]);
     const activeId = ref<string | null>(null);
-    const settings = ref<ChatSettings>({
-      model: "gpt-6-luna",
-      webSearch: false,
-      extendedThinking: true
-    });
+    const defaultSettings = ref<ChatSettings>({ ...DEFAULT_CHAT_SETTINGS });
     const sidebarCollapsed = ref(false);
     const sidebarOpen = ref(false);
     const searchOpen = ref(false);
@@ -38,10 +35,9 @@ export const useChatStore = defineStore(
      * @returns The reused empty conversation or a newly created active conversation.
      */
     function newConversation() {
-      const empty = conversations.value.find(
-        (chat) => !chat.archivedAt && !chat.messages.length && !chat.draft
-      );
+      const empty = conversations.value.find((chat) => !chat.archivedAt && !chat.messages.length);
       if (empty) {
+        empty.settings = { ...defaultSettings.value };
         activeId.value = empty.id;
         return empty;
       }
@@ -54,11 +50,25 @@ export const useChatStore = defineStore(
         createdAt: now,
         updatedAt: now,
         draft: "",
+        settings: { ...defaultSettings.value },
         messages: []
       };
       conversations.value.unshift(chat);
       activeId.value = chat.id;
       return chat;
+    }
+
+    /**
+     * Save preferences, updating defaults only while editing the welcome composer.
+     * @param id - Conversation receiving the selections.
+     * @param settings - Complete model and capability selections.
+     * @param updateDefaults - Whether the welcome composer is still visible.
+     */
+    function updateSettings(id: string, settings: ChatSettings, updateDefaults: boolean) {
+      const chat = conversations.value.find((item) => item.id === id);
+      if (!chat) return;
+      chat.settings = { ...settings };
+      if (updateDefaults) defaultSettings.value = { ...settings };
     }
 
     /**
@@ -154,8 +164,9 @@ export const useChatStore = defineStore(
     return {
       conversations,
       activeId,
+      defaultSettings,
+      updateSettings,
       active,
-      settings,
       sidebarCollapsed,
       sidebarOpen,
       searchOpen,
@@ -174,7 +185,7 @@ export const useChatStore = defineStore(
       // Never use the persistence module's default cookie storage for chat content.
       storage: piniaPluginPersistedstate.localStorage(),
       serializer: { serialize: JSON.stringify, deserialize: deserializeChatState },
-      pick: ["conversations", "activeId", "settings", "sidebarCollapsed"]
+      pick: ["conversations", "activeId", "defaultSettings", "sidebarCollapsed"]
     }
   }
 );

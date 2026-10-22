@@ -4,3 +4,10 @@ export interface ChatSettings {
   webSearch: boolean;
   extendedThinking: boolean;
 }
+
+/** Initial selections for a new conversation; copy before editing. */
+export const DEFAULT_CHAT_SETTINGS: Readonly<ChatSettings> = {
+  model: "gpt-6-luna",
+  webSearch: false,
+  extendedThinking: true
+};

@@ -4,15 +4,15 @@ Wanneer je onze chat assistent gebruikt, is het belangrijk om te begrijpen wat e
 
 ## Je gesprek blijft van jou
 
-Je gesprekken worden niet automatisch gedeeld met medewerkers van Stichting Onderwijs in. We slaan je gespreksgeschiedenis niet op in een database op onze servers.
+Je gesprekken worden niet automatisch gedeeld met medewerkers van [Stichting Onderwijs in](https://onderwijsloket.com), of [het Onderwijsloket](https://onderwijsloket.com) (een programma van Stichting Onderwijs in). We slaan je gespreksgeschiedenis niet op in een database op onze servers.
 
-Om antwoord te geven, verwerkt de AI-aanbieder die jij kiest je berichten: **OpenAI of Mistral**. Daarbij worden ook eerdere berichten uit het huidige gesprek meegestuurd, zodat de assistent de context begrijpt. Je gesprekken worden niet gebruikt om AI-modellen te trainen.
+Om antwoord te geven op je vragen, verwerkt de AI-aanbieder die jij kiest je berichten: **OpenAI of Mistral**. Daarbij worden ook eerdere berichten uit het huidige gesprek meegestuurd, zodat de assistent de context begrijpt. Je gesprekken worden niet gebruikt om AI-modellen te trainen.
 
 Deel toch liever geen zeer persoonlijke informatie, zoals je BSN, medische gegevens, wachtwoorden of vertrouwelijke informatie over anderen. Je kunt je situatie meestal ook uitleggen zonder namen of andere herkenbare details. Geen gebruik voor training betekent bovendien niet dat de AI-aanbieder helemaal niets bewaart: daarvoor gelden de eigen bewaartermijnen en voorwaarden van de aanbieder.
 
 ## Onze applicatie draait in Nederland
 
-We beheren en hosten de applicatie zelf, op servers in **Ede, Nederland**. Je berichten gaan via deze servers naar de gekozen AI-aanbieder. De applicatie verwerkt ze daar tijdelijk om je antwoord te kunnen geven, maar bewaart er geen gespreksgeschiedenis.
+We beheren en hosten deze applicatie zelf, op servers in **Ede, Nederland**. Je berichten gaan via deze servers naar de gekozen AI-aanbieder. De applicatie verwerkt ze daar tijdelijk om je antwoord te kunnen geven, maar bewaart er geen gespreksgeschiedenis.
 
 De AI-modellen draaien bij OpenAI of Mistral. Ook de andere diensten die we hieronder noemen, verwerken gegevens op hun eigen infrastructuur. Dat de applicatie in Ede draait, betekent dus niet dat alle verwerking daar plaatsvindt.
 
@@ -22,7 +22,7 @@ De applicatie gebruikt geen cookies. Je gesprekken, conceptberichten en chatinst
 
 Die lokale opslag is geen online account of back-up. Je kunt gesprekken verwijderen in de assistent. Wis je de lokale websitegegevens in je browser, dan verdwijnen ook de daar opgeslagen gegevens. Wie toegang heeft tot jouw browser, kan mogelijk ook je gesprekken bekijken.
 
-Bij het versturen van een bericht verlaat de inhoud van het huidige gesprek je apparaat wel: die is nodig om een antwoord te maken. Hetzelfde geldt voor gegevens die je bewust meestuurt met feedback of een afspraak. Het verwijderen van je lokale gesprek verwijdert geen gegevens die al bij een van deze diensten zijn terechtgekomen.
+Bij het versturen van een bericht verlaat de inhoud van het huidige gesprek je apparaat wel: die is nodig om een antwoord te maken. Hetzelfde geldt voor gegevens die je bewust meestuurt wanneer je via de chat feedback geeft of een afspraak inplant met het Onderwijsloket. Het verwijderen van je lokale gesprek verwijdert geen gegevens die al bij een van deze diensten zijn terechtgekomen.
 
 ## Wanneer deel je gegevens met ons team?
 

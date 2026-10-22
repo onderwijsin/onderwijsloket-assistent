@@ -10,8 +10,12 @@ const emit = defineEmits<{ submit: []; stop: [] }>();
 const prompt = useTemplateRef("prompt");
 const busy = computed(() => props.status === "submitted" || props.status === "streaming");
 const models = [
-  { label: "Mistral Medium", value: "mistral-medium-latest", icon: "i-simple-icons-mistralai" },
-  { label: "GPT-6 Luna", value: "gpt-6-luna", icon: "i-simple-icons-openai" }
+  {
+    label: "Mistral Medium",
+    value: "mistral-medium-latest" as const,
+    icon: "i-simple-icons-mistralai"
+  },
+  { label: "GPT-6 Luna", value: "gpt-6-luna" as const, icon: "i-simple-icons-openai" }
 ] satisfies SelectItem[];
 const selectedIcon = computed(
   () => models.find((model) => model.value === settings.value.model)?.icon
@@ -27,7 +31,7 @@ const features = computed<DropdownMenuItem[]>(() => [
      * @param checked - Whether web search is enabled.
      */
     onUpdateChecked: (checked) => {
-      settings.value.webSearch = checked;
+      settings.value = { ...settings.value, webSearch: checked };
     },
     /**
      * Keep the feature menu open while toggling a checkbox.
@@ -46,7 +50,7 @@ const features = computed<DropdownMenuItem[]>(() => [
      * @param checked - Whether extended thinking is enabled.
      */
     onUpdateChecked: (checked) => {
-      settings.value.extendedThinking = checked;
+      settings.value = { ...settings.value, extendedThinking: checked };
     },
     /**
      * Keep the feature menu open while toggling a checkbox.
@@ -104,7 +108,7 @@ defineExpose({ focus });
             variant="soft"
             size="sm"
             :disabled="busy"
-            @click="settings.webSearch = false"
+            @click="settings = { ...settings, webSearch: false }"
           />
         </UTooltip>
         <UTooltip v-if="settings.extendedThinking" text="Uitgebreid nadenken staat aan">
@@ -115,13 +119,14 @@ defineExpose({ focus });
             variant="soft"
             size="sm"
             :disabled="busy"
-            @click="settings.extendedThinking = false"
+            @click="settings = { ...settings, extendedThinking: false }"
           />
         </UTooltip>
       </div>
       <div class="ms-auto flex items-center gap-2">
         <USelect
-          v-model="settings.model"
+          :model-value="settings.model"
+          @update:model-value="settings = { ...settings, model: $event }"
           :items="models"
           :icon="selectedIcon"
           aria-label="AI-model kiezen"
