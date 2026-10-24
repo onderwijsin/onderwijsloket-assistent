@@ -80,16 +80,6 @@ When multiple valid solutions exist, prefer:
 - Keep scope tight — avoid opportunistic refactors
 - Preserve existing route and file naming contracts unless explicitly asked to change them
 
-### Server Route Organization
-
-- Organize `server/api/` routes by URL namespace.
-- When a URL path has multiple method handlers, place them in a directory and name the handlers
-  `index.<method>.ts` (for example, `server/api/user/[id]/index.get.ts`).
-- Place child routes below their parent namespace (for example,
-  `server/api/user/[id]/referral-count.get.ts` and `server/api/user/session/refresh.post.ts`).
-- Keep a single, action-specific route as `<action>.<method>.ts`; do not overload an unrelated
-  resource index route merely to avoid a file (for example, `server/api/user/signup.post.ts`).
-
 ---
 
 ## When to Ask
@@ -121,6 +111,7 @@ agent **MUST** provide a summary of the work done, including:
 - What changed
 - Impact on contracts and behavior
 - Open risks or follow-up work
+- A copy-pastable commit message
 
 It is the responsibility of the human collaborator to review, approve, and commit the changes.
 
